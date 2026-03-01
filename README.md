@@ -5,12 +5,13 @@
 <h1 align="center">AquaLasTech</h1>
 
 <p align="center">
-🚰 Water Refilling Station Management and Commerce System
+A Web-based Order and Inventory Management System
 </p>
 
 <p align="center">
-  <img src="./client/public/assets/team-logo.png" width="120"/>
+  <img src="./client/public/assets/team-logo.png" width="100"/>
 </p>
+<h1 align="center">Ramnify</h1>
 
 ---
 
@@ -143,19 +144,6 @@ client/
 ⚠️ Never commit sensitive credentials or secrets.
 ```
 
-👥 Development Team – Ramnify
-Project Manager / System Architect
-Mark Levi Arellano Roldan
-
-Full Stack Developer
-Noel Christian L. Soberano
-
-UI/UX Designer & Quality Assurance
-Rose Ann Paras
-
-Frontend / DevOps
-Fam Manahan
-
 📌 Development Status
 
 🟢 Active Development Phase
@@ -170,4 +158,24 @@ Fam Manahan
 ⭐ Future Enhancements
 - Chatbot
 
-<p align="center"> Made with Love by Ramnify Development Team </p> 
+👥 Development Team – Ramnify
+
+Project Manager / System Architect:
+Mark Levi Arellano Roldan
+
+<div align="center">
+
+### Full Stack Developer  
+**Noel Christian L. Soberano**
+
+### UI/UX Designer & Quality Assurance  
+**Rose Ann Paras**
+
+### Frontend / DevOps  
+**Fam Manahan**
+
+<br>
+
+<p>Made with Love by Ramnify Development Team ❤️</p>
+
+</div>

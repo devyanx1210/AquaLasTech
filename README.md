@@ -169,7 +169,8 @@ Never commit sensitive credentials or secrets.
 
 <div align="center">
 <p align="center">
-  <img src="./client/public/assets/team-logo.png" width="90"/>
+<p align="center">
+  <img src="./client/public/assets/team-logo.png" width="90" style="border-radius: 16px;" />
 </p>
 <h3 align="center">Ramnify</h3>
   

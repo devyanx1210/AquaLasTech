@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./client/public/assets/aqualastech-logo.png" width="180"/>
+  <img src="./client/public/assets/aqualastech-logo-noBG.png" width="180"/>
 </p>
 
 <h1 align="center">AquaLasTech</h1>

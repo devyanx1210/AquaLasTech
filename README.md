@@ -1,168 +1,173 @@
 <p align="center">
-  <img src="./client/public/assets/aqulastech-logo.png" width="180"/>
+  <img src="./client/public/assets/aqualastech-logo.png" width="180"/>
 </p>
 
 <h1 align="center">AquaLasTech</h1>
 
 <p align="center">
-Water Refilling Station Management System
+🚰 Water Refilling Station Management and Commerce System
 </p>
 
 <p align="center">
   <img src="./client/public/assets/team-logo.png" width="120"/>
 </p>
 
+---
 
-AquaLasTech
-📌 Project Description
+## 🌊 About AquaLasTech
 
-AquaLasTech is a water refilling station management and commerce system designed to automate ordering, inventory management, POS transactions, payment verification, and reporting.
+**:contentReference[oaicite:1]{index=1}** is a modern water refilling station management platform designed to automate business operations including ordering, inventory tracking, POS transactions, payment verification, and sales reporting.
 
-The system supports customer ordering, station administration, stock monitoring, and sales processing.
+The system provides an integrated solution for customers, station administrators, and operational staff.
 
-🏗️ System Architecture
+---
 
-The project follows a separated full-stack architecture:
+## 🏗️ System Architecture
 
-Backend — Node.js + Express + TypeScript + MySQL
+The system follows a **separated full-stack architecture**:
 
-Frontend — React + Vite + TypeScript + TailwindCSS
+### Backend Layer
+- Node.js + Express  
+- TypeScript  
+- MySQL Database  
+- JWT Authentication  
+- RESTful API Design  
 
-⚙️ Tech Stack
-Backend
+### Frontend Layer
+- React + Vite  
+- TypeScript  
+- TailwindCSS  
+- Axios HTTP Client  
 
-Node.js
+---
 
-Express.js
+## ⚡ Core Features
 
-TypeScript
+### 👤 Authentication & Authorization
+- User registration and login  
+- Role-based access control  
+- Station-scoped administration  
 
-MySQL
+### 🛒 Customer Ordering System
+- Station browsing  
+- Product catalog  
+- Shopping cart management  
+- Checkout processing  
+- Order tracking  
 
-JWT Authentication
+### 🏪 Station Management Module
+- Inventory monitoring  
+- Stock restocking  
+- POS transaction processing  
+- Payment verification workflow  
 
-CORS
+### 📊 Reporting System
+- Daily, weekly, monthly, and yearly sales analytics  
 
-Frontend
+---
 
-React
+## 🧠 Database Design Philosophy
 
-Vite
+The system follows **Third Normal Form (3NF)** relational modeling.
 
-TypeScript
+Primary Entities:
 
-TailwindCSS
+- Users  
+- Stations  
+- Products  
+- Orders  
+- Order Items  
+- Inventory  
+- Payments  
+- POS Transactions  
+- Notifications  
+- Reports Snapshot  
 
-Axios
+Key Principles:
 
-📂 Project Structure
+- Maintain referential integrity  
+- Avoid data duplication  
+- Use normalized relational structures  
+- Implement audit-friendly transaction tracking  
+
+---
+
+## 🛠️ Technology Stack
+
+### Backend
+- Node.js  
+- Express.js  
+- TypeScript  
+- MySQL  
+- JSON Web Token (JWT)  
+- CORS Middleware  
+
+### Frontend
+- React  
+- Vite  
+- TypeScript  
+- TailwindCSS  
+- Axios  
+
+---
+
+## 📂 Project Structure
+
 aqulastech/
-├── server/
-│   └── backend source code
 │
-├── client/
-│   └── frontend source code
-│
-└── database/
-    └── SQL schema or ERD scripts
+├── server/ → Backend API Source Code
+├── client/ → Frontend Application
+├── database/ → SQL Schema / ERD Scripts
+└── README.md
 
-🧩 Features
-Authentication
 
-User registration and login
+---
 
-Role-based access control
+## 🚀 Installation Guide
 
-Customer Module
+### Backend Setup
 
-Browse stations and products
-
-Cart management
-
-Checkout ordering
-
-Order history
-
-Station Management
-
-Inventory monitoring
-
-Order processing
-
-POS transactions
-
-Payment verification
-
-Reporting
-
-Sales reports (daily, weekly, monthly, yearly)
-
-📦 Installation & Setup
-Backend
+```bash
 cd server
 npm install
 npm run dev
 
-Frontend
-cd client
-npm install
-npm run dev
+🔐 Environment Configuration
 
-🔑 Environment Variables
+Create .env files inside:
 
-Create .env files inside server and client directories.
+server/
 
-⚠️ Never commit sensitive credentials.
+client/
 
-📜 Database Design
+⚠️ Never commit sensitive credentials or secrets.
+```
 
-The system follows Third Normal Form (3NF) relational design.
-
-Core entities include:
-
-Users
-
-Stations
-
-Products
-
-Orders
-
-Order Items
-
-Inventory
-
-Payments
-
-POS Transactions
-
-Notifications
-
-🚀 Development Status
-
-Active development phase.
-
-🧠 Design Philosophy
-
-Maintain referential integrity
-
-Separate business logic from routing
-
-Role-based authorization
-
-Input validation before database operations
-
-👥 Development Team: Ramnify
-
-Project Manager/System Architect: 
+👥 Development Team – Ramnify
+Project Manager / System Architect
 Mark Levi Arellano Roldan
 
-Full Stack Developer:
+Full Stack Developer
 Noel Christian L. Soberano
 
-UI/UX Designer/Quality Assurance:
+UI/UX Designer & Quality Assurance
 Rose Ann Paras
 
-Frontend Developer/DevOps:
+Frontend / DevOps
 Fam Manahan
 
+📌 Development Status
+
+🟢 Active Development Phase
+
+💡 Design Principles
+- Referential database integrity
+- Modular backend services
+- Role-based authorization
+- Input validation before persistence
+- Clean separation of business logic and routing layers
+
+⭐ Future Enhancements
+- Chatbot
+
+<p align="center"> Made with Love by Ramnify Development Team </p> 

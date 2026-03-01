@@ -3,15 +3,14 @@
 </p>
 
 <h1 align="center">AquaLasTech</h1>
-
 <p align="center">
 A Web-based Order and Inventory Management System
 </p>
 
 <p align="center">
-  <img src="./client/public/assets/team-logo.png" width="100"/>
+  <img src="./client/public/assets/team-logo.png" width="90"/>
 </p>
-<h1 align="center">Ramnify</h1>
+<h3 align="center">Ramnify</h3>
 
 ---
 

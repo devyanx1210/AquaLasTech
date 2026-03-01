@@ -16,7 +16,7 @@ A Web-based Order and Inventory Management System
 
 ## 🌊 About AquaLasTech
 
-**:contentReference[oaicite:1]{index=1}** is a modern water refilling station management platform designed to automate business operations including ordering, inventory tracking, POS transactions, payment verification, and sales reporting.
+A modern water refilling station management platform designed to automate business operations including ordering, inventory tracking, POS transactions, payment verification, and sales reporting.
 
 The system provides an integrated solution for customers, station administrators, and operational staff.
 

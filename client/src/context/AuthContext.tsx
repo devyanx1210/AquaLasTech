@@ -1,4 +1,3 @@
-// AuthContext.tsx — no useNavigate here
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import axios from "axios";
 
@@ -6,7 +5,8 @@ type User = {
     user_id: number;
     full_name: string;
     email: string;
-    role: "admin" | "customer";
+    role: "super_admin" | "admin" | "customer"; // ← added super_admin
+    station_id: number | null;                   // ← added station_id
 } | null;
 
 type AuthContextType = {
@@ -26,7 +26,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get("http://localhost:8080/auth/me", { withCredentials: true })
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true }) // ← fixed hardcoded URL
             .then(res => setUser(res.data.user))
             .catch(() => setUser(null))
             .finally(() => setLoading(false));

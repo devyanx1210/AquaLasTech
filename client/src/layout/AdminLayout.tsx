@@ -12,18 +12,21 @@ import {
     Menu,
     X,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import logo from "../assets/aqualastech-logo-noBG.png"
 import { useStation } from '../hooks/useStation'
 
-const navItems = [
+// ── Base nav items (visible to all admins) ─────────────────────────────────
+const baseNavItems = [
     { label: 'Home', to: '/admin/dashboard', icon: Home },
     { label: 'Inventory', to: '/admin/inventory', icon: Package },
     { label: 'Orders', to: '/admin/orders', icon: ShoppingBag },
     { label: 'Point of Sale', to: '/admin/orders/pos', icon: CircleDollarSign },
-    { label: 'Settings', to: '/admin/settings', icon: Settings },
 ]
+
+// ── Settings only for super_admin ──────────────────────────────────────────
+const settingsNavItem = { label: 'Settings', to: '/admin/settings', icon: Settings }
 
 function useWindowSize() {
     const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -58,8 +61,13 @@ export default function AdminLayout() {
     useEffect(() => { setDrawerOpen(false) }, [location.pathname])
 
     const sidebarIconOnly = isTablet || (isDesktop && collapsed)
-
     const { station, loading: stationLoading } = useStation(user?.station_id)
+
+    // ── Build nav items based on role ──────────────────────────────────────
+    const isSuperAdmin = user?.role === 'super_admin'
+    const navItems = isSuperAdmin
+        ? [...baseNavItems, settingsNavItem]
+        : baseNavItems
 
     const handleLogout = async () => {
         setLoggingOut(true)
@@ -79,7 +87,7 @@ export default function AdminLayout() {
         ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
         : 'AD'
 
-    // ── LOGOUT CONFIRMATION MODAL ──────────────────────────────────────────
+    // ── LOGOUT MODAL ───────────────────────────────────────────────────────
     const LogoutModal = () => (
         <div className="fixed inset-0 z-[999] flex items-center justify-center px-4">
             <div
@@ -131,7 +139,7 @@ export default function AdminLayout() {
         </div>
     )
 
-    // ── Reusable nav link list ─────────────────────────────────────────────
+    // ── Nav links ──────────────────────────────────────────────────────────
     const NavLinks = ({ iconOnly = false, onClick }: { iconOnly?: boolean; onClick?: () => void }) => (
         <>
             {navItems.map(({ label, to, icon: Icon }) => (
@@ -157,7 +165,7 @@ export default function AdminLayout() {
         </>
     )
 
-    // ── Shared topbar ──────────────────────────────────────────────────────
+    // ── Topbar ─────────────────────────────────────────────────────────────
     const Topbar = () => (
         <header className="top-bar min-h-[52px] bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
             <div className="flex items-center gap-3 min-w-0">
@@ -170,15 +178,8 @@ export default function AdminLayout() {
                         <Menu size={20} className="text-gray-600" />
                     </button>
                 )}
-
-                {/* ── Title block ── */}
                 <div className="min-w-0">
-                    {/* Always visible: Admin Panel */}
-                    <p className="text-sm font-bold text-gray-800 leading-tight">
-                        Admin Panel
-                    </p>
-
-                    {/* Below it: station name · address (hidden on mobile) */}
+                    <p className="text-sm font-bold text-gray-800 leading-tight">Admin Panel</p>
                     <div className="hidden sm:block">
                         {stationLoading ? (
                             <div className="h-2.5 w-40 bg-gray-100 rounded animate-pulse mt-0.5" />
@@ -195,8 +196,6 @@ export default function AdminLayout() {
                     </div>
                 </div>
             </div>
-
-            {/* Right side */}
             <div className="flex items-center gap-2 shrink-0">
                 <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
                     <Bell size={18} className="text-gray-500" />
@@ -210,27 +209,22 @@ export default function AdminLayout() {
     )
 
     // ══════════════════════════════════════════════════════════════════════
-    // MOBILE LAYOUT  (<768px)
+    // MOBILE LAYOUT
+    // ══════════════════════════════════════════════════════════════════════
     if (isMobile) {
         return (
             <div className="mobile-layout flex flex-col h-[100dvh] bg-[#f0f4f8] overflow-hidden">
                 <Topbar />
 
                 {drawerOpen && (
-                    <div
-                        className="fixed inset-0 bg-black/50 z-40"
-                        onClick={() => setDrawerOpen(false)}
-                    />
+                    <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setDrawerOpen(false)} />
                 )}
 
-                <aside
-                    className={`
-                        fixed left-0 top-0 h-full w-60 bg-[#0d2a4a] text-white z-50
-                        flex flex-col shadow-2xl
-                        transition-transform duration-300 ease-in-out
-                        ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}
-                    `}
-                >
+                <aside className={`
+                    fixed left-0 top-0 h-full w-60 bg-[#0d2a4a] text-white z-50
+                    flex flex-col shadow-2xl transition-transform duration-300 ease-in-out
+                    ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}
+                `}>
                     <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
                         <div className="flex items-center gap-3">
                             <img src={logo} alt="AquLasTech" className="w-8 h-8 object-contain shrink-0 drop-shadow-lg" />
@@ -238,10 +232,7 @@ export default function AdminLayout() {
                                 AquLas<span className="text-[#38bdf8]">Tech</span>
                             </span>
                         </div>
-                        <button
-                            onClick={() => setDrawerOpen(false)}
-                            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                        >
+                        <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
                             <X size={16} className="text-blue-200" />
                         </button>
                     </div>
@@ -256,12 +247,19 @@ export default function AdminLayout() {
                                 </div>
                             ) : station ? (
                                 <>
-                                    <p className="font-semibold text-white truncate"> {station.station_name}</p>
+                                    <p className="font-semibold text-white truncate">{station.station_name}</p>
                                     <p className="text-[10px] text-blue-300 truncate mt-0.5">{station.address}</p>
                                 </>
                             ) : (
                                 <span>Station #{user.station_id}</span>
                             )}
+                        </div>
+                    )}
+
+                    {/* Role badge — shows super_admin label */}
+                    {isSuperAdmin && (
+                        <div className="mx-3 mt-2 px-3 py-1 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
+                            SUPER ADMIN
                         </div>
                     )}
 
@@ -283,7 +281,9 @@ export default function AdminLayout() {
                             </div>
                             <div className="overflow-hidden">
                                 <p className="text-xs font-semibold text-white truncate">{user?.full_name ?? 'Admin'}</p>
-                                <p className="text-[10px] text-blue-300 truncate capitalize">{user?.role ?? 'admin'}</p>
+                                <p className="text-[10px] text-blue-300 truncate capitalize">
+                                    {user?.role === 'super_admin' ? 'Super Admin' : user?.role ?? 'admin'}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -293,6 +293,7 @@ export default function AdminLayout() {
                     <Outlet />
                 </main>
 
+                {/* Bottom tab bar — Settings hidden on mobile if not super_admin */}
                 <nav className={`
                     bottom-bar bg-[#0d2a4a] border-t border-white/10
                     flex items-center justify-around shrink-0
@@ -321,17 +322,16 @@ export default function AdminLayout() {
         )
     }
 
-    // TABLET + DESKTOP LAYOUT  (≥768px)
+    // ══════════════════════════════════════════════════════════════════════
+    // TABLET + DESKTOP LAYOUT
+    // ══════════════════════════════════════════════════════════════════════
     return (
         <div className="flex h-[100dvh] bg-[#f0f4f8] overflow-hidden">
-
-            <aside
-                className={`
-                    flex flex-col justify-between bg-[#0d2a4a] text-white shrink-0
-                    transition-all duration-300 ease-in-out overflow-hidden
-                    ${sidebarIconOnly ? 'w-[64px]' : 'w-[220px]'}
-                `}
-            >
+            <aside className={`
+                flex flex-col justify-between bg-[#0d2a4a] text-white shrink-0
+                transition-all duration-300 ease-in-out overflow-hidden
+                ${sidebarIconOnly ? 'w-[64px]' : 'w-[220px]'}
+            `}>
                 <div>
                     <div className={`flex items-center gap-3 px-3 py-4 ${sidebarIconOnly ? 'justify-center' : ''}`}>
                         <img src={logo} alt="AquLasTech" className="w-8 h-8 object-contain shrink-0 drop-shadow-lg" />
@@ -344,7 +344,7 @@ export default function AdminLayout() {
 
                     {/* Station badge */}
                     {!sidebarIconOnly && user?.station_id && (
-                        <div className="mx-2 mb-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-blue-200">
+                        <div className="mx-2 mb-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-blue-200">
                             {stationLoading ? (
                                 <div className="flex flex-col gap-1.5">
                                     <div className="h-3 w-28 bg-white/10 rounded animate-pulse" />
@@ -352,12 +352,19 @@ export default function AdminLayout() {
                                 </div>
                             ) : station ? (
                                 <>
-                                    <p className="font-semibold text-white truncate"> {station.station_name}</p>
+                                    <p className="font-semibold text-white truncate">{station.station_name}</p>
                                     <p className="text-[10px] text-blue-300 truncate mt-0.5">{station.address}</p>
                                 </>
                             ) : (
-                                <span> Station #{user.station_id}</span>
+                                <span>Station #{user.station_id}</span>
                             )}
+                        </div>
+                    )}
+
+                    {/* Super admin badge */}
+                    {!sidebarIconOnly && isSuperAdmin && (
+                        <div className="mx-2 mb-3 px-3 py-1 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
+                            SUPER ADMIN
                         </div>
                     )}
 
@@ -388,7 +395,9 @@ export default function AdminLayout() {
                             </div>
                             <div className="overflow-hidden">
                                 <p className="text-xs font-semibold text-white truncate">{user?.full_name ?? 'Admin'}</p>
-                                <p className="text-[10px] text-blue-300 truncate capitalize">{user?.role ?? 'admin'}</p>
+                                <p className="text-[10px] text-blue-300 truncate capitalize">
+                                    {user?.role === 'super_admin' ? 'Super Admin' : user?.role ?? 'admin'}
+                                </p>
                             </div>
                         </div>
                     )}

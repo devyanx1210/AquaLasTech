@@ -1,6 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { Navigate } from 'react-router-dom'
-// Imports
 
 // Main Pages
 import LandingPage from '../pages/LandingPage'
@@ -22,7 +21,7 @@ import CustomerDashboard from '../pages/customer/CustomerDashboard'
 import CustomerOrder from '../pages/customer/CustomerOrder'
 import CustomerSettings from '../pages/customer/CustomerSettings'
 
-
+import SuperAdminRoute from '../components/SuperAdminRoute'
 import SignupPage from '../pages/SignupPage'
 import LoginPage from '../pages/LoginPage'
 
@@ -32,10 +31,7 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         errorElement: <NotFoundPage />,
         children: [
-            {
-                index: true, element: <LandingPage />,
-
-            },
+            { index: true, element: <LandingPage /> },
             { path: "signup", element: <SignupPage /> },
             { path: "login", element: <LoginPage /> }
         ]
@@ -48,16 +44,21 @@ const router = createBrowserRouter([
             </ProtectedRoute>
         ),
         children: [
-            { index: true, element: <Navigate to="dashboard" replace /> }, // default redirect
+            { index: true, element: <Navigate to="dashboard" replace /> },
             { path: "dashboard", element: <AdminDashboard /> },
-            { path: "settings", element: <AdminSettings /> },
             {
                 path: "orders", element: <AdminCustomerOrder />,
-                children: [{
-                    path: "pos", element: <PointOfSale />
-                }]
+                children: [{ path: "pos", element: <PointOfSale /> }]
             },
             { path: "inventory", element: <AdminInventory /> },
+
+            // ── Super admin only ──────────────────────────────────────────
+            {
+                element: <SuperAdminRoute />,
+                children: [
+                    { path: "settings", element: <AdminSettings /> },
+                ]
+            },
         ],
     },
     {
@@ -78,8 +79,6 @@ const router = createBrowserRouter([
         path: "*",
         element: <NotFoundPage />,
     },
-
 ])
 
-
-export default router;
+export default router

@@ -8,6 +8,15 @@ const router = express.Router()
 // All settings routes require authentication
 router.use(verifyToken)
 
+// ── Super admin guard — blocks non-super_admins from all settings routes ──
+router.use((req, res, next) => {
+    const requestingUser = (req as any).user
+    if (requestingUser?.role !== 'super_admin') {
+        return res.status(403).json({ message: 'Super admin access required' })
+    }
+    next()
+})
+
 // ── PUT /settings/station/:id — Update station details ────────────────────
 router.put('/station/:id', async (req, res) => {
     const { station_name, address, contact_number, latitude, longitude } = req.body
@@ -58,7 +67,6 @@ router.post('/create-admin', async (req, res) => {
     try {
         const db = await connectToDatabase()
 
-        // Check if email already exists
         const [existing]: any = await db.query(
             'SELECT user_id FROM users WHERE email = ?',
             [email]
@@ -68,7 +76,6 @@ router.post('/create-admin', async (req, res) => {
             return res.status(409).json({ message: 'An account with this email already exists' })
         }
 
-        // Verify the station exists
         const [stationRows]: any = await db.query(
             'SELECT station_id FROM stations WHERE station_id = ?',
             [station_id]

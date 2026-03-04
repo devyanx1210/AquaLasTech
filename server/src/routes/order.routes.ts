@@ -23,7 +23,8 @@ router.get('/', async (req, res) => {
                 o.order_id, o.order_reference, o.total_amount,
                 o.payment_mode, o.order_status, o.created_at,
                 u.full_name  AS customer_name,
-                u.email      AS customer_email,
+                u.email AS customer_email,
+                u.phone_number AS customer_contact,
                 p.payment_type, p.payment_status, p.proof_image_path,
                 r.reason     AS return_reason, r.return_status, r.return_id,
                 (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count
@@ -35,17 +36,22 @@ router.get('/', async (req, res) => {
         `
         const params: any[] = [station_id]
 
-        if (view === 'history') {
-            // Orders from before today that are delivered/cancelled/returned
-            query += ` AND DATE(o.created_at) < CURDATE()`
-        } else {
-            // Active: today's orders + any pending/confirmed/preparing/delivering regardless of date
-            query += ` AND (DATE(o.created_at) = CURDATE() OR o.order_status IN ('confirmed','preparing','delivering'))`
-        }
-
         if (status && status !== 'all') {
+            // Explicit status filter: just show all orders with that status, ignore date bucketing
             query += ` AND o.order_status = ?`
             params.push(status)
+        } else if (view === 'history') {
+            // History: all orders from previous days + today's done orders
+            query += ` AND (
+                DATE(o.created_at) < CURDATE()
+                OR (DATE(o.created_at) = CURDATE() AND o.order_status IN ('cancelled','returned','delivered'))
+            )`
+        } else {
+            // Active: today's open orders + previous-day orders still in-progress
+            query += ` AND (
+                (DATE(o.created_at) = CURDATE() AND o.order_status NOT IN ('cancelled','returned','delivered'))
+                OR (DATE(o.created_at) < CURDATE() AND o.order_status IN ('confirmed','preparing','out_for_delivery'))
+            )`
         }
 
         if (search) {
@@ -96,20 +102,52 @@ router.get('/:id', async (req, res) => {
     }
 })
 
+// ── Notification messages per status ──────────────────────────────────────
+const STATUS_MESSAGES: Record<string, string> = {
+    confirmed: 'Your order has been confirmed and is being processed.',
+    preparing: 'Your order is now being prepared at the station.',
+    out_for_delivery: 'Your order is out for delivery and on its way to you.',
+    delivered: 'Your order has been delivered. Thank you for your purchase.',
+    cancelled: 'Your order has been cancelled. Please contact us for assistance.',
+    returned: 'Your return request has been processed.',
+}
+
 // ── PUT /orders/:id/status — update order status ──────────────────────────
 router.put('/:id/status', async (req, res) => {
     const { id } = req.params
     const { order_status } = req.body
-    const valid = ['confirmed', 'preparing', 'delivering', 'cancelled', 'returned']
+    const valid = ['confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled', 'returned']
     if (!valid.includes(order_status))
         return res.status(400).json({ message: 'Invalid status' })
 
     try {
         const db = await connectToDatabase()
+
+        // Update order status
         await db.query(
             `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
             [order_status, id]
         )
+
+        // Get the order's user_id and station_id to send notification
+        const [orderRows]: any = await db.query(
+            `SELECT user_id, station_id FROM orders WHERE order_id = ?`,
+            [id]
+        )
+
+        // Only notify if the order belongs to a registered user (not walk-in)
+        if (orderRows.length > 0 && orderRows[0].user_id) {
+            const { user_id, station_id } = orderRows[0]
+            const message = STATUS_MESSAGES[order_status]
+            if (message) {
+                await db.query(
+                    `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read)
+                     VALUES (?, ?, ?, 'order_update', 0)`,
+                    [user_id, station_id, message]
+                )
+            }
+        }
+
         return res.json({ message: 'Status updated' })
     } catch (err) {
         console.error('PUT /orders/:id/status error:', err)
@@ -201,11 +239,28 @@ router.put('/:id/return', async (req, res) => {
             [return_status, id]
         )
 
-        // If rejected, move order back to delivered state
+        // If rejected, move order back to out_for_delivery
         if (return_status === 'rejected') {
             await db.query(
-                `UPDATE orders SET order_status = 'delivering', updated_at = NOW() WHERE order_id = ?`,
+                `UPDATE orders SET order_status = 'out_for_delivery', updated_at = NOW() WHERE order_id = ?`,
                 [id]
+            )
+        }
+
+        // Notify the customer about return resolution
+        const [orderRows]: any = await db.query(
+            `SELECT user_id, station_id FROM orders WHERE order_id = ?`,
+            [id]
+        )
+        if (orderRows.length > 0 && orderRows[0].user_id) {
+            const { user_id, station_id } = orderRows[0]
+            const message = return_status === 'approved'
+                ? 'Your return request has been approved. We will process your refund shortly.'
+                : 'Your return request was rejected. Your order has been restored to Out for Delivery.'
+            await db.query(
+                `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read)
+                 VALUES (?, ?, ?, 'order_update', 0)`,
+                [user_id, station_id, message]
             )
         }
 

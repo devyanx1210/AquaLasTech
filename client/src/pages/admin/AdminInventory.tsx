@@ -230,43 +230,43 @@ export default function AdminInventory() {
                 {/* ── LEFT: Product Cards Grid ─────────────────────────── */}
                 <div className="flex-1 min-w-0">
                     {loading ? (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                             {[...Array(4)].map((_, i) => (
-                                <div key={i} className="bg-white rounded-2xl border border-gray-100 h-52 animate-pulse" />
+                                <div key={i} className="bg-white rounded-2xl border border-gray-100 aspect-[3/4] animate-pulse" />
                             ))}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                             {filtered.map(p => {
                                 const status = stockStatus(p.quantity, p.min_stock_level)
                                 return (
                                     <div
                                         key={p.product_id}
-                                        className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group relative"
+                                        className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all group relative flex flex-col overflow-hidden"
                                     >
-                                        {/* Edit button — top right */}
+                                        {/* Edit button — top right, always visible on touch, hover on desktop */}
                                         <button
                                             onClick={() => openEdit(p)}
-                                            className="absolute top-2 right-2 z-10 w-7 h-7 rounded-lg bg-[#0d2a4a]/80 hover:bg-[#0d2a4a] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                                            className="absolute top-2 right-2 z-20 w-7 h-7 rounded-lg bg-[#0d2a4a]/80 hover:bg-[#0d2a4a] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                                             title="Edit product"
                                         >
                                             <Edit2 size={12} />
                                         </button>
 
-                                        {/* Low stock badge */}
-                                        {p.quantity <= p.min_stock_level && p.quantity > 0 && (
-                                            <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-amber-400 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                                                <AlertTriangle size={9} /> LOW
-                                            </div>
-                                        )}
+                                        {/* Stock badge — top left */}
                                         {p.quantity === 0 && (
-                                            <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                                            <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
                                                 <X size={9} /> OUT
                                             </div>
                                         )}
+                                        {p.quantity > 0 && p.quantity <= p.min_stock_level && (
+                                            <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-amber-400 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                                                <AlertTriangle size={9} /> LOW
+                                            </div>
+                                        )}
 
-                                        {/* Product image */}
-                                        <div className="w-full h-36 bg-gradient-to-br from-[#e8f4fd] to-[#d0e8f7] flex items-center justify-center overflow-hidden">
+                                        {/* Image — square crop, fills most of card */}
+                                        <div className="w-full aspect-square bg-gradient-to-br from-[#e8f4fd] to-[#d0e8f7] flex items-center justify-center overflow-hidden shrink-0">
                                             {p.image_url ? (
                                                 <img
                                                     src={p.image_url.startsWith('http') ? p.image_url : `${import.meta.env.VITE_API_URL}${p.image_url}`}
@@ -275,25 +275,20 @@ export default function AdminInventory() {
                                                     onError={e => { e.currentTarget.style.display = 'none' }}
                                                 />
                                             ) : (
-                                                <Droplets size={36} className="text-[#38bdf8]/50" />
+                                                <Droplets size={40} className="text-[#38bdf8]/40" />
                                             )}
                                         </div>
 
-                                        {/* Product info */}
-                                        <div className="px-3 py-2.5">
-                                            <p className="text-xs font-bold text-gray-800 truncate">
-                                                <span className="text-gray-400 font-normal">Name: </span>{p.product_name}
-                                            </p>
-                                            <p className="text-xs text-gray-600 mt-0.5">
-                                                <span className="text-gray-400">Price: </span>
-                                                <span className="font-semibold text-[#0d2a4a]">{fmt(p.price)}</span>
-                                            </p>
-                                            <p className="text-xs text-gray-600 mt-0.5">
-                                                <span className="text-gray-400">Stock: </span>
-                                                <span className={`font-bold ${p.quantity === 0 ? 'text-red-500' : p.quantity <= p.min_stock_level ? 'text-amber-500' : 'text-gray-800'}`}>
-                                                    {p.quantity}
+                                        {/* Info strip below image */}
+                                        <div className="px-3 py-2.5 flex flex-col gap-0.5 bg-white">
+                                            <p className="text-xs font-bold text-gray-800 truncate leading-tight">{p.product_name}</p>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-black text-[#0d2a4a]">{fmt(p.price)}</span>
+                                                <span className={`text-[10px] font-bold
+                                                    ${p.quantity === 0 ? 'text-red-500' : p.quantity <= p.min_stock_level ? 'text-amber-500' : 'text-emerald-600'}`}>
+                                                    {p.quantity} {p.unit}
                                                 </span>
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )
@@ -302,12 +297,14 @@ export default function AdminInventory() {
                             {/* Add product card */}
                             <button
                                 onClick={openAdd}
-                                className="bg-[#e8f4fd]/60 border-2 border-dashed border-[#38bdf8]/40 rounded-2xl h-52 flex flex-col items-center justify-center gap-2 hover:bg-[#e8f4fd] hover:border-[#38bdf8]/70 transition-all group"
+                                className="bg-[#e8f4fd]/60 border-2 border-dashed border-[#38bdf8]/40 rounded-2xl flex flex-col overflow-hidden hover:bg-[#e8f4fd] hover:border-[#38bdf8]/70 transition-all group"
                             >
-                                <div className="w-10 h-10 rounded-full bg-[#0d2a4a] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                    <Plus size={20} className="text-white" />
+                                <div className="w-full aspect-square flex flex-col items-center justify-center gap-2">
+                                    <div className="w-10 h-10 rounded-full bg-[#0d2a4a] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                        <Plus size={20} className="text-white" />
+                                    </div>
+                                    <span className="text-xs text-gray-400 font-medium">Add Product</span>
                                 </div>
-                                <span className="text-xs text-gray-400 font-medium">Add Product</span>
                             </button>
                         </div>
                     )}

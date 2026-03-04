@@ -91,7 +91,6 @@ const InlineCalculator = () => {
 
     return (
         <div className="flex flex-col flex-1 min-h-0">
-            {/* Display */}
             <div className="px-4 py-3 bg-[#0d2a4a] flex-shrink-0">
                 <p className="text-[#38bdf8]/60 text-[10px] font-mono h-4 truncate text-right">{expression || '\u00a0'}</p>
                 <p className="text-white font-light text-right truncate"
@@ -99,7 +98,6 @@ const InlineCalculator = () => {
                     {display}
                 </p>
             </div>
-            {/* Buttons */}
             <div className="flex-1 grid grid-rows-5 gap-px bg-gray-200 overflow-hidden">
                 {rows.map((row, ri) => (
                     <div key={ri} className="grid grid-cols-4 gap-px">
@@ -129,7 +127,6 @@ const InlineCalculator = () => {
 }
 
 // ── Receipt Modal ──────────────────────────────────────────────────────────
-// Injects a real printable div directly in body so window.print() can find it
 const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, paymentMethod, deliveryType, stationName, onClose }: {
     orderRef: string; total: number; items: CartItem[]
     customerName: string; customerAddress: string
@@ -149,14 +146,7 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
 <title>Receipt - ${orderRef}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
-    color: #000;
-    background: #fff;
-    width: 80mm;
-    padding: 8mm;
-  }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #000; background: #fff; width: 80mm; padding: 8mm; }
   .center { text-align: center; }
   .bold { font-weight: bold; }
   .big { font-size: 15px; font-weight: bold; }
@@ -203,9 +193,7 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
             <div className="relative z-10 w-full max-w-sm mx-4 mb-4 sm:mb-0 flex flex-col gap-3">
-                {/* Receipt card */}
                 <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                    {/* Header */}
                     <div className="bg-[#0d2a4a] px-5 pt-5 pb-5 text-center relative overflow-hidden">
                         <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/5" />
                         <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-[#38bdf8]/10" />
@@ -215,8 +203,6 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
                         <p className="text-white font-black text-base tracking-wide">Order Placed!</p>
                         <p className="text-[#38bdf8] text-[11px] font-mono mt-0.5">{orderRef}</p>
                     </div>
-
-                    {/* Body */}
                     <div className="px-5 py-4 font-mono text-[11px]">
                         {[
                             ['Customer', customerName || 'Walk-in'],
@@ -230,9 +216,7 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
                                 <span className="font-bold text-gray-800 text-right max-w-[170px] truncate">{value}</span>
                             </div>
                         ))}
-
                         <div className="border-t border-dashed border-gray-300 my-3" />
-
                         <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase mb-2">
                             <span>Item</span>
                             <div className="flex gap-5"><span>Qty</span><span className="w-14 text-right">Amount</span></div>
@@ -246,7 +230,6 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
                                 </div>
                             </div>
                         ))}
-
                         <div className="border-t border-dashed border-gray-300 my-3" />
                         <div className="flex justify-between items-center">
                             <span className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Total</span>
@@ -258,8 +241,6 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
                         </div>
                     </div>
                 </div>
-
-                {/* Buttons */}
                 <div className="flex gap-2.5">
                     <button onClick={handlePrint}
                         className="flex-1 py-3 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-sm border border-white/20 transition-all flex items-center justify-center gap-2 backdrop-blur-sm">
@@ -412,37 +393,56 @@ export default function PointOfSale() {
                     </div>
                 </div>
 
+                {/* ── Product Grid ── */}
                 <div className="flex-1 overflow-y-auto pr-1">
                     {loading ? (
-                        <div className="grid grid-cols-2 gap-3">
-                            {[...Array(4)].map((_, i) => <div key={i} className="h-44 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                            {[...Array(6)].map((_, i) => (
+                                <div key={i} className="bg-white rounded-2xl border border-gray-100 animate-pulse flex flex-col overflow-hidden">
+                                    <div className="w-full aspect-square bg-gray-100" />
+                                    <div className="px-3 py-2.5 flex flex-col gap-1.5">
+                                        <div className="h-3 bg-gray-100 rounded w-3/4" />
+                                        <div className="h-3 bg-gray-100 rounded w-1/2" />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : filtered.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-40 text-gray-300 gap-2">
                             <Droplets size={28} /><p className="text-sm">No products found</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-3 pb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 pb-4">
                             {filtered.map(p => (
-                                <button key={p.product_id} onClick={() => addToCart(p)}
-                                    className={`bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md active:scale-[0.97] transition-all text-left relative
+                                <button
+                                    key={p.product_id}
+                                    onClick={() => addToCart(p)}
+                                    className={`bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md active:scale-[0.97] transition-all text-left relative flex flex-col
                                         ${highlightedProduct === p.product_id
                                             ? 'border-[#38bdf8] ring-2 ring-[#38bdf8]/25 scale-[0.97]'
                                             : 'border-gray-200 hover:border-[#38bdf8]/40'}`}>
+
+                                    {/* Stock badge */}
                                     <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded-md text-[9px] font-bold z-10
                                         ${p.quantity <= p.min_stock_level ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
                                         {p.quantity}
                                     </div>
-                                    <div className="w-full h-28 bg-gradient-to-br from-[#e8f4fd] to-[#d0e8f7] flex items-center justify-center overflow-hidden">
+
+                                    {/* Square image */}
+                                    <div className="w-full aspect-square bg-gradient-to-br from-[#e8f4fd] to-[#d0e8f7] flex items-center justify-center overflow-hidden shrink-0">
                                         {p.image_url
-                                            ? <img src={p.image_url.startsWith('http') ? p.image_url : `${API}${p.image_url}`}
-                                                alt={p.product_name} className="w-full h-full object-cover" />
+                                            ? <img
+                                                src={p.image_url.startsWith('http') ? p.image_url : `${API}${p.image_url}`}
+                                                alt={p.product_name}
+                                                className="w-full h-full object-cover" />
                                             : <Droplets size={28} className="text-[#38bdf8]/40" />}
                                     </div>
-                                    <div className="px-3 py-2">
-                                        <p className="text-xs font-bold text-gray-800 truncate">{p.product_name}</p>
-                                        <p className="text-xs font-black text-[#0d2a4a] mt-0.5">{fmt(p.price)}</p>
-                                        <p className="text-[10px] text-gray-400">Stock: {p.quantity} {p.unit}</p>
+
+                                    {/* Info strip below */}
+                                    <div className="px-3 py-2.5 flex flex-col gap-0.5">
+                                        <p className="text-xs font-bold text-gray-800 truncate leading-tight">{p.product_name}</p>
+                                        <p className="text-xs font-black text-[#0d2a4a]">{fmt(p.price)}</p>
+                                        <p className="text-[10px] text-gray-400">{p.unit}</p>
                                     </div>
                                 </button>
                             ))}
@@ -662,9 +662,7 @@ export default function PointOfSale() {
                     </>)}
 
                     {/* ── CALCULATOR VIEW ── */}
-                    {panelView === 'calc' && (
-                        <InlineCalculator />
-                    )}
+                    {panelView === 'calc' && <InlineCalculator />}
                 </div>
             </div>
 

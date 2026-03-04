@@ -297,4 +297,94 @@ router.put('/notifications/:id/read', async (req, res) => {
     }
 })
 
+// ── PUT /customer/orders/:id/cancel ───────────────────────────────────────
+// Customer can only cancel when status is 'confirmed'
+router.put('/orders/:id/cancel', async (req, res) => {
+    const userId = (req as any).user.id
+    const { id } = req.params
+    const { reason } = req.body
+    try {
+        const pool = await connectToDatabase()
+        const [rows]: any = await pool.query(
+            `SELECT order_id, order_status, station_id FROM orders WHERE order_id = ? AND user_id = ?`,
+            [id, userId]
+        )
+        if (!rows.length) return res.status(404).json({ message: 'Order not found' })
+        if (rows[0].order_status !== 'confirmed')
+            return res.status(400).json({ message: 'Order can only be cancelled when status is Confirmed' })
+
+        await pool.query(
+            `UPDATE orders SET order_status = 'cancelled', updated_at = NOW() WHERE order_id = ?`, [id]
+        )
+
+        // Restore stock for each item back to inventory
+        const [items]: any = await pool.query(
+            `SELECT oi.product_id, oi.quantity, p.station_id
+             FROM order_items oi
+             JOIN products p ON p.product_id = oi.product_id
+             WHERE oi.order_id = ?`,
+            [id]
+        )
+        for (const item of items) {
+            await pool.query(
+                `UPDATE inventory SET quantity = quantity + ? WHERE product_id = ? AND station_id = ?`,
+                [item.quantity, item.product_id, item.station_id]
+            )
+        }
+        const cancelMsg = reason?.trim()
+            ? `Your order has been cancelled. Reason: ${reason.trim()}`
+            : 'Your order has been cancelled successfully.'
+        await pool.query(
+            `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+             VALUES (?, ?, ?, 'order_update', 0, NOW())`,
+            [userId, rows[0].station_id, cancelMsg]
+        )
+        return res.json({ message: 'Order cancelled' })
+    } catch (err) {
+        console.error('PUT /customer/orders/:id/cancel error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── POST /customer/orders/:id/return ──────────────────────────────────────
+// Customer can request return only when status is 'delivered'
+router.post('/orders/:id/return', async (req, res) => {
+    const userId = (req as any).user.id
+    const { id } = req.params
+    const { reason } = req.body
+    if (!reason?.trim()) return res.status(400).json({ message: 'Reason is required' })
+    try {
+        const pool = await connectToDatabase()
+        const [rows]: any = await pool.query(
+            `SELECT order_id, order_status, station_id FROM orders WHERE order_id = ? AND user_id = ?`,
+            [id, userId]
+        )
+        if (!rows.length) return res.status(404).json({ message: 'Order not found' })
+        if (rows[0].order_status !== 'delivered')
+            return res.status(400).json({ message: 'Return can only be requested for delivered orders' })
+
+        const [existing]: any = await pool.query(
+            `SELECT return_id FROM order_returns WHERE order_id = ?`, [id]
+        )
+        if (existing.length) return res.status(409).json({ message: 'Return already requested' })
+
+        await pool.query(
+            `INSERT INTO order_returns (order_id, reason, return_status, created_at) VALUES (?, ?, 'pending', NOW())`,
+            [id, reason.trim()]
+        )
+        await pool.query(
+            `UPDATE orders SET order_status = 'returned', updated_at = NOW() WHERE order_id = ?`, [id]
+        )
+        await pool.query(
+            `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+             VALUES (?, ?, 'Your return request has been submitted and is under review.', 'order_update', 0, NOW())`,
+            [userId, rows[0].station_id]
+        )
+        return res.status(201).json({ message: 'Return request submitted' })
+    } catch (err) {
+        console.error('POST /customer/orders/:id/return error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
 export default router

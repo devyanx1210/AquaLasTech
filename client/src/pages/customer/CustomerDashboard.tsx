@@ -16,6 +16,7 @@ interface Station {
     latitude: number | null
     longitude: number | null
     image_path: string | null
+    contact_number: string | null
     total_stock: number
     distance_km?: number
 }

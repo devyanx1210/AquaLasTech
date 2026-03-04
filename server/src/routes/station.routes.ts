@@ -46,6 +46,7 @@ router.get('/customer/list', verifyToken, async (req, res) => {
                 s.latitude,
                 s.longitude,
                 s.image_path,
+                s.contact_number,
                 COALESCE(SUM(i.quantity), 0) AS total_stock
             FROM stations s
             LEFT JOIN inventory i ON i.station_id = s.station_id

@@ -48,10 +48,13 @@ router.get('/', async (req, res) => {
                 OR (DATE(o.created_at) = CURDATE() AND o.order_status IN ('cancelled','returned','delivered'))
             )`
         } else {
-            // Active: today's open orders + previous-day orders still in-progress
+            // Active: today's open orders + previous-day in-progress + any returned with pending review
             query += ` AND (
-                (DATE(o.created_at) = CURDATE() AND o.order_status NOT IN ('cancelled','returned','delivered'))
+                (DATE(o.created_at) = CURDATE() AND o.order_status NOT IN ('cancelled','delivered'))
                 OR (DATE(o.created_at) < CURDATE() AND o.order_status IN ('confirmed','preparing','out_for_delivery'))
+                OR (o.order_status = 'returned' AND EXISTS (
+                    SELECT 1 FROM order_returns r2 WHERE r2.order_id = o.order_id AND r2.return_status = 'pending'
+                ))
             )`
         }
 
@@ -144,6 +147,23 @@ router.put('/:id/status', async (req, res) => {
                    AND payment_type != 'gcash'`,
                 [id]
             )
+        }
+
+        // When cancelled: restore stock to inventory
+        if (order_status === 'cancelled') {
+            const [items]: any = await db.query(
+                `SELECT oi.product_id, oi.quantity, p.station_id
+                 FROM order_items oi
+                 JOIN products p ON p.product_id = oi.product_id
+                 WHERE oi.order_id = ?`,
+                [id]
+            )
+            for (const item of items) {
+                await db.query(
+                    `UPDATE inventory SET quantity = quantity + ? WHERE product_id = ? AND station_id = ?`,
+                    [item.quantity, item.product_id, item.station_id]
+                )
+            }
         }
 
         // Get the order's user_id and station_id to send notification

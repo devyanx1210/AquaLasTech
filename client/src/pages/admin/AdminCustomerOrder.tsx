@@ -228,7 +228,7 @@ const ReturnModal = ({ order, onClose, onResolve }: {
     const handle = async (status: 'approved' | 'rejected') => {
         setBusy(true); await onResolve(order.order_id, status); setBusy(false); onClose()
     }
-    const isResolved = order.return_status && order.return_status !== 'pending'
+    const isResolved = order.return_status === 'approved' || order.return_status === 'rejected'
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -341,7 +341,9 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
                                         order.return_status === 'rejected' ? 'bg-red-50 text-red-500 border-red-200' :
                                             'bg-orange-50 text-orange-500 border-orange-200 animate-pulse'}`}>
                                 <RotateCcw size={10} />
-                                Return {order.return_status === 'pending' ? '· Review' : `· ${order.return_status}`}
+                                Return · {order.return_status === 'pending' ? 'Review Required' :
+                                    order.return_status === 'approved' ? 'Approved' :
+                                        order.return_status === 'rejected' ? 'Rejected' : order.return_status}
                             </button>
                         )}
                         <span className="ml-auto text-base font-black text-[#0d2a4a]">{fmt(order.total_amount)}</span>
@@ -466,8 +468,15 @@ const OrderRow = ({ order, onOpen }: { order: Order; onOpen: () => void }) => {
                 ) : (
                     <span className={`text-xs font-semibold whitespace-nowrap ${payment.color}`}>{payment.label}</span>
                 )}
-                {hasReturn && (
-                    <span className="block text-[9px] font-bold text-orange-500 mt-0.5 animate-pulse whitespace-nowrap">⟳ Return Req.</span>
+                {order.return_id && (
+                    <span className={`block text-[9px] font-bold mt-0.5 whitespace-nowrap
+                        ${order.return_status === 'pending' ? 'text-orange-500 animate-pulse' :
+                            order.return_status === 'approved' ? 'text-emerald-600' :
+                                order.return_status === 'rejected' ? 'text-red-400' : 'text-orange-500'}`}>
+                        {order.return_status === 'pending' ? '⟳ Return Pending' :
+                            order.return_status === 'approved' ? '✓ Return Approved' :
+                                order.return_status === 'rejected' ? '✕ Return Rejected' : '⟳ Return Req.'}
+                    </span>
                 )}
             </td>
 
@@ -571,6 +580,7 @@ export default function AdminCustomerOrder() {
     }
 
     const statuses = ['all', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled', 'returned']
+    // Note: selecting a specific status bypasses the active/history date filter in the backend
     const pendingGcash = orders.filter(o => o.payment_mode === 'gcash' && o.payment_status === 'pending').length
     const pendingReturns = orders.filter(o => o.return_status === 'pending').length
 

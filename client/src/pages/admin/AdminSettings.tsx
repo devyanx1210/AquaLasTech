@@ -139,19 +139,25 @@ export default function AdminSettings() {
 
     // ── Load Leaflet ──────────────────────────────────────────────────────
     const initMap = useCallback((node: HTMLDivElement | null) => {
-        if (!node || mapInstanceRef.current) return
+        if (!node) return
 
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        document.head.appendChild(link)
+        // Destroy existing map instance first
+        if (mapInstanceRef.current) {
+            try { mapInstanceRef.current.remove() } catch { }
+            mapInstanceRef.current = null
+        }
+        // Delete Leaflet's internal stamp so L.map() won't throw "already initialized"
+        delete (node as any)._leaflet_id
 
-        const script = document.createElement('script')
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-        script.onload = () => {
+        const doInit = () => {
             const L = (window as any).L
-            const defaultLat = stationForm.latitude ?? 13.4417
-            const defaultLng = stationForm.longitude ?? 121.8769
+            if (!L) return
+
+            // Delete again — guard against race between script load and re-render
+            delete (node as any)._leaflet_id
+
+            const defaultLat = stationForm.latitude || 13.4417
+            const defaultLng = stationForm.longitude || 121.8769
 
             const map = L.map(node, { zoomControl: true }).setView([defaultLat, defaultLng], 14)
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -182,15 +188,36 @@ export default function AdminSettings() {
             markerRef.current = marker
             setMapReady(true)
 
-            // If station already has coords, pan to them
             if (stationForm.latitude && stationForm.longitude) {
                 marker.setLatLng([stationForm.latitude, stationForm.longitude])
                 map.setView([stationForm.latitude, stationForm.longitude], 15)
             }
         }
-        document.head.appendChild(script)
-    }, [])
 
+        // Leaflet already loaded — init immediately, no script needed
+        if ((window as any).L) {
+            doInit()
+            return
+        }
+
+        if (!document.querySelector('link[href*="leaflet@1.9.4"]')) {
+            const link = document.createElement('link')
+            link.rel = 'stylesheet'
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+            document.head.appendChild(link)
+        }
+
+        if (!document.querySelector('script[src*="leaflet@1.9.4"]')) {
+            const script = document.createElement('script')
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+            script.onload = doInit
+            document.head.appendChild(script)
+        } else {
+            const poll = setInterval(() => {
+                if ((window as any).L) { clearInterval(poll); doInit() }
+            }, 50)
+        }
+    }, [])
     // ── GPS ───────────────────────────────────────────────────────────────
     const handleGetLocation = () => {
         if (!navigator.geolocation) return showToast('Geolocation not supported', 'error')
@@ -347,7 +374,7 @@ export default function AdminSettings() {
                             </button>
                         </div>
 
-                        <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                        <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm" style={{ zIndex: 0, isolation: 'isolate' }}>
                             <div ref={initMap} style={{ height: '260px', width: '100%', background: '#f0f4f8' }} />
                             {!mapReady && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50">

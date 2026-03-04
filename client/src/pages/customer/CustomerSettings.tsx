@@ -144,25 +144,25 @@ export default function CustomerSettings() {
         setGeocoding(false)
     }, [])
 
-    // ── Init Leaflet via script tag (exact copy of AdminSettings initMap) ─
+    // ── Init Leaflet map ─────────────────────────────────────────────────
     const initMap = useCallback((node: HTMLDivElement | null) => {
-        if (!node || mapInstanceRef.current) return
+        if (!node) return
 
-        // Destroy any stale Leaflet instance left on the DOM node
-        if ((node as any)._leaflet_id) {
-            try { (window as any).L?.map(node).remove() } catch { }
-            delete (node as any)._leaflet_id
+        // Destroy any existing map on this node before creating a new one
+        if (mapInstanceRef.current) {
+            try { mapInstanceRef.current.remove() } catch { }
+            mapInstanceRef.current = null
         }
+        // Leaflet stamps _leaflet_id onto the DOM node — delete it so L.map() won't throw
+        delete (node as any)._leaflet_id
 
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        document.head.appendChild(link)
-
-        const script = document.createElement('script')
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-        script.onload = () => {
+        const doInit = () => {
             const L = (window as any).L
+            if (!L) return
+
+            // Delete again in case script load raced with a re-render
+            delete (node as any)._leaflet_id
+
             const defaultLat = latitude ?? 13.4417
             const defaultLng = longitude ?? 121.8769
 
@@ -195,15 +195,38 @@ export default function CustomerSettings() {
             markerRef.current = marker
             setMapReady(true)
 
-            // Pan to saved coords if they exist
             if (latitude && longitude) {
                 marker.setLatLng([latitude, longitude])
                 map.setView([latitude, longitude], 15)
             }
         }
-        document.head.appendChild(script)
-    }, [])
 
+        // If Leaflet already loaded, init immediately — no script injection needed
+        if ((window as any).L) {
+            doInit()
+            return
+        }
+
+        // Inject CSS once
+        if (!document.querySelector('link[href*="leaflet@1.9.4"]')) {
+            const link = document.createElement('link')
+            link.rel = 'stylesheet'
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+            document.head.appendChild(link)
+        }
+
+        // Inject JS once; poll if the tag already exists but L isn't ready yet
+        if (!document.querySelector('script[src*="leaflet@1.9.4"]')) {
+            const script = document.createElement('script')
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+            script.onload = doInit
+            document.head.appendChild(script)
+        } else {
+            const poll = setInterval(() => {
+                if ((window as any).L) { clearInterval(poll); doInit() }
+            }, 50)
+        }
+    }, [])
     // ── GPS (same as AdminSettings handleGetLocation) ─────────────────────
     const handleGetLocation = () => {
         if (!navigator.geolocation) return showToast('Geolocation not supported', 'error')
@@ -371,7 +394,7 @@ export default function CustomerSettings() {
                             </button>
                         </div>
 
-                        <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                        <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm" style={{ zIndex: 0, isolation: 'isolate' }}>
                             <div ref={initMap} style={{ height: '260px', width: '100%', background: '#f0f4f8' }} />
                             {!mapReady && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50">

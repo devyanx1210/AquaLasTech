@@ -1,4 +1,4 @@
-// ✅ AuthContext.tsx — no useNavigate here
+// AuthContext.tsx — no useNavigate here
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import axios from "axios";
 

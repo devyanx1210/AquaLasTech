@@ -92,12 +92,10 @@ function StationCard({ station, selected, onSelect, API }: {
                     </div>
                 )}
 
-                {/* Selected overlay */}
+                {/* Selected indicator — small badge, doesn't block image */}
                 {selected && (
-                    <div className="absolute inset-0 bg-[#0d2a4a]/30 flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-[#38bdf8] flex items-center justify-center shadow-lg">
-                            <CheckCircle2 size={20} className="text-white" />
-                        </div>
+                    <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-[#38bdf8] flex items-center justify-center shadow-lg">
+                        <CheckCircle2 size={13} className="text-white" />
                     </div>
                 )}
             </div>

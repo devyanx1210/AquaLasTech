@@ -124,6 +124,16 @@ export default function CustomerSettings() {
             .catch(() => { })
     }, [])
 
+    // ── Cleanup map on unmount ────────────────────────────────────────────
+    useEffect(() => {
+        return () => {
+            if (mapInstanceRef.current) {
+                try { mapInstanceRef.current.remove() } catch { }
+                mapInstanceRef.current = null
+            }
+        }
+    }, [])
+
     // ── Reverse geocode + update address (same as AdminSettings) ─────────
     const updateAddressFromCoords = useCallback(async (lat: number, lng: number) => {
         setGeocoding(true)
@@ -137,6 +147,12 @@ export default function CustomerSettings() {
     // ── Init Leaflet via script tag (exact copy of AdminSettings initMap) ─
     const initMap = useCallback((node: HTMLDivElement | null) => {
         if (!node || mapInstanceRef.current) return
+
+        // Destroy any stale Leaflet instance left on the DOM node
+        if ((node as any)._leaflet_id) {
+            try { (window as any).L?.map(node).remove() } catch { }
+            delete (node as any)._leaflet_id
+        }
 
         const link = document.createElement('link')
         link.rel = 'stylesheet'

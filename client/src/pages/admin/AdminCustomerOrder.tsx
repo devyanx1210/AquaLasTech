@@ -17,10 +17,10 @@ interface Order {
     customer_email: string
     customer_contact: string | null
     total_amount: number
-    payment_mode: 'cash' | 'pickup' | 'delivery' | 'gcash'
+    payment_mode: 'gcash' | 'cash' | 'cash_on_delivery' | 'cash_on_pickup'
     order_status: 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'returned'
     payment_type: string
-    payment_status: 'pending' | 'verified' | 'rejected'
+    payment_status: 'pending' | 'verified' | 'rejected' | 'not_required'
     proof_image_path: string | null
     return_reason: string | null
     return_status: 'pending' | 'approved' | 'rejected' | null
@@ -444,7 +444,11 @@ const OrderRow = ({ order, onOpen }: { order: Order; onOpen: () => void }) => {
             {/* Type */}
             <td className="px-4 py-3.5 border-r border-gray-100 text-center">
                 <span className="text-[10px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded-lg whitespace-nowrap">
-                    {order.payment_mode}
+                    {order.payment_mode === 'gcash' ? 'GCash'
+                        : order.payment_mode === 'cash_on_delivery' ? 'Cash on Delivery'
+                            : order.payment_mode === 'cash_on_pickup' ? 'Cash on Pickup'
+                                : order.payment_mode === 'cash' ? 'Cash'
+                                    : order.payment_mode}
                 </span>
             </td>
 
@@ -495,6 +499,7 @@ export default function AdminCustomerOrder() {
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [filterStatus, setFilterStatus] = useState('all')
+    const [filterPayment, setFilterPayment] = useState('all')
     const [stationName, setStationName] = useState('')
 
     const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null)
@@ -516,12 +521,13 @@ export default function AdminCustomerOrder() {
         try {
             const params: any = { view }
             if (filterStatus !== 'all') params.status = filterStatus
+            if (filterPayment !== 'all') params.payment_mode = filterPayment
             if (search) params.search = search
             const res = await axios.get(`${API}/orders`, { params, withCredentials: true })
             setOrders(res.data)
         } catch { }
         finally { setLoading(false) }
-    }, [API, view, filterStatus, search])
+    }, [API, view, filterStatus, filterPayment, search])
 
     useEffect(() => { fetchOrders() }, [fetchOrders])
 
@@ -632,6 +638,17 @@ export default function AdminCustomerOrder() {
                         ))}
                     </select>
                     <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" />
+                </div>
+                <div className="relative">
+                    <select value={filterPayment} onChange={e => setFilterPayment(e.target.value)}
+                        className="appearance-none pl-4 pr-9 py-2.5 bg-white border border-gray-200 text-gray-700 text-xs font-semibold rounded-xl outline-none cursor-pointer shadow-sm">
+                        <option value="all">All Types</option>
+                        <option value="gcash">GCash</option>
+                        <option value="cash_on_delivery">Cash on Delivery</option>
+                        <option value="cash_on_pickup">Cash on Pickup</option>
+                        <option value="cash">Cash</option>
+                    </select>
+                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
             </div>
 

@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
     if (!station_id) return res.status(400).json({ message: 'No station assigned' })
 
     const { status, search, view } = req.query
+    const payment_mode = (req.query as any).payment_mode
     // view=history : show only older-than-today delivered/completed
     // view=active  : today's + pending online orders (default)
 
@@ -52,6 +53,11 @@ router.get('/', async (req, res) => {
                 (DATE(o.created_at) = CURDATE() AND o.order_status NOT IN ('cancelled','returned','delivered'))
                 OR (DATE(o.created_at) < CURDATE() AND o.order_status IN ('confirmed','preparing','out_for_delivery'))
             )`
+        }
+
+        if (payment_mode && payment_mode !== 'all') {
+            query += ` AND o.payment_mode = ?`
+            params.push(payment_mode)
         }
 
         if (search) {
@@ -128,6 +134,17 @@ router.put('/:id/status', async (req, res) => {
             `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
             [order_status, id]
         )
+
+        // When delivered: auto-mark all non-gcash payments as verified
+        if (order_status === 'delivered') {
+            await db.query(
+                `UPDATE payments
+                 SET payment_status = 'verified'
+                 WHERE order_id = ? AND payment_status = 'pending'
+                   AND payment_type != 'gcash'`,
+                [id]
+            )
+        }
 
         // Get the order's user_id and station_id to send notification
         const [orderRows]: any = await db.query(

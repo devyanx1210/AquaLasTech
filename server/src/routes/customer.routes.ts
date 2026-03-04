@@ -169,7 +169,7 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
         await conn.query(
             `INSERT INTO payments (order_id, payment_type, payment_status, proof_image_path, created_at)
              VALUES (?, ?, ?, ?, NOW())`,
-            [order_id, payment_mode, payment_mode === 'gcash' ? 'pending' : 'pending', proof_image_path]
+            [order_id, payment_mode, 'pending', proof_image_path]
         )
 
         // Notify the customer that their order was received

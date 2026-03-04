@@ -267,6 +267,7 @@ export default function PointOfSale() {
     const [cart, setCart] = useState<CartItem[]>([])
     const [stationName, setStationName] = useState('')
     const [panelView, setPanelView] = useState<PanelView>('order')
+    const [mobileTab, setMobileTab] = useState<'products' | 'order'>('products')
 
     const [customerName, setCustomerName] = useState('')
     const [customerAddress, setCustomerAddress] = useState('')
@@ -371,10 +372,26 @@ export default function PointOfSale() {
     }
 
     return (
-        <div className="flex flex-col lg:flex-row gap-0 lg:gap-4" style={{ height: 'calc(100vh - 120px)', minHeight: 600 }}>
+        <div className="flex flex-col lg:flex-row gap-0 lg:gap-4 lg:h-[calc(100vh-120px)] lg:min-h-[600px]">
+
+            {/* ── Mobile tab switcher ── */}
+            <div className="lg:hidden flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-3 shrink-0">
+                <button onClick={() => setMobileTab('products')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all
+                        ${mobileTab === 'products' ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                    <Droplets size={13} /> Products
+                </button>
+                <button onClick={() => setMobileTab('order')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all
+                        ${mobileTab === 'order' ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                    <ShoppingCart size={13} />
+                    <span>Order{cart.length > 0 ? ' (' + cart.length + ')' : ''}</span>
+                    {cart.length > 0 && <span className="ml-1 text-[10px] font-black text-[#38bdf8]">{fmt(total)}</span>}
+                </button>
+            </div>
 
             {/* ── LEFT: Product Grid ───────────────────────────────── */}
-            <div className="flex-1 flex flex-col gap-3 min-w-0 overflow-hidden">
+            <div className={`flex-1 flex-col gap-3 min-w-0 lg:overflow-hidden ${mobileTab === 'products' ? 'flex' : 'hidden lg:flex'}`}>
                 <div className="flex flex-col gap-2 shrink-0">
                     <div className="flex items-center justify-between">
                         <div>
@@ -394,7 +411,7 @@ export default function PointOfSale() {
                 </div>
 
                 {/* ── Product Grid ── */}
-                <div className="flex-1 overflow-y-auto pr-1">
+                <div className="lg:flex-1 lg:overflow-y-auto pr-1">
                     {loading ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                             {[...Array(6)].map((_, i) => (
@@ -473,7 +490,7 @@ export default function PointOfSale() {
             </div>
 
             {/* ── RIGHT: Order Panel ───────────────────────────────── */}
-            <div className="w-full lg:w-[340px] xl:w-[380px] shrink-0 flex flex-col mt-4 lg:mt-0">
+            <div className={`w-full lg:w-[340px] xl:w-[380px] shrink-0 flex-col mt-0 lg:mt-0 ${mobileTab === 'order' ? 'flex' : 'hidden lg:flex'}`}>
                 <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(13,42,74,0.18)] flex flex-col h-full overflow-hidden border border-gray-200">
 
                     {/* Tab switcher */}

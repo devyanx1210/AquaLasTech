@@ -4,12 +4,15 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import path from "path";
 import { fileURLToPath } from "url";
+
+// Routes
 import authRoutes from "./routes/auth.routes.js";
 import stationRoutes from "./routes/station.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
 import ordersRoutes from './routes/order.routes.js'
 import posRoutes from './routes/pos.routes.js'
+import reportsRoutes from "./routes/reports.routes.js"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +54,7 @@ app.use("/settings", settingsRoutes);
 app.use("/inventory", inventoryRoutes);
 app.use('/orders', ordersRoutes)
 app.use('/pos', posRoutes)
+app.use("/reports", reportsRoutes)
 
 
 export default app;

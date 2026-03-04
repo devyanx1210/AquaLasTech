@@ -7,7 +7,6 @@ import {
     CircleDollarSign,
     Settings,
     LogOut,
-    Bell,
     ChevronRight,
     Menu,
     X,
@@ -197,10 +196,7 @@ export default function AdminLayout() {
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-                <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <Bell size={18} className="text-gray-500" />
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-                </button>
+
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold text-white select-none">
                     {initials}
                 </div>

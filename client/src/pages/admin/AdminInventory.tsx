@@ -280,15 +280,13 @@ export default function AdminInventory() {
                                         </div>
 
                                         {/* Info strip below image */}
-                                        <div className="px-3 py-2.5 flex flex-col gap-0.5 bg-white">
+                                        <div className="px-3 py-2.5 flex flex-col gap-1 bg-white">
                                             <p className="text-xs font-bold text-gray-800 truncate leading-tight">{p.product_name}</p>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-black text-[#0d2a4a]">{fmt(p.price)}</span>
-                                                <span className={`text-[10px] font-bold
-                                                    ${p.quantity === 0 ? 'text-red-500' : p.quantity <= p.min_stock_level ? 'text-amber-500' : 'text-emerald-600'}`}>
-                                                    {p.quantity} {p.unit}
-                                                </span>
-                                            </div>
+                                            <p className="text-xs font-black text-[#0d2a4a]">{fmt(p.price)}</p>
+                                            <p className={`text-[10px] font-semibold
+                                                ${p.quantity === 0 ? 'text-red-500' : p.quantity <= p.min_stock_level ? 'text-amber-500' : 'text-emerald-600'}`}>
+                                                {p.quantity} {p.unit}
+                                            </p>
                                         </div>
                                     </div>
                                 )

@@ -34,7 +34,7 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "node16",
     "esModuleInterop": true,
     "rootDir": "./src",
     "outDir": "./dist",

@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import authRoutes from "./routes/auth.routes.js";
+import stationRoutes from "./routes/station.routes.js"; // ← ADDED
 
 const app = express();
 
@@ -14,8 +15,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("/{*path}", cors(corsOptions)); // 👈 fixed wildcard syntax
-
+app.options("/{*path}", cors(corsOptions));
 app.use(helmet());
 app.use(cookieParser());
 app.use(express.json());
@@ -26,5 +26,6 @@ app.get("/", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
+app.use("/stations", stationRoutes); // ← ADDED
 
 export default app;

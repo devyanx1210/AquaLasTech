@@ -1,17 +1,16 @@
 import express from "express";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 import { connectToDatabase } from "../config/db.js";
 import dotenv from "dotenv";
-import { body, validationResult } from "express-validator";
+import { verifyToken } from '../middleware/verifyToken.middleware.js';
 
 dotenv.config();
 const router = express.Router();
 
-
+// ── POST /auth/signup ──────────────────────────────────────────────────────
 router.post("/signup", async (req, res) => {
     try {
-
         const { name, email, password } = req.body;
 
         if (!name || !email || !password) {
@@ -44,11 +43,9 @@ router.post("/signup", async (req, res) => {
     }
 });
 
-
-
+// ── POST /auth/login ───────────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
     try {
-
         const { email, password } = req.body;
         const db = await connectToDatabase();
 
@@ -71,6 +68,7 @@ router.post("/login", async (req, res) => {
         if (!match) {
             return res.status(401).json({ message: "Password not matched" });
         }
+
         const token = jwt.sign(
             { id: user.user_id, role: user.role },
             process.env.JWT_KEY || "",
@@ -78,19 +76,20 @@ router.post("/login", async (req, res) => {
         );
 
         res.cookie("token", token, {
-            httpOnly: true,     // JS cannot read it (XSS safe)
-            secure: process.env.NODE_ENV === "production", // HTTPS only in prod
-            sameSite: "strict", // CSRF protection
-            maxAge: 3 * 60 * 60 * 1000 // 3 hours in milliseconds
-        })
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 3 * 60 * 60 * 1000
+        });
 
         return res.json({
             Status: "Success",
             user: {
-                id: user.user_id,
-                name: user.full_name,
+                user_id: user.user_id,      // ← consistent with /me response
+                full_name: user.full_name,  // ← was "name", fixed
                 email: user.email,
-                role: user.role
+                role: user.role,
+                station_id: user.station_id // ← ADDED so AdminLayout gets it
             }
         });
 
@@ -100,33 +99,8 @@ router.post("/login", async (req, res) => {
     }
 });
 
-
-router.get("/me", async (req, res) => {
-    const token = req.cookies?.token;
-
-    if (!token) {
-        return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-        const decoded: any = jwt.verify(token, process.env.JWT_KEY || "");
-        const db = await connectToDatabase();
-
-        const [rows]: any = await db.query(
-            "SELECT user_id, full_name, email, role FROM users WHERE user_id = ?",
-            [decoded.id]
-        );
-
-        if (!rows || rows.length === 0) {
-            return res.status(401).json({ message: "User not found" });
-        }
-
-        return res.json({ user: rows[0] });
-    } catch {
-        return res.status(401).json({ message: "Invalid token" });
-    }
-});
-
+// ── GET /auth/me ───────────────────────────────────────────────────────────
+// FIX: removed duplicate, added station_id to SELECT
 router.get("/me", async (req, res) => {
     const token = (req as any).cookies?.token;
 
@@ -139,7 +113,7 @@ router.get("/me", async (req, res) => {
         const db = await connectToDatabase();
 
         const [rows]: any = await db.query(
-            "SELECT user_id, full_name, email, role FROM users WHERE user_id = ?",
+            "SELECT user_id, full_name, email, role, station_id FROM users WHERE user_id = ?",
             [decoded.id]
         );
 
@@ -154,6 +128,7 @@ router.get("/me", async (req, res) => {
     }
 });
 
+// ── POST /auth/logout ──────────────────────────────────────────────────────
 router.post("/logout", (_req, res) => {
     res.clearCookie("token", {
         httpOnly: true,

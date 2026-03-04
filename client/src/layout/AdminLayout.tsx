@@ -184,7 +184,7 @@ export default function AdminLayout() {
                             <div className="h-2.5 w-40 bg-gray-100 rounded animate-pulse mt-0.5" />
                         ) : station ? (
                             <p className="text-[10px] text-blue-500 font-medium leading-tight truncate">
-                                📍 {station.station_name}
+                                {station.station_name}
                                 <span className="text-gray-400 font-normal"> · {station.address}</span>
                             </p>
                         ) : (
@@ -211,7 +211,6 @@ export default function AdminLayout() {
 
     // ══════════════════════════════════════════════════════════════════════
     // MOBILE LAYOUT  (<768px)
-    // ══════════════════════════════════════════════════════════════════════
     if (isMobile) {
         return (
             <div className="mobile-layout flex flex-col h-[100dvh] bg-[#f0f4f8] overflow-hidden">
@@ -257,11 +256,11 @@ export default function AdminLayout() {
                                 </div>
                             ) : station ? (
                                 <>
-                                    <p className="font-semibold text-white truncate">📍 {station.station_name}</p>
+                                    <p className="font-semibold text-white truncate"> {station.station_name}</p>
                                     <p className="text-[10px] text-blue-300 truncate mt-0.5">{station.address}</p>
                                 </>
                             ) : (
-                                <span>📍 Station #{user.station_id}</span>
+                                <span>Station #{user.station_id}</span>
                             )}
                         </div>
                     )}
@@ -322,9 +321,7 @@ export default function AdminLayout() {
         )
     }
 
-    // ══════════════════════════════════════════════════════════════════════
     // TABLET + DESKTOP LAYOUT  (≥768px)
-    // ══════════════════════════════════════════════════════════════════════
     return (
         <div className="flex h-[100dvh] bg-[#f0f4f8] overflow-hidden">
 
@@ -355,11 +352,11 @@ export default function AdminLayout() {
                                 </div>
                             ) : station ? (
                                 <>
-                                    <p className="font-semibold text-white truncate">📍 {station.station_name}</p>
+                                    <p className="font-semibold text-white truncate"> {station.station_name}</p>
                                     <p className="text-[10px] text-blue-300 truncate mt-0.5">{station.address}</p>
                                 </>
                             ) : (
-                                <span>📍 Station #{user.station_id}</span>
+                                <span> Station #{user.station_id}</span>
                             )}
                         </div>
                     )}

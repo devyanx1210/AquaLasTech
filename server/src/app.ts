@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import authRoutes from "./routes/auth.routes.js";
 import stationRoutes from "./routes/station.routes.js"; // ← ADDED
+import settingsRoutes from "./routes/settings.routes.js"; // ← ADDED
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
-app.use("/stations", stationRoutes); // ← ADDED
+app.use("/stations", stationRoutes);
+app.use("/settings", settingsRoutes);
 
 export default app;

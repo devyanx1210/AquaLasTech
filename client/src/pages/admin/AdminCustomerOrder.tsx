@@ -65,6 +65,7 @@ const PAY_CFG: Record<string, { label: string; color: string; bg: string; border
     pending: { label: 'Pending', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
     verified: { label: 'Paid', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
     rejected: { label: 'Rejected', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200' },
+    not_required: { label: 'COD', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200' },
 }
 
 // ── Print Delivery List ────────────────────────────────────────────────────
@@ -291,14 +292,17 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
     const { datePart, timePart } = formatDateParts(order.created_at)
 
     const nextStatuses: Record<string, string[]> = {
+        pending: ['confirmed', 'cancelled'],
         confirmed: ['preparing', 'cancelled'],
         preparing: ['out_for_delivery', 'cancelled'],
         out_for_delivery: ['delivered', 'cancelled'],
+        delivered: [],
         cancelled: [],
         returned: [],
     }
     const available = nextStatuses[order.order_status] ?? []
     const isOnline = order.payment_mode === 'gcash'
+    const isCash = order.payment_mode === 'cash_on_delivery' || order.payment_mode === 'cash_on_pickup' || order.payment_mode === 'cash'
     const needsGcashVerify = isOnline && order.payment_status === 'pending'
     const hasReturn = !!order.return_id
 

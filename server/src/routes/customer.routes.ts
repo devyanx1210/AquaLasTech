@@ -1,0 +1,300 @@
+import express from 'express'
+import bcrypt from 'bcrypt'
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+import { connectToDatabase } from '../config/db.js'
+import { verifyToken } from '../middleware/verifyToken.middleware.js'
+
+const router = express.Router()
+router.use(verifyToken)
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// ── Multer for GCash receipt uploads ──────────────────────────────────────
+const receiptStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+        const dir = path.join(__dirname, '..', '..', 'uploads', 'receipts')
+        fs.mkdirSync(dir, { recursive: true })
+        cb(null, dir)
+    },
+    filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname)
+        cb(null, `receipt_${Date.now()}${ext}`)
+    },
+})
+const uploadReceipt = multer({
+    storage: receiptStorage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (/image\/(jpeg|jpg|png|webp)/.test(file.mimetype)) cb(null, true)
+        else cb(new Error('Only image files allowed'))
+    },
+})
+
+// ── PUT /customer/profile ──────────────────────────────────────────────────
+router.put('/profile', async (req, res) => {
+    const userId = (req as any).user.id
+    const { full_name, phone_number, address, latitude, longitude } = req.body
+    if (!full_name?.trim())
+        return res.status(400).json({ message: 'Name is required' })
+    try {
+        const pool = await connectToDatabase()
+        await pool.query(
+            `UPDATE users SET full_name=?, phone_number=?, address=?, latitude=?, longitude=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?`,
+            [full_name.trim(), phone_number ?? null, address?.trim() || null, latitude ?? null, longitude ?? null, userId]
+        )
+        const [rows]: any = await pool.query(
+            `SELECT user_id, full_name, email, role, station_id, address, latitude, longitude FROM users WHERE user_id=?`,
+            [userId]
+        )
+        const u = rows[0]
+        return res.json({
+            message: 'Profile updated',
+            user: {
+                user_id: u.user_id, full_name: u.full_name, email: u.email,
+                role: u.role, station_id: u.station_id,
+                address: u.address ?? null,
+                latitude: u.latitude != null ? parseFloat(u.latitude) : null,
+                longitude: u.longitude != null ? parseFloat(u.longitude) : null,
+            },
+        })
+    } catch (err) {
+        console.error('PUT /customer/profile error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── PUT /customer/password ─────────────────────────────────────────────────
+router.put('/password', async (req, res) => {
+    const userId = (req as any).user.id
+    const { current_password, new_password } = req.body
+    if (!current_password || !new_password)
+        return res.status(400).json({ message: 'Both passwords required' })
+    if (new_password.length < 6)
+        return res.status(400).json({ message: 'New password must be at least 6 characters' })
+    try {
+        const pool = await connectToDatabase()
+        const [rows]: any = await pool.query('SELECT password_hash FROM users WHERE user_id=?', [userId])
+        if (!rows.length) return res.status(404).json({ message: 'User not found' })
+        const valid = await bcrypt.compare(current_password, rows[0].password_hash)
+        if (!valid) return res.status(401).json({ message: 'Current password is incorrect' })
+        const hash = await bcrypt.hash(new_password, 10)
+        await pool.query('UPDATE users SET password_hash=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?', [hash, userId])
+        return res.json({ message: 'Password changed successfully' })
+    } catch (err) {
+        console.error('PUT /customer/password error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── GET /customer/products/:station_id ────────────────────────────────────
+// Returns all active products with current stock for a given station
+router.get('/products/:station_id', async (req, res) => {
+    const { station_id } = req.params
+    try {
+        const pool = await connectToDatabase()
+        const [rows]: any = await pool.query(`
+            SELECT
+                p.product_id,
+                p.product_name,
+                p.description,
+                p.price,
+                p.unit,
+                p.image_url,
+                COALESCE(i.quantity, 0) AS quantity
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.product_id AND i.station_id = ?
+            WHERE p.station_id = ? AND p.is_active = 1
+            ORDER BY p.product_name ASC
+        `, [station_id, station_id])
+        return res.json(rows)
+    } catch (err) {
+        console.error('GET /customer/products/:station_id error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── POST /customer/orders ──────────────────────────────────────────────────
+// Creates an order, order_items, payment record, and notifies the station admin
+router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
+    const userId = (req as any).user.id
+    const { station_id, payment_mode, total_amount, items: itemsJson } = req.body
+
+    if (!station_id || !payment_mode || !total_amount || !itemsJson)
+        return res.status(400).json({ message: 'Missing required fields' })
+
+    let items: { product_id: number; quantity: number; unit_price: number }[]
+    try { items = JSON.parse(itemsJson) }
+    catch { return res.status(400).json({ message: 'Invalid items format' }) }
+
+    if (!items.length)
+        return res.status(400).json({ message: 'Cart is empty' })
+
+    if (payment_mode === 'gcash' && !req.file)
+        return res.status(400).json({ message: 'GCash receipt is required' })
+
+    const pool = await connectToDatabase()
+    const conn = await (pool as any).getConnection()
+
+    try {
+        await conn.beginTransaction()
+
+        // Generate order reference: AQL-YYYYMMDD-XXXXX
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+        const rand = Math.random().toString(36).substring(2, 7).toUpperCase()
+        const order_reference = `AQL-${dateStr}-${rand}`
+
+        // Insert order — status starts as 'pending'
+        const [orderResult]: any = await conn.query(
+            `INSERT INTO orders (user_id, station_id, order_reference, total_amount, payment_mode, order_status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())`,
+            [userId, station_id, order_reference, total_amount, payment_mode]
+        )
+        const order_id = orderResult.insertId
+
+        // Insert order items (price_snapshot matches the POS/admin schema)
+        for (const item of items) {
+            await conn.query(
+                `INSERT INTO order_items (order_id, product_id, quantity, price_snapshot, created_at)
+                 VALUES (?, ?, ?, ?, NOW())`,
+                [order_id, item.product_id, item.quantity, item.unit_price]
+            )
+        }
+
+        // Insert payment record
+        const proof_image_path = req.file ? `/uploads/receipts/${req.file.filename}` : null
+        await conn.query(
+            `INSERT INTO payments (order_id, payment_type, payment_status, proof_image_path, created_at)
+             VALUES (?, ?, ?, ?, NOW())`,
+            [order_id, payment_mode, payment_mode === 'gcash' ? 'pending' : 'pending', proof_image_path]
+        )
+
+        // Notify the customer that their order was received
+        await conn.query(
+            `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+             VALUES (?, ?, ?, 'order_update', 0, NOW())`,
+            [userId, station_id, `Your order ${order_reference} has been received and is pending confirmation.`]
+        )
+
+        await conn.commit()
+        conn.release()
+
+        return res.status(201).json({
+            message: 'Order placed successfully',
+            order_id,
+            order_reference,
+        })
+    } catch (err) {
+        await conn.rollback()
+        conn.release()
+        console.error('POST /customer/orders error:', err)
+        return res.status(500).json({ message: 'Failed to place order' })
+    }
+})
+
+// ── GET /customer/orders ───────────────────────────────────────────────────
+// Returns all orders for the logged-in customer
+router.get('/orders', async (req, res) => {
+    const userId = (req as any).user.id
+    try {
+        const pool = await connectToDatabase()
+        const [orders]: any = await pool.query(`
+            SELECT
+                o.order_id, o.order_reference, o.total_amount,
+                o.payment_mode, o.order_status, o.created_at,
+                s.station_name, s.address AS station_address,
+                p.payment_type, p.payment_status, p.proof_image_path,
+                (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count
+            FROM orders o
+            LEFT JOIN stations s  ON s.station_id = o.station_id
+            LEFT JOIN payments p  ON p.order_id   = o.order_id
+            WHERE o.user_id = ?
+            ORDER BY o.created_at DESC
+        `, [userId])
+        return res.json(orders)
+    } catch (err) {
+        console.error('GET /customer/orders error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── GET /customer/orders/:id ───────────────────────────────────────────────
+router.get('/orders/:id', async (req, res) => {
+    const userId = (req as any).user.id
+    const { id } = req.params
+    try {
+        const pool = await connectToDatabase()
+        const [orders]: any = await pool.query(`
+            SELECT o.*, s.station_name, s.address AS station_address,
+                   p.payment_type, p.payment_status, p.proof_image_path
+            FROM orders o
+            LEFT JOIN stations s ON s.station_id = o.station_id
+            LEFT JOIN payments p ON p.order_id   = o.order_id
+            WHERE o.order_id = ? AND o.user_id = ?
+        `, [id, userId])
+        if (!orders.length) return res.status(404).json({ message: 'Order not found' })
+
+        const [items]: any = await pool.query(`
+            SELECT oi.*, p.product_name, p.image_url
+            FROM order_items oi
+            LEFT JOIN products p ON p.product_id = oi.product_id
+            WHERE oi.order_id = ?
+        `, [id])
+
+        return res.json({ ...orders[0], items })
+    } catch (err) {
+        console.error('GET /customer/orders/:id error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── GET /customer/notifications ────────────────────────────────────────────
+router.get('/notifications', async (req, res) => {
+    const userId = (req as any).user.id
+    try {
+        const pool = await connectToDatabase()
+        const [rows]: any = await pool.query(`
+            SELECT notification_id, message, notification_type, is_read, created_at
+            FROM notifications
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 50
+        `, [userId])
+        return res.json(rows)
+    } catch (err) {
+        console.error('GET /customer/notifications error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── PUT /customer/notifications/read-all ──────────────────────────────────
+router.put('/notifications/read-all', async (req, res) => {
+    const userId = (req as any).user.id
+    try {
+        const pool = await connectToDatabase()
+        await pool.query('UPDATE notifications SET is_read = 1 WHERE user_id = ?', [userId])
+        return res.json({ message: 'All marked as read' })
+    } catch (err) {
+        console.error('PUT /customer/notifications/read-all error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── PUT /customer/notifications/:id/read ──────────────────────────────────
+router.put('/notifications/:id/read', async (req, res) => {
+    const userId = (req as any).user.id
+    const { id } = req.params
+    try {
+        const pool = await connectToDatabase()
+        await pool.query('UPDATE notifications SET is_read = 1 WHERE notification_id = ? AND user_id = ?', [id, userId])
+        return res.json({ message: 'Marked as read' })
+    } catch (err) {
+        console.error('PUT /customer/notifications/:id/read error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+export default router

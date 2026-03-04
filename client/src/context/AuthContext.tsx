@@ -5,8 +5,12 @@ type User = {
     user_id: number;
     full_name: string;
     email: string;
-    role: "super_admin" | "admin" | "customer"; // ← added super_admin
-    station_id: number | null;                   // ← added station_id
+    role: "super_admin" | "admin" | "customer";
+    station_id: number | null;
+    // ── Added for customer nearby station feature ──
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
 } | null;
 
 type AuthContextType = {
@@ -27,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         axios
-            .get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true }) // ← fixed hardcoded URL
+            .get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true })
             .then(res => setUser(res.data.user))
             .catch(() => setUser(null))
             .finally(() => setLoading(false));

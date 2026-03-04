@@ -29,6 +29,7 @@ interface Station {
     address: string
     image_path: string | null
     contact_number: string | null
+    qr_code_path: string | null
 }
 interface CustomerOrder {
     order_id: number
@@ -960,10 +961,10 @@ export default function CustomerOrder() {
 
                                         {payMode === 'gcash' && (
                                             <div className="flex flex-col gap-2">
-                                                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-[11px] text-blue-600">
-                                                    <p className="font-bold mb-1">GCash Instructions:</p>
+                                                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-[11px] text-blue-600 flex flex-col gap-2">
+                                                    <p className="font-bold">GCash Instructions:</p>
                                                     <ol className="list-decimal list-inside flex flex-col gap-0.5">
-                                                        <li>Send payment to:{' '}
+                                                        <li>Scan the QR code below or send to:{' '}
                                                             <strong className="text-blue-800 text-xs">
                                                                 {station.contact_number ?? '—'}
                                                             </strong>
@@ -971,6 +972,19 @@ export default function CustomerOrder() {
                                                         <li>Screenshot your GCash receipt</li>
                                                         <li>Upload the screenshot below</li>
                                                     </ol>
+                                                    {/* QR code image */}
+                                                    {station.qr_code_path && (
+                                                        <div className="flex flex-col items-center gap-1.5 pt-1">
+                                                            <div className="bg-white rounded-xl border border-blue-200 p-2 shadow-sm">
+                                                                <img
+                                                                    src={station.qr_code_path.startsWith('http') ? station.qr_code_path : `${API}${station.qr_code_path}`}
+                                                                    alt="GCash QR Code"
+                                                                    className="w-36 h-36 object-contain"
+                                                                />
+                                                            </div>
+                                                            <p className="text-[10px] text-blue-500 font-semibold">Scan with GCash app</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div onClick={() => fileRef.current?.click()}
                                                     className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all

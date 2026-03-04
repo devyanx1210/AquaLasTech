@@ -16,6 +16,8 @@ import axios from 'axios'
 import logo from "../assets/aqualastech-logo-noBG.png"
 import { useStation } from '../hooks/useStation'
 
+const API = import.meta.env.VITE_API_URL
+
 // ── Base nav items (visible to all admins) ─────────────────────────────────
 const baseNavItems = [
     { label: 'Home', to: '/admin/dashboard', icon: Home },
@@ -223,7 +225,7 @@ export default function AdminLayout() {
                 `}>
                     <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
                         <div className="flex items-center gap-3">
-                            <img src={logo} alt="AquLasTech" className="w-8 h-8 object-contain shrink-0 drop-shadow-lg" />
+                            <img src={station?.image_path ? (station.image_path.startsWith('http') ? station.image_path : `${API}${station.image_path}`) : logo} alt="AquLasTech" className="w-8 h-8 object-contain shrink-0 drop-shadow-lg" />
                             <span className="font-bold text-[14px] tracking-wide">
                                 AquLas<span className="text-[#38bdf8]">Tech</span>
                             </span>
@@ -330,7 +332,7 @@ export default function AdminLayout() {
             `}>
                 <div>
                     <div className={`flex items-center gap-3 px-3 py-4 ${sidebarIconOnly ? 'justify-center' : ''}`}>
-                        <img src={logo} alt="AquLasTech" className="w-8 h-8 object-contain shrink-0 drop-shadow-lg" />
+                        <img src={station?.image_path ? (station.image_path.startsWith('http') ? station.image_path : `${API}${station.image_path}`) : logo} alt="AquLasTech" className="w-8 h-8 object-contain shrink-0 drop-shadow-lg" />
                         {!sidebarIconOnly && (
                             <span className="font-bold text-[14px] tracking-wide whitespace-nowrap">
                                 AquLas<span className="text-[#38bdf8]">Tech</span>

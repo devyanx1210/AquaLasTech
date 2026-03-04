@@ -47,6 +47,7 @@ router.get('/customer/list', verifyToken, async (req, res) => {
                 s.longitude,
                 s.image_path,
                 s.contact_number,
+                s.qr_code_path,
                 COALESCE(SUM(i.quantity), 0) AS total_stock
             FROM stations s
             LEFT JOIN inventory i ON i.station_id = s.station_id
@@ -67,7 +68,7 @@ router.get('/:id', verifyToken, async (req, res) => {
         const pool = await connectToDatabase()
         const [rows]: any = await pool.query(
             `SELECT station_id, station_name, address, contact_number, status,
-                    latitude, longitude, image_path
+                    latitude, longitude, image_path, qr_code_path
              FROM stations
              WHERE station_id = ?`,
             [req.params.id]

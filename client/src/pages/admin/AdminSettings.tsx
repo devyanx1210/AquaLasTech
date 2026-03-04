@@ -6,6 +6,7 @@ import {
     MapPin, Phone, Building2, Save, UserPlus,
     Eye, EyeOff, CheckCircle2, AlertCircle,
     Loader2, Navigation, Lock, Mail, User,
+    Upload, X, QrCode, ImageIcon,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -113,6 +114,14 @@ export default function AdminSettings() {
     const [mapReady, setMapReady] = useState(false)
     const [gettingLocation, setGettingLocation] = useState(false)
 
+    // ── Logo + QR state ──────────────────────────────────────────────────
+    const [logoPreview, setLogoPreview] = useState<string | null>(null)
+    const [uploadingLogo, setUploadingLogo] = useState(false)
+    const [qrPreview, setQrPreview] = useState<string | null>(null)
+    const [uploadingQR, setUploadingQR] = useState(false)
+    const logoRef = useRef<HTMLInputElement>(null)
+    const qrRef = useRef<HTMLInputElement>(null)
+
     const [toast, setToast] = useState<ToastData | null>(null)
     const showToast = useCallback((message: string, type: ToastType) => setToast({ message, type }), [])
 
@@ -134,6 +143,11 @@ export default function AdminSettings() {
                 latitude: (station as any).latitude != null ? parseFloat((station as any).latitude) : null,
                 longitude: (station as any).longitude != null ? parseFloat((station as any).longitude) : null,
             })
+            const API = import.meta.env.VITE_API_URL
+            const ip = (station as any).image_path
+            if (ip) setLogoPreview(ip.startsWith('http') ? ip : `${API}${ip}`)
+            const qp = (station as any).qr_code_path
+            if (qp) setQrPreview(qp.startsWith('http') ? qp : `${API}${qp}`)
         }
     }, [station])
 
@@ -238,6 +252,48 @@ export default function AdminSettings() {
                 showToast('Could not get location. Allow GPS access.', 'error')
             }
         )
+    }
+
+    // ── Upload logo ───────────────────────────────────────────────────────
+    const handleLogoUpload = async (file: File) => {
+        setUploadingLogo(true)
+        try {
+            const fd = new FormData()
+            fd.append('logo', file)
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/settings/station/${user?.station_id}/upload-logo`,
+                fd, { withCredentials: true, headers: { 'Content-Type': 'multipart/form-data' } }
+            )
+            const API = import.meta.env.VITE_API_URL
+            setLogoPreview(res.data.image_path.startsWith('http') ? res.data.image_path : `${API}${res.data.image_path}`)
+            refetchStation()
+            showToast('Station logo updated!', 'success')
+        } catch {
+            showToast('Failed to upload logo', 'error')
+        } finally {
+            setUploadingLogo(false)
+        }
+    }
+
+    // ── Upload QR code ────────────────────────────────────────────────────
+    const handleQRUpload = async (file: File) => {
+        setUploadingQR(true)
+        try {
+            const fd = new FormData()
+            fd.append('qr', file)
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/settings/station/${user?.station_id}/upload-qr`,
+                fd, { withCredentials: true, headers: { 'Content-Type': 'multipart/form-data' } }
+            )
+            const API = import.meta.env.VITE_API_URL
+            setQrPreview(res.data.qr_code_path.startsWith('http') ? res.data.qr_code_path : `${API}${res.data.qr_code_path}`)
+            refetchStation()
+            showToast('GCash QR code updated!', 'success')
+        } catch {
+            showToast('Failed to upload QR code', 'error')
+        } finally {
+            setUploadingQR(false)
+        }
     }
 
     // ── Validate + save station ───────────────────────────────────────────
@@ -419,6 +475,84 @@ export default function AdminSettings() {
                     >
                         {savingStation ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : <><Save size={15} /> Save Station Details</>}
                     </button>
+                </div>
+            </Section>
+
+            {/* ── Station Logo ──────────────────────────────────────────── */}
+            <Section title="Station Logo" subtitle="Shown on the customer app and admin sidebar" icon={<ImageIcon size={16} />}>
+                <div className="flex flex-col gap-4">
+                    {/* Preview */}
+                    <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                            {logoPreview
+                                ? <img src={logoPreview} alt="Station logo" className="w-full h-full object-contain p-1" />
+                                : <ImageIcon size={24} className="text-gray-300" />}
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-xs font-bold text-gray-700">Station Logo</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">PNG, JPG or WebP · Max 5MB</p>
+                            <p className="text-[11px] text-gray-400">Displayed in the customer app station list and admin sidebar.</p>
+                        </div>
+                    </div>
+                    {/* Upload area */}
+                    <div
+                        onClick={() => logoRef.current?.click()}
+                        className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all
+                            ${uploadingLogo ? 'border-[#38bdf8] bg-blue-50' : 'border-gray-200 hover:border-[#38bdf8] hover:bg-blue-50/40'}`}>
+                        {uploadingLogo ? (
+                            <div className="flex items-center justify-center gap-2 text-[#38bdf8]">
+                                <Loader2 size={16} className="animate-spin" />
+                                <span className="text-xs font-semibold">Uploading…</span>
+                            </div>
+                        ) : (
+                            <>
+                                <Upload size={18} className="text-gray-400 mx-auto mb-1" />
+                                <p className="text-xs font-bold text-gray-500">Click to upload new logo</p>
+                            </>
+                        )}
+                        <input
+                            ref={logoRef} type="file" accept="image/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = '' }}
+                        />
+                    </div>
+                </div>
+            </Section>
+
+            {/* ── GCash QR Code ──────────────────────────────────────────── */}
+            <Section title="GCash QR Code" subtitle="Shown to customers when paying via GCash" icon={<QrCode size={16} />}>
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                            {qrPreview
+                                ? <img src={qrPreview} alt="GCash QR" className="w-full h-full object-contain p-1" />
+                                : <QrCode size={24} className="text-gray-300" />}
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-xs font-bold text-gray-700">GCash QR Code</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">PNG, JPG · Max 5MB</p>
+                            <p className="text-[11px] text-gray-400">Customers will scan this to send payment when ordering via GCash.</p>
+                        </div>
+                    </div>
+                    <div
+                        onClick={() => qrRef.current?.click()}
+                        className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all
+                            ${uploadingQR ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/40'}`}>
+                        {uploadingQR ? (
+                            <div className="flex items-center justify-center gap-2 text-blue-500">
+                                <Loader2 size={16} className="animate-spin" />
+                                <span className="text-xs font-semibold">Uploading…</span>
+                            </div>
+                        ) : (
+                            <>
+                                <Upload size={18} className="text-gray-400 mx-auto mb-1" />
+                                <p className="text-xs font-bold text-gray-500">Click to upload QR code image</p>
+                            </>
+                        )}
+                        <input
+                            ref={qrRef} type="file" accept="image/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleQRUpload(f); e.target.value = '' }}
+                        />
+                    </div>
                 </div>
             </Section>
 

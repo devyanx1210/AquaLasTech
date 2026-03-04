@@ -46,10 +46,8 @@ const router = createBrowserRouter([
         children: [
             { index: true, element: <Navigate to="dashboard" replace /> },
             { path: "dashboard", element: <AdminDashboard /> },
-            {
-                path: "orders", element: <AdminCustomerOrder />,
-                children: [{ path: "pos", element: <PointOfSale /> }]
-            },
+            { path: "orders", element: <AdminCustomerOrder /> },  // ← no children
+            { path: "pos", element: <PointOfSale /> },         // ← sibling, not child
             { path: "inventory", element: <AdminInventory /> },
 
             // ── Super admin only ──────────────────────────────────────────

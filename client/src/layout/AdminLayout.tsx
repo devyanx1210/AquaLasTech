@@ -22,7 +22,7 @@ const baseNavItems = [
     { label: 'Home', to: '/admin/dashboard', icon: Home },
     { label: 'Inventory', to: '/admin/inventory', icon: Package },
     { label: 'Orders', to: '/admin/orders', icon: ShoppingBag },
-    { label: 'Point of Sale', to: '/admin/orders/pos', icon: CircleDollarSign },
+    { label: 'Point of Sale', to: '/admin/pos', icon: CircleDollarSign },
 ]
 
 // ── Settings only for super_admin ──────────────────────────────────────────
@@ -289,7 +289,7 @@ export default function AdminLayout() {
                     </div>
                 </aside>
 
-                <main className="main-content flex-1 overflow-y-auto p-3">
+                <main className={"main-content flex-1 overflow-y-auto p-3 " + (drawerOpen ? "[&_.leaflet-pane]:!z-0 [&_.leaflet-top]:!z-0 [&_.leaflet-bottom]:!z-0" : "")}>
                     <Outlet />
                 </main>
 

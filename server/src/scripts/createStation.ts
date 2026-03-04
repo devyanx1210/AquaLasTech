@@ -1,4 +1,5 @@
 import { connectToDatabase } from '../config/db.js'
+import bcrypt from 'bcrypt'
 import readline from 'readline'
 
 const rl = readline.createInterface({
@@ -29,31 +30,114 @@ async function createStation() {
         }
 
         // ── Step 2: Show available admin users ────────────────
-        console.log('\n📋 Available admin users:\n')
+        console.log('\n📋 Checking for existing admin users...\n')
         const [adminRows]: any = await pool.query(
-            `SELECT user_id, full_name, email, station_id 
+            `SELECT user_id, full_name, email, role, station_id 
              FROM users 
-             WHERE role = 'admin' 
+             WHERE role IN ('admin', 'super_admin') 
              ORDER BY user_id ASC`
         )
 
+        let admin_user_id: number
+
         if (adminRows.length === 0) {
-            console.error('❌ No admin users found. Run createAdmin.ts first.')
-            process.exit(1)
-        }
+            // ── No admins exist — create one now ─────────────
+            console.log('⚠️  No admin users found. Let\'s create one now.\n')
 
-        adminRows.forEach((u: any) => {
-            const assigned = u.station_id ? ` (already assigned to Station #${u.station_id})` : ' (unassigned)'
-            console.log(`  [${u.user_id}] ${u.full_name} — ${u.email}${assigned}`)
-        })
+            const full_name = await ask('Full Name    : ')
+            const email = await ask('Email        : ')
+            const password = await ask('Password     : ')
 
-        const adminIdInput = await ask('\nEnter the user_id of the admin to assign: ')
-        const admin_user_id = parseInt(adminIdInput)
+            if (!full_name || !email || !password) {
+                console.error('\n❌ All fields are required to create an admin.')
+                process.exit(1)
+            }
 
-        const selectedAdmin = adminRows.find((u: any) => u.user_id === admin_user_id)
-        if (!selectedAdmin) {
-            console.error('\n❌ Invalid user_id. Must match one of the listed admins.')
-            process.exit(1)
+            // Check email not taken
+            const [existing]: any = await pool.query(
+                `SELECT user_id FROM users WHERE email = ?`, [email]
+            )
+            if (existing.length > 0) {
+                console.error('\n❌ That email is already in use.')
+                process.exit(1)
+            }
+
+            const hash = await bcrypt.hash(password, 10)
+            const [newUser]: any = await pool.query(
+                `INSERT INTO users (full_name, email, password_hash, role, created_at, updated_at)
+                 VALUES (?, ?, ?, 'super_admin', NOW(), NOW())`,
+                [full_name, email, hash]
+            )
+            admin_user_id = newUser.insertId
+            console.log(`\n✅ Super admin created: ${full_name} (user_id: ${admin_user_id})`)
+
+        } else {
+            // ── Existing admins found — pick one ──────────────
+            adminRows.forEach((u: any) => {
+                const assigned = u.station_id
+                    ? ` (assigned to Station #${u.station_id})`
+                    : ' (unassigned)'
+                const roleTag = u.role === 'super_admin' ? ' [SUPER ADMIN]' : ' [ADMIN]'
+                console.log(`  [${u.user_id}] ${u.full_name} — ${u.email}${roleTag}${assigned}`)
+            })
+
+            const adminIdInput = await ask('\nEnter the user_id of the admin to assign (or type "new" to create one): ')
+
+            if (adminIdInput.trim().toLowerCase() === 'new') {
+                // Create a new admin inline
+                console.log('\n👤 Creating new admin...\n')
+                const full_name = await ask('Full Name    : ')
+                const email = await ask('Email        : ')
+                const password = await ask('Password     : ')
+
+                if (!full_name || !email || !password) {
+                    console.error('\n❌ All fields are required.')
+                    process.exit(1)
+                }
+
+                const [existing]: any = await pool.query(
+                    `SELECT user_id FROM users WHERE email = ?`, [email]
+                )
+                if (existing.length > 0) {
+                    console.error('\n❌ That email is already in use.')
+                    process.exit(1)
+                }
+
+                const promote = await ask('Make this user a super_admin? (y/n): ')
+                const role = promote.trim().toLowerCase() === 'y' ? 'super_admin' : 'admin'
+
+                const hash = await bcrypt.hash(password, 10)
+                const [newUser]: any = await pool.query(
+                    `INSERT INTO users (full_name, email, password_hash, role, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, NOW(), NOW())`,
+                    [full_name, email, hash, role]
+                )
+                admin_user_id = newUser.insertId
+                console.log(`\n✅ ${role === 'super_admin' ? 'Super admin' : 'Admin'} created: ${full_name} (user_id: ${admin_user_id})`)
+
+            } else {
+                admin_user_id = parseInt(adminIdInput)
+                const selectedAdmin = adminRows.find((u: any) => u.user_id === admin_user_id)
+
+                if (!selectedAdmin) {
+                    console.error('\n❌ Invalid user_id.')
+                    process.exit(1)
+                }
+
+                // Offer promotion if not already super_admin
+                if (selectedAdmin.role !== 'super_admin') {
+                    const promote = await ask(`\nMake ${selectedAdmin.full_name} a super_admin? (y/n): `)
+                    if (promote.trim().toLowerCase() === 'y') {
+                        await pool.query(
+                            `UPDATE users SET role = 'super_admin' WHERE user_id = ?`,
+                            [admin_user_id]
+                        )
+                        console.log(`✅ Role set to super_admin for: ${selectedAdmin.full_name}`)
+                    }
+                } else {
+                    console.log(`ℹ️  ${selectedAdmin.full_name} is already a super_admin`)
+                }
+            }
         }
 
         // ── Step 3: Insert the station ────────────────────────
@@ -75,21 +159,27 @@ async function createStation() {
         const new_station_id = stationResult.insertId
         console.log(`✅ Station created with ID: ${new_station_id}`)
 
-        // ── Step 4: Assign station to the selected admin ──────
+        // ── Step 4: Assign station to the admin ──────────────
         await pool.query(
             `UPDATE users SET station_id = ?, updated_at = NOW() WHERE user_id = ?`,
             [new_station_id, admin_user_id]
         )
-        console.log(`✅ Station assigned to admin: ${selectedAdmin.full_name} (user_id: ${admin_user_id})`)
 
         // ── Step 5: Summary ───────────────────────────────────
+        const [userRow]: any = await pool.query(
+            `SELECT full_name, email, role FROM users WHERE user_id = ?`,
+            [admin_user_id]
+        )
+        const assignedUser = userRow[0]
+
         console.log('\n' + '─'.repeat(45))
         console.log('🎉 Station setup complete!\n')
         console.log(`  Station ID   : ${new_station_id}`)
         console.log(`  Station Name : ${station_name}`)
         console.log(`  Address      : ${address}`)
         console.log(`  Contact      : ${contact_number}`)
-        console.log(`  Assigned To  : ${selectedAdmin.full_name} (user_id: ${admin_user_id})`)
+        console.log(`  Assigned To  : ${assignedUser.full_name} (${assignedUser.email})`)
+        console.log(`  Role         : ${assignedUser.role}`)
         console.log('─'.repeat(45) + '\n')
 
     } catch (err: any) {

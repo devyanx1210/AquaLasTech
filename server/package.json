@@ -7,7 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "station:create": "tsx src/scripts/createStation.ts",
+    "admin:create": "tsx src/scripts/createAdmin.ts",
+    "admin:manage": "tsx src/scripts/manageAdmins.ts",
+    "station:manage": "tsx src/scripts/manageStations.ts"
   },
   "keywords": [],
   "author": "",

@@ -9,6 +9,9 @@ import {
 } from 'lucide-react'
 import { FaMoneyBillWave, FaMobileAlt } from 'react-icons/fa'
 
+
+// BUG WHen in landscape mode is my order must be there
+
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Order {
     order_id: number
@@ -219,7 +222,7 @@ const GCashModal = ({ order, onClose, onVerify, API }: {
     )
 }
 
-// ── Return Modal ───────────────────────────────────────────────────────────
+// ── Return Modal 
 const ReturnModal = ({ order, onClose, onResolve }: {
     order: OrderDetail; onClose: () => void
     onResolve: (id: number, status: 'approved' | 'rejected') => Promise<void>
@@ -498,7 +501,6 @@ const OrderRow = ({ order, onOpen }: { order: Order; onOpen: () => void }) => {
     )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
 export default function AdminCustomerOrder() {
     const { user } = useAuth()
     const API = import.meta.env.VITE_API_URL

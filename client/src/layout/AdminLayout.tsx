@@ -225,7 +225,8 @@ export default function AdminLayout() {
                 `}>
                     <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
                         <div className="flex items-center gap-3">
-                            <img src={station?.image_path ? (station.image_path.startsWith('http') ? station.image_path : `${API}${station.image_path}`) : logo} alt="AquLasTech" className="w-8 h-8 object-contain shrink-0 drop-shadow-lg" />
+                            <img src={station?.image_path ? (station.image_path.startsWith('http') ? station.image_path : `${API}${station.image_path}`) : logo} alt="AquLasTech" className="w-8 h-8 rounded-full object-cover shrink-0 drop-shadow-lg overflow-hidden"
+                            />
                             <span className="font-bold text-[14px] tracking-wide">
                                 AquLas<span className="text-[#38bdf8]">Tech</span>
                             </span>

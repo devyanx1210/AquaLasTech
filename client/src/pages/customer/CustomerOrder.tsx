@@ -78,7 +78,6 @@ const PAYMENT_LABEL: Record<string, string> = {
     cash: 'Cash',
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
 const fmt = (n: number) => `₱${Number(n).toFixed(2)}`
 const timeAgo = (d: string) => {
     const diff = Date.now() - new Date(d).getTime()

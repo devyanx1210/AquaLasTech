@@ -155,6 +155,54 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
         )
         const order_id = orderResult.insertId
 
+        // Validate stock + deduct inventory atomically before inserting items
+        for (const item of items) {
+            // Check current stock with a row lock to prevent race conditions
+            const [stockRows]: any = await conn.query(
+                `SELECT quantity FROM inventory
+                 WHERE product_id = ? AND station_id = ?
+                 FOR UPDATE`,
+                [item.product_id, station_id]
+            )
+            if (!stockRows.length || stockRows[0].quantity < item.quantity) {
+                await conn.rollback()
+                conn.release()
+                return res.status(409).json({
+                    message: `Insufficient stock for one or more items. Please refresh and try again.`
+                })
+            }
+            // Deduct stock immediately on order placement
+            await conn.query(
+                `UPDATE inventory
+                 SET quantity = quantity - ?, updated_at = NOW()
+                 WHERE product_id = ? AND station_id = ?`,
+                [item.quantity, item.product_id, station_id]
+            )
+
+            // Check if now low stock — notify station admins
+            const [afterStock]: any = await conn.query(
+                `SELECT i.quantity, i.min_stock_level, p.product_name,
+                        u.user_id AS admin_id
+                 FROM inventory i
+                 JOIN products p ON p.product_id = i.product_id
+                 JOIN users u ON u.station_id = i.station_id AND u.role IN ('admin','super_admin')
+                 WHERE i.product_id = ? AND i.station_id = ?`,
+                [item.product_id, station_id]
+            )
+            for (const row of afterStock) {
+                if (row.quantity <= row.min_stock_level) {
+                    const stockMsg = row.quantity === 0
+                        ? `"${row.product_name}" is now OUT OF STOCK.`
+                        : `"${row.product_name}" is running low — only ${row.quantity} left.`
+                    await conn.query(
+                        `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+                         VALUES (?, ?, ?, 'low_stock', 0, NOW())`,
+                        [row.admin_id, station_id, stockMsg]
+                    ).catch(() => { }) // non-fatal
+                }
+            }
+        }
+
         // Insert order items (price_snapshot matches the POS/admin schema)
         for (const item of items) {
             await conn.query(

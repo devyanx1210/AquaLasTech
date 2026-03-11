@@ -276,7 +276,25 @@ router.put('/:id/return', async (req, res) => {
             [return_status, id]
         )
 
-        // If rejected, move order back to out_for_delivery
+        // If approved: restore stock to inventory (items are being returned)
+        if (return_status === 'approved') {
+            const [returnItems]: any = await db.query(
+                `SELECT oi.product_id, oi.quantity, p.station_id
+                 FROM order_items oi
+                 JOIN products p ON p.product_id = oi.product_id
+                 WHERE oi.order_id = ?`,
+                [id]
+            )
+            for (const item of returnItems) {
+                await db.query(
+                    `UPDATE inventory SET quantity = quantity + ?, updated_at = NOW()
+                     WHERE product_id = ? AND station_id = ?`,
+                    [item.quantity, item.product_id, item.station_id]
+                )
+            }
+        }
+
+        // If rejected: move order back to out_for_delivery (no stock change)
         if (return_status === 'rejected') {
             await db.query(
                 `UPDATE orders SET order_status = 'out_for_delivery', updated_at = NOW() WHERE order_id = ?`,

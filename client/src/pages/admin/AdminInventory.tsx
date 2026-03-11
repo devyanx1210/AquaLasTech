@@ -8,7 +8,6 @@ import {
     Droplets, Package, Trash2,
 } from 'lucide-react'
 
-// ── Types ──────────────────────────────────────────────────────────────────
 interface Product {
     product_id: number
     product_name: string
@@ -26,7 +25,6 @@ type ModalMode = 'add' | 'edit' | 'restock' | null
 type ToastType = 'success' | 'error'
 interface ToastData { message: string; type: ToastType }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
 const stockStatus = (qty: number, min: number) => {
     if (qty === 0) return { label: 'Out of Stock', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-500' }
     if (qty <= min) return { label: 'Low Stock', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400' }
@@ -34,7 +32,6 @@ const stockStatus = (qty: number, min: number) => {
 }
 const fmt = (p: number) => `₱${Number(p).toFixed(2)}`
 
-// ── Toast ──────────────────────────────────────────────────────────────────
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
     return (
@@ -46,7 +43,6 @@ const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     )
 }
 
-// ── Modal Shell ────────────────────────────────────────────────────────────
 const Modal = ({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) => (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -76,7 +72,6 @@ const FL = ({ label, error, hint, children }: { label: string; error?: string; h
     </div>
 )
 
-// ══════════════════════════════════════════════════════════════════════════
 export default function AdminInventory() {
     const { user } = useAuth()
     const API = import.meta.env.VITE_API_URL
@@ -226,7 +221,6 @@ export default function AdminInventory() {
 
             {/* Main layout: card grid LEFT + stock panel RIGHT */}
             <div className="flex gap-4 items-start flex-col lg:flex-row">
-
                 {/* ── LEFT: Product Cards Grid ─────────────────────────── */}
                 <div className="flex-1 min-w-0">
                     {loading ? (

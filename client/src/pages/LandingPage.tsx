@@ -1,173 +1,402 @@
-import React, { useState, useEffect } from "react";
-import logo from "../assets/aqualastech-logo-noBG.png"
-import water_bg from "../assets/water-bg.jpg"
-import { FiPhone, FiArrowRight } from "react-icons/fi";
+import React, { useState, useEffect, useRef } from "react";
+import "./LandingPage.css";
+import logo from "../assets/aqualastech-logo-noBG.png";
+import teamLogo from "../assets/team-logo.png";
+import water_bg from "../assets/water-bg.jpg";
+import {
+    FiArrowRight, FiMapPin, FiPackage, FiUsers,
+    FiBarChart2, FiShield, FiZap, FiMail, FiPhone, FiFacebook,
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
+/* ─── CONFIG ─────────────────────────────────────────────── */
+const FB_PAGE_URL = "https://www.facebook.com/marklevi.roldan.5";
+const CONTACT_EMAIL = "aqualastech@gmail.com";
+const CONTACT_PHONE = "09672534800";
+
+/* ─── Scroll reveal hook ─────────────────────────────────── */
+function useVisible(threshold = 0.12) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [visible, setVisible] = useState(false);
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const obs = new IntersectionObserver(
+            ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+            { threshold }
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [threshold]);
+    return { ref, visible };
+}
+
+/* ─── Feature data ───────────────────────────────────────── */
+const FEATURES = [
+    { icon: FiZap, title: "Order Automation", desc: "Automate customer orders and schedule deliveries with real-time status updates." },
+    { icon: FiPackage, title: "Inventory Tracking", desc: "Monitor water bottle levels and supplies in real-time with low-stock alerts." },
+    { icon: FiUsers, title: "Customer Management", desc: "Manage customer profiles, track orders and service logs with ease." },
+    { icon: FiMapPin, title: "Geolocation Tracking", desc: "Monitor real-time position of devices, helping admins track customer locations efficiently." },
+    { icon: FiBarChart2, title: "Report and Analytics", desc: "Generate insightful sales and inventory reports to optimize your business." },
+    { icon: FiShield, title: "Secure & Reliable", desc: "Built with secure authentication and reliable uptime for peace of mind." },
+];
+
+/* ─── Feature card ───────────────────────────────────────── */
+function FeatureCard({ icon: Icon, title, desc, delay, index }: {
+    icon: React.ElementType; title: string; desc: string; delay: number; index: number;
+}) {
+    const { ref, visible } = useVisible(0.08);
+    return (
+        <div
+            ref={ref}
+            className="feature-card"
+            style={{
+                transitionDelay: `${delay}ms`,
+                opacity: visible ? 1 : 0,
+                transform: visible ? "translateY(0) scale(1)" : "translateY(36px) scale(0.96)",
+                transition: "opacity 0.65s ease, transform 0.65s cubic-bezier(.22,1,.36,1)",
+                animationDelay: `${index * 0.45}s`,
+            }}
+        >
+            <div className="card-shimmer" />
+            <div className="card-glow" />
+            <div className="card-icon-wrap"><Icon size={20} /></div>
+            <h3 className="card-title">{title}</h3>
+            <p className="card-desc">{desc}</p>
+        </div>
+    );
+}
+
+/* ════════════════════════════════════════════════════════════
+   PAGE
+════════════════════════════════════════════════════════════ */
 const LandingPage = () => {
     const navigate = useNavigate();
     const [bgLoaded, setBgLoaded] = useState(false);
-
-    useEffect(() => {
-        document.body.style.overflow = 'hidden'
-        document.documentElement.style.overflow = 'hidden'
-        return () => {
-            document.body.style.overflow = ''
-            document.documentElement.style.overflow = ''
-        }
-    }, [])
+    const featuresRef = useRef<HTMLDivElement>(null);
+    const { ref: aboutRef, visible: aboutVisible } = useVisible(0.08);
+    const { ref: ctaRef, visible: ctaVisible } = useVisible(0.12);
 
     return (
-        <div
-            style={{
-                position: 'fixed',
-                inset: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                background: "linear-gradient(155deg, rgba(0,42,110,1) 0%, rgba(0,74,173,1) 35%, rgba(100,160,210,1) 70%, rgba(154,189,220,1) 100%)"
-            }}
-        >
+        <div className="lp-root">
             <img src={water_bg} alt="" className="hidden" onLoad={() => setBgLoaded(true)} />
-            <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 pointer-events-none"
-                style={{ backgroundImage: `url(${water_bg})`, opacity: bgLoaded ? 0.12 : 0 }} />
-            <div className="absolute inset-0 pointer-events-none"
-                style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(100,180,255,0.18) 0%, transparent 65%)" }} />
-            <div className="absolute top-[-80px] left-[-80px] w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none"
-                style={{ background: "radial-gradient(circle, #60b4ff, transparent)" }} />
-            <div className="absolute bottom-[-100px] right-[-60px] w-96 h-96 rounded-full opacity-15 blur-3xl pointer-events-none"
-                style={{ background: "radial-gradient(circle, #a0d4ff, transparent)" }} />
 
-            {/* Navbar — shorter in landscape */}
-            <div
-                className="relative z-10 mx-3 mt-2 md:mx-6 md:mt-4 flex items-center justify-between px-4 md:px-8
-                           h-11 [@media(max-height:500px)_and_(orientation:landscape)]:h-10 md:h-16 rounded-2xl border border-white/30 shadow-xl shrink-0"
-                style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
-            >
-                <div className="flex items-center gap-2.5">
-                    <img src={logo} alt="logo" className="h-7 w-7 md:h-10 md:w-10 object-contain drop-shadow-lg" />
-                    <span className="font-bold text-white text-base md:text-xl tracking-tight"
-                        style={{ textShadow: "0 1px 8px rgba(0,30,80,0.4)" }}>
-                        AquaLasTech
-                    </span>
-                </div>
+            {/* ════════════════════════════════════════════
+                HERO
+            ════════════════════════════════════════════ */}
+            <div className="hero-section">
+                <div className="absolute inset-0"
+                    style={{ background: "linear-gradient(155deg,#001a4d 0%,#003a8c 40%,#1a6faf 75%,#4aa3d4 100%)" }} />
+                <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+                    style={{ backgroundImage: `url(${water_bg})`, opacity: bgLoaded ? 0.10 : 0 }} />
+                <div className="absolute inset-0 pointer-events-none"
+                    style={{ background: "radial-gradient(ellipse 80% 55% at 65% 45%,rgba(56,189,248,0.18) 0%,transparent 60%)" }} />
+                <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
+                    style={{ background: "radial-gradient(circle,#60b4ff,transparent)" }} />
+                <div className="absolute -bottom-20 -right-16 w-96 h-96 rounded-full blur-3xl opacity-15 pointer-events-none"
+                    style={{ background: "radial-gradient(circle,#a0d4ff,transparent)" }} />
+                <div className="hero-bottom-fade" />
 
-                <div className="hidden md:flex items-center w-full absolute left-0 right-0 pointer-events-none justify-center">
-                    <div className="flex items-center gap-2 text-sm font-medium pointer-events-auto"
-                        style={{ color: "rgba(220,240,255,0.92)" }}>
-                        <FiPhone size={14} />
-                        <span>09672534800</span>
+                {/* Navbar */}
+                <nav className="hero-nav relative z-20 mx-3 mt-3 sm:mx-5 sm:mt-4
+                    flex items-center justify-between px-4 sm:px-6 md:px-8
+                    h-12 sm:h-14 md:h-16 rounded-2xl border border-white/20 shadow-xl shrink-0"
+                    style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <img src={logo} alt="logo" className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 object-contain drop-shadow-lg" />
+                        <span className="font-bold text-white text-sm sm:text-base md:text-lg tracking-tight"
+                            style={{ textShadow: "0 1px 8px rgba(0,30,80,0.4)" }}>AquaLasTech</span>
                     </div>
-                </div>
-
-                <div className="hidden md:flex items-center gap-1 text-sm font-semibold relative z-10">
-                    <button onClick={() => navigate("/login")}
-                        className="px-4 py-2 rounded-xl transition-all hover:bg-white/15 active:scale-95"
-                        style={{ color: "rgba(220,240,255,0.9)" }}>Log in</button>
-                    <span style={{ color: "rgba(180,210,255,0.5)" }}>|</span>
-                    <button onClick={() => navigate("/signup")}
-                        className="px-4 py-2 rounded-xl transition-all hover:bg-white/15 active:scale-95"
-                        style={{ color: "rgba(220,240,255,0.9)" }}>Sign up</button>
-                </div>
-
-                <div className="flex md:hidden items-center gap-1.5" style={{ color: "rgba(220,240,255,0.92)" }}>
-                    <FiPhone size={12} />
-                    <span className="text-xs">09672534800</span>
-                </div>
-            </div>
-
-            {/* Hero */}
-            <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center text-center px-6
-                            [@media(max-height:500px)_and_(orientation:landscape)]:flex-row [@media(max-height:500px)_and_(orientation:landscape)]:gap-10 [@media(max-height:500px)_and_(orientation:landscape)]:px-10 [@media(max-height:500px)_and_(orientation:landscape)]:justify-center">
-
-                {/* Left side in [@media(max-height:500px)_and_(orientation:landscape)]: heading + subtitle */}
-                <div className="flex flex-col items-center [@media(max-height:500px)_and_(orientation:landscape)]:items-start [@media(max-height:500px)_and_(orientation:landscape)]:text-left [@media(max-height:500px)_and_(orientation:landscape)]:flex-1">
-                    <h1
-                        className="font-bold tracking-tight leading-none text-5xl [@media(max-height:500px)_and_(orientation:landscape)]:text-4xl md:text-7xl lg:text-8xl"
-                        style={{ color: "rgba(255,255,255,0.97)", textShadow: "0 4px 24px rgba(0,30,90,0.5)" }}
-                    >
-                        AquaLasTech
-                    </h1>
-                    <p className="mt-2 max-w-xs [@media(max-height:500px)_and_(orientation:landscape)]:max-w-sm leading-relaxed font-light text-sm md:text-lg"
-                        style={{ color: "rgba(210,235,255,0.88)" }}>
-                        Streamlining Water Orders,{" "}
-                        <span style={{ color: "rgba(180,220,255,0.95)", fontWeight: 500 }}>
-                            Enhancing Service Efficiency
-                        </span>
-                    </p>
-
-                    {/* Stats — hidden in landscape, shown in portrait */}
-                    <div className="[@media(max-height:500px)_and_(orientation:landscape)]:hidden flex items-center gap-6 mt-5">
-                        {[
-                            { label: "Orders Delivered", value: "10K+" },
-                            { label: "Happy Customers", value: "500+" },
-                            { label: "Uptime", value: "99.9%" },
-                        ].map(({ label, value }) => (
-                            <div key={label} className="flex flex-col items-center">
-                                <span className="font-bold text-xl" style={{ color: "rgba(255,255,255,0.97)" }}>{value}</span>
-                                <span className="text-[10px] mt-0.5 tracking-wide" style={{ color: "rgba(190,220,255,0.75)" }}>{label}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Right side in [@media(max-height:500px)_and_(orientation:landscape)]: CTA + buttons */}
-                <div className="flex flex-col items-center [@media(max-height:500px)_and_(orientation:landscape)]:items-start [@media(max-height:500px)_and_(orientation:landscape)]:flex-1 mt-5 [@media(max-height:500px)_and_(orientation:landscape)]:mt-0">
-                    {/* Stats in landscape */}
-                    <div className="hidden [@media(max-height:500px)_and_(orientation:landscape)]:flex items-center gap-6 mb-4">
-                        {[
-                            { label: "Orders Delivered", value: "10K+" },
-                            { label: "Happy Customers", value: "500+" },
-                            { label: "Uptime", value: "99.9%" },
-                        ].map(({ label, value }) => (
-                            <div key={label} className="flex flex-col items-center">
-                                <span className="font-bold text-lg" style={{ color: "rgba(255,255,255,0.97)" }}>{value}</span>
-                                <span className="text-[10px] mt-0.5 tracking-wide" style={{ color: "rgba(190,220,255,0.75)" }}>{label}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <button
-                        onClick={() => navigate("/login")}
-                        className="flex items-center gap-3 px-8 py-3 rounded-2xl text-base font-semibold
-                                   transition-all duration-200 active:scale-95 shadow-2xl group"
-                        style={{
-                            background: "rgba(255,255,255,0.18)",
-                            backdropFilter: "blur(16px)",
-                            WebkitBackdropFilter: "blur(16px)",
-                            border: "1px solid rgba(255,255,255,0.35)",
-                            color: "rgba(255,255,255,0.97)",
-                            boxShadow: "0 8px 32px rgba(0,40,120,0.25), inset 0 1px 0 rgba(255,255,255,0.2)"
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.26)"}
-                        onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.18)"}
-                    >
-                        Order Water Now
-                        <FiArrowRight size={18} className="transition-transform duration-200 group-hover:translate-x-1" />
-                    </button>
-
-                    <p className="mt-2 text-xs" style={{ color: "rgba(180,215,255,0.65)" }}>
-                        Digital Payment · Real-time tracking · Easy Order
-                    </p>
-
-                    <div className="flex md:hidden items-center gap-3 mt-3">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                         <button onClick={() => navigate("/login")}
-                            className="px-5 py-1.5 rounded-xl border border-white/30 text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-white/25 whitespace-nowrap
+                            text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
                             style={{ color: "rgba(220,240,255,0.95)" }}>Log in</button>
                         <button onClick={() => navigate("/signup")}
-                            className="px-5 py-1.5 rounded-xl border border-white/30 text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-white/35 whitespace-nowrap
+                            text-xs sm:text-sm font-semibold bg-white/20 hover:bg-white/30 active:scale-95 transition-all"
                             style={{ color: "rgba(220,240,255,0.95)" }}>Sign up</button>
+                    </div>
+                </nav>
+
+                {/* Hero body */}
+                <div className="hero-body relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pb-32"
+                    style={{ animation: "heroIn 0.85s cubic-bezier(.22,1,.36,1) forwards" }}>
+                    <div className="hero-left flex flex-col items-center">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/25 mb-5"
+                            style={{ background: "rgba(56,189,248,0.12)", backdropFilter: "blur(10px)" }}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
+                            <span className="text-[10px] font-bold tracking-widest uppercase"
+                                style={{ color: "rgba(160,220,255,0.95)" }}>Boac, Marinduque</span>
+                        </div>
+                        <h1 className="font-black tracking-tight leading-none text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+                            style={{ color: "#fff", textShadow: "0 4px 32px rgba(0,30,90,0.5)" }}>
+                            AquaLasTech
+                        </h1>
+                        <p className="mt-3 max-w-sm text-sm md:text-lg leading-relaxed font-light"
+                            style={{ color: "rgba(210,235,255,0.82)" }}>
+                            Streamlining Water Orders,{" "}
+                            <span style={{ color: "rgba(147,210,255,0.95)", fontWeight: 600 }}>
+                                Enhancing Service Efficiency
+                            </span>
+                        </p>
+                    </div>
+                    <div className="hero-right flex flex-col items-center mt-8">
+                        <a href={FB_PAGE_URL} target="_blank" rel="noopener noreferrer" className="cta-btn-hero group">
+                            Order Water Now
+                            <FiArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                        </a>
+                        <p className="mt-2.5 text-xs" style={{ color: "rgba(180,215,255,0.50)" }}>
+                            Digital Payment · Real-time Tracking · Easy Order
+                        </p>
+                        <button
+                            onClick={() => featuresRef.current?.scrollIntoView({ behavior: "smooth" })}
+                            className="scroll-cue flex flex-col items-center gap-1.5 mt-9"
+                            style={{ color: "rgba(180,215,255,0.40)" }}>
+                            <span className="text-[10px] font-semibold tracking-widest uppercase">Explore Features</span>
+                            <div className="w-5 h-8 rounded-full border-2 border-current flex items-start justify-center pt-1.5">
+                                <div className="w-1 h-1.5 rounded-full bg-current animate-bounce" />
+                            </div>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Wave — hidden in landscape */}
-            <div className="[@media(max-height:500px)_and_(orientation:landscape)]:hidden relative z-10 w-full shrink-0" style={{ height: "50px" }}>
-                <svg viewBox="0 0 1440 50" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,25 C360,50 1080,0 1440,25 L1440,50 L0,50 Z" fill="rgba(255,255,255,0.06)" />
-                    <path d="M0,38 C480,12 960,45 1440,32 L1440,50 L0,50 Z" fill="rgba(255,255,255,0.04)" />
-                </svg>
+            {/* ════════════════════════════════════════════
+                FEATURES
+            ════════════════════════════════════════════ */}
+            <div className="features-section">
+                <div
+                    ref={aboutRef}
+                    className="max-w-4xl mx-auto px-6 pt-16 pb-12 md:pt-20 md:pb-14 text-center"
+                    style={{
+                        opacity: aboutVisible ? 1 : 0,
+                        transform: aboutVisible ? "translateY(0)" : "translateY(24px)",
+                        transition: "opacity 0.7s ease, transform 0.7s ease",
+                    }}
+                >
+                    <p className="text-[11px] font-bold tracking-widest uppercase mb-3"
+                        style={{ color: "rgba(255,255,255,0.75)" }}>The All-in-One Platform</p>
+                    <h2 className="font-black text-white text-3xl md:text-5xl leading-tight mb-5"
+                        style={{ textShadow: "0 2px 16px rgba(0,40,90,0.30)" }}>
+                        Everything you need for<br />
+                        <span style={{ color: "#b8eaff" }}>Efficient Water Station</span> Management
+                    </h2>
+                    <p className="text-sm md:text-base leading-relaxed max-w-2xl mx-auto"
+                        style={{ color: "rgba(10,50,90,0.82)" }}>
+                        The all-in-one ordering and inventory management solution designed for water
+                        refilling stations in Boac, Marinduque. Automate orders, manage inventory,
+                        and enhance your operational efficiency with ease.
+                    </p>
+                    <div className="flex items-center justify-center gap-6 mt-5 flex-wrap">
+                        {[
+                            { icon: FiMapPin, text: "Supports Geolocation feature" },
+                            { icon: FiShield, text: "Locally tailored for Boac, Marinduque" },
+                        ].map(({ icon: Icon, text }) => (
+                            <div key={text} className="flex items-center gap-2 text-sm font-medium"
+                                style={{ color: "rgba(10,50,90,0.72)" }}>
+                                <Icon size={13} style={{ color: "#0971b8" }} />{text}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div ref={featuresRef} className="max-w-5xl mx-auto px-5 pb-6">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "18px" }}>
+                        {FEATURES.map((f, i) => (
+                            <FeatureCard key={f.title} {...f} delay={i * 85} index={i} />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Wave → CTA */}
+                <div className="wave-divider" style={{ marginTop: "52px" }}>
+                    <svg viewBox="0 0 1440 110" preserveAspectRatio="none" style={{ width: "100%", height: "110px" }}>
+                        <path d="M0,55 C240,95 480,15 720,60 C960,105 1200,25 1440,60 L1440,110 L0,110 Z"
+                            fill="rgba(255,255,255,0.14)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="-80 0; 80 0; -80 0" dur="7s" repeatCount="indefinite" />
+                        </path>
+                        <path d="M0,70 C360,35 720,95 1080,55 C1260,35 1380,65 1440,70 L1440,110 L0,110 Z"
+                            fill="rgba(255,255,255,0.22)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="60 0; -60 0; 60 0" dur="5.5s" repeatCount="indefinite" />
+                        </path>
+                    </svg>
+                </div>
             </div>
+
+            {/* ════════════════════════════════════════════
+                CTA
+                The section itself carries the background.
+                The footer wave is absolutely pinned to the
+                section bottom so it visually overlaps the
+                card's lower edge. Footer starts flush below.
+            ════════════════════════════════════════════ */}
+            <div
+                className="cta-section"
+                style={{
+                    position: "relative",
+                    /* bottom padding creates space for the pinned wave
+                       so it doesn't cover the button */
+                    paddingBottom: "100px",
+                }}
+            >
+                {/* CTA card */}
+                <div
+                    ref={ctaRef}
+                    className="relative overflow-hidden mx-4 md:mx-8 lg:mx-auto lg:max-w-5xl rounded-3xl"
+                    style={{
+                        background: "linear-gradient(135deg,#004a9f 0%,#0070cc 50%,#1a9fd4 100%)",
+                        boxShadow: "0 24px 70px rgba(0,60,180,0.40)",
+                        opacity: ctaVisible ? 1 : 0,
+                        transform: ctaVisible ? "scale(1)" : "scale(0.96)",
+                        transition: "opacity 0.7s ease, transform 0.7s ease",
+                    }}
+                >
+                    {/* Orbs */}
+                    <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl opacity-20 pointer-events-none"
+                        style={{ background: "radial-gradient(circle,#fff,transparent)" }} />
+                    <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none"
+                        style={{ background: "radial-gradient(circle,#38bdf8,transparent)" }} />
+
+                    <div className="relative z-10 text-center px-6 py-14 md:py-20">
+
+                        {/* Badge */}
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/30 mb-5"
+                            style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(10px)" }}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
+                            <span className="text-[11px] font-bold tracking-widest uppercase"
+                                style={{ color: "rgba(200,240,255,0.90)" }}>Ready to modernize?</span>
+                        </div>
+
+                        {/* Heading — big on all screens */}
+                        <h2
+                            className="font-black leading-[1.05] mb-5"
+                            style={{
+                                fontSize: "clamp(2.4rem, 7vw, 5.5rem)",
+                                background: "linear-gradient(160deg,#ffffff 0%,rgba(185,232,255,0.95) 55%,rgba(100,200,255,0.85) 100%)",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                backgroundClip: "text",
+                            }}
+                        >
+                            Start Your Smart<br />Water Business Today
+                        </h2>
+
+                        <p className="text-base md:text-xl mb-4 max-w-xl mx-auto font-light"
+                            style={{ color: "rgba(210,240,255,0.82)" }}>
+                            Join water refilling stations in Boac, Marinduque that are already
+                            growing faster with AquaLasTech.
+                        </p>
+
+                        <p className="font-bold text-base md:text-lg mb-10"
+                            style={{ color: "rgba(200,238,255,0.88)" }}>Free · Powerful · Easy</p>
+
+                        {/* Button */}
+                        <a
+                            href={FB_PAGE_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group inline-flex items-center gap-3 px-10 md:px-14 py-4 md:py-5
+                                rounded-2xl font-black text-base md:text-lg
+                                bg-white text-[#003a8c] hover:bg-blue-50 active:scale-95 transition-all no-underline"
+                            style={{ boxShadow: "0 14px 50px rgba(0,30,100,0.45), 0 2px 0 rgba(255,255,255,0.55) inset" }}
+                        >
+                            Get Started — It's Free
+                            <FiArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform duration-200" />
+                        </a>
+
+                        <p className="mt-4 text-xs md:text-sm" style={{ color: "rgba(200,235,255,0.50)" }}>
+                            Message us on Facebook to register your station
+                        </p>
+                    </div>
+                </div>
+
+                {/* ── Wave pinned to section bottom ──────────────────
+                    fill="#0d2a4a" matches the footer bg exactly.
+                    It visually cuts up into the CTA section,
+                    removing any gap between CTA and footer. */}
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, lineHeight: 0, zIndex: 5 }}>
+                    <svg viewBox="0 0 1440 100" preserveAspectRatio="none" style={{ width: "100%", height: "100px", display: "block" }}>
+                        <path d="M0,40 C300,85 700,5 1050,60 C1250,85 1380,35 1440,55 L1440,100 L0,100 Z"
+                            fill="#0d2a4a" opacity="0.45" />
+                        <path d="M0,58 C360,15 820,90 1120,45 C1300,18 1410,65 1440,60 L1440,100 L0,100 Z"
+                            fill="#0d2a4a" opacity="0.65" />
+                        <path d="M0,72 C420,35 950,95 1440,65 L1440,100 L0,100 Z"
+                            fill="#0d2a4a" />
+                    </svg>
+                </div>
+            </div>
+
+            {/* ════════════════════════════════════════════
+                FOOTER — zero gap, starts flush
+            ════════════════════════════════════════════ */}
+            <footer className="footer-section" style={{ marginTop: 0 }}>
+                <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+
+                    {/* Brand + contact */}
+                    <div className="flex items-start gap-3">
+                        <img src={logo} alt="logo" className="h-9 w-9 object-contain opacity-90 mt-0.5 shrink-0" />
+                        <div>
+                            <p className="font-black text-white text-base leading-tight">AquaLasTech</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: "rgba(180,215,255,0.50)" }}>
+                                Streamlining Water Orders, Enhancing Service Efficiency
+                            </p>
+                            <div className="flex flex-col gap-1.5 mt-3">
+                                <a href={`tel:${CONTACT_PHONE}`}
+                                    className="flex items-center gap-2 text-xs no-underline hover:text-white transition-colors"
+                                    style={{ color: "rgba(180,215,255,0.65)" }}>
+                                    <FiPhone size={12} style={{ color: "#38bdf8", flexShrink: 0 }} />{CONTACT_PHONE}
+                                </a>
+                                <a href={`mailto:${CONTACT_EMAIL}`}
+                                    className="flex items-center gap-2 text-xs no-underline hover:text-white transition-colors"
+                                    style={{ color: "rgba(180,215,255,0.65)" }}>
+                                    <FiMail size={12} style={{ color: "#38bdf8", flexShrink: 0 }} />{CONTACT_EMAIL}
+                                </a>
+                                <a href={FB_PAGE_URL} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-xs no-underline hover:text-white transition-colors"
+                                    style={{ color: "rgba(180,215,255,0.65)" }}>
+                                    <FiFacebook size={12} style={{ color: "#38bdf8", flexShrink: 0 }} />Facebook Page
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick links */}
+                    <div className="flex flex-col gap-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-1"
+                            style={{ color: "rgba(180,215,255,0.40)" }}>Quick Links</p>
+                        <button onClick={() => navigate("/login")}
+                            className="text-left text-sm font-medium hover:text-white transition-colors"
+                            style={{ color: "rgba(180,215,255,0.65)" }}>Log In</button>
+                        <button onClick={() => navigate("/signup")}
+                            className="text-left text-sm font-medium hover:text-white transition-colors"
+                            style={{ color: "rgba(180,215,255,0.65)" }}>Sign Up</button>
+                        <a href={FB_PAGE_URL} target="_blank" rel="noopener noreferrer"
+                            className="text-sm font-medium hover:text-white transition-colors no-underline"
+                            style={{ color: "rgba(180,215,255,0.65)" }}>Get Started</a>
+                    </div>
+
+                    {/* Copyright */}
+                    <div className="flex flex-col items-start md:items-end gap-2">
+                        <p className="text-[10px]" style={{ color: "rgba(180,215,255,0.35)" }}>
+                            © {new Date().getFullYear()} AquaLasTech · Boac, Marinduque
+                        </p>
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10"
+                            style={{ background: "rgba(255,255,255,0.05)" }}>
+                            <span className="text-[10px] font-medium" style={{ color: "rgba(180,215,255,0.45)" }}>
+                                Powered by
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                                <img src={teamLogo} alt="Ramnify"
+                                    className="w-5 h-5 rounded-md object-cover shrink-0" />
+                                <span className="text-xs font-bold" style={{ color: "rgba(255,255,255,0.70)" }}>Ramnify</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 };

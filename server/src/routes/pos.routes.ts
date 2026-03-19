@@ -40,7 +40,7 @@ router.post('/transaction', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
     const {
-        c_name, c_phone, c_address,
+        c_name, c_address,
         payment_method, // 'cash' | 'gcash'
         items,          // [{ product_id, quantity, price_snapshot }]
         total_amount,
@@ -73,9 +73,9 @@ router.post('/transaction', async (req, res) => {
 
         // 1. Create order — customer_name/address stored from POS form, user_id is the processing admin
         const [orderResult]: any = await conn.query(
-            `INSERT INTO orders (station_id, order_reference, user_id, customer_name, customer_contact, customer_address, total_amount, payment_mode, order_status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())`,
-            [station_id, ref, user.id, c_name?.trim() || 'Walk-in', c_phone?.trim() || null, c_address?.trim() || null, total_amount, payment_mode]
+            `INSERT INTO orders (station_id, order_reference, user_id, customer_name, customer_address, total_amount, payment_mode, order_status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())`,
+            [station_id, ref, user.id, c_name?.trim() || 'Walk-in', c_address?.trim() || null, total_amount, payment_mode]
         )
         const order_id = orderResult.insertId
 

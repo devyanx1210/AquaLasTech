@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+﻿// CustomerDashboard - customer home showing active orders and station info
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -8,11 +9,12 @@ import {
     Store, AlertTriangle,
 } from 'lucide-react'
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// Types
 interface Station {
     station_id: number
     station_name: string
     address: string
+    complete_address: string | null
     latitude: number | null
     longitude: number | null
     image_path: string | null
@@ -21,7 +23,7 @@ interface Station {
     distance_km?: number
 }
 
-// ── Haversine ──────────────────────────────────────────────────────────────
+// Haversine
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371
     const dLat = ((lat2 - lat1) * Math.PI) / 180
@@ -34,12 +36,26 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-// ── Station Card ───────────────────────────────────────────────────────────
-function StationCard({ station, selected, onSelect, API }: {
+// Station Card
+function StationCard({ station, selected, onSelect, onNavigate, API }: {
     station: Station; selected: boolean
-    onSelect: (s: Station) => void; API: string
+    onSelect: (s: Station) => void
+    onNavigate: (s: Station) => void
+    API: string
 }) {
     const hasStock = Number(station.total_stock) > 0
+    const lastTapRef = useRef<number>(0)
+
+    const handleTap = () => {
+        if (!hasStock) return
+        const now = Date.now()
+        if (now - lastTapRef.current < 350) {
+            onNavigate(station)
+        } else {
+            onSelect(station)
+        }
+        lastTapRef.current = now
+    }
     const imgSrc = station.image_path
         ? station.image_path.startsWith('http')
             ? station.image_path
@@ -48,7 +64,7 @@ function StationCard({ station, selected, onSelect, API }: {
 
     return (
         <div
-            onClick={() => hasStock && onSelect(station)}
+            onClick={handleTap}
             className={`
                 rounded-2xl border overflow-hidden shadow-sm transition-all duration-200
                 ${hasStock
@@ -93,12 +109,6 @@ function StationCard({ station, selected, onSelect, API }: {
                     </div>
                 )}
 
-                {/* Selected indicator — small badge, doesn't block image */}
-                {selected && (
-                    <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-[#38bdf8] flex items-center justify-center shadow-lg">
-                        <CheckCircle2 size={13} className="text-white" />
-                    </div>
-                )}
             </div>
 
             {/* Info */}
@@ -106,10 +116,16 @@ function StationCard({ station, selected, onSelect, API }: {
                 <p className={`text-sm font-bold leading-tight mb-1 ${selected ? 'text-white' : 'text-gray-800'}`}>
                     {station.station_name}
                 </p>
-                <p className={`text-[11px] flex items-start gap-1 mb-3 leading-tight ${selected ? 'text-blue-200' : 'text-gray-400'}`}>
+                <p className={`text-[11px] flex items-start gap-1 leading-tight ${selected ? 'text-blue-200' : 'text-gray-400'}`}>
                     <MapPin size={10} className="shrink-0 mt-0.5" />
                     {station.address}
                 </p>
+                {station.complete_address && (
+                    <p className={`text-[10px] mt-0.5 mb-3 pl-3.5 leading-tight ${selected ? 'text-blue-300/70' : 'text-gray-400/80'}`}>
+                        {station.complete_address}
+                    </p>
+                )}
+                {!station.complete_address && <div className="mb-3" />}
                 <div className={`w-full py-2 rounded-xl text-xs font-bold text-center transition-all
                     ${selected
                         ? 'bg-[#38bdf8] text-[#0d2a4a]'
@@ -123,7 +139,6 @@ function StationCard({ station, selected, onSelect, API }: {
     )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
 export default function CustomerDashboard() {
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -140,7 +155,7 @@ export default function CustomerDashboard() {
     const userLat = user?.latitude != null ? Number(user.latitude) : null
     const userLng = user?.longitude != null ? Number(user.longitude) : null
 
-    // ── Fetch all active stations ─────────────────────────────────────────
+    // Fetch all active stations
     const fetchStations = useCallback(async () => {
         setLoading(true); setError('')
         try {
@@ -155,7 +170,7 @@ export default function CustomerDashboard() {
 
     useEffect(() => { fetchStations() }, [fetchStations])
 
-    // ── Attach distances and sort ─────────────────────────────────────────
+    // Attach distances and sort
     const stationsWithDistance: Station[] = stations.map(s => ({
         ...s,
         distance_km:
@@ -176,7 +191,7 @@ export default function CustomerDashboard() {
             (s.distance_km === undefined || s.distance_km <= 10)
     ).slice(0, 3)
 
-    // ── Display logic ─────────────────────────────────────────────────────
+    // Display logic
     // If no address set OR showAll clicked → show ALL stations
     // If address set and not showAll → show nearby (top 3 within 10km)
     const displayedStations = (!hasAddress || showAll || nearbyStations.length === 0)
@@ -202,18 +217,20 @@ export default function CustomerDashboard() {
                     </p>
                 </div>
 
-                {/* Location pill */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-200 shadow-sm">
+                {/* Location pill — tapping navigates to Settings to edit */}
+                <button
+                    onClick={() => navigate('/customer/settings')}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-[#38bdf8] hover:shadow-md transition-all">
                     <MapPin size={13} className={hasAddress ? 'text-[#38bdf8]' : 'text-gray-300'} />
-                    <div>
+                    <div className="text-left">
                         <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider leading-none">
                             {hasAddress ? 'Your Location' : 'No Location Set'}
                         </p>
                         <p className="text-xs font-bold text-gray-700 leading-tight max-w-[150px] truncate">
-                            {hasAddress ? user!.address! : 'Set in Settings'}
+                            {hasAddress ? user!.address! : 'Tap to set in Settings'}
                         </p>
                     </div>
-                </div>
+                </button>
             </div>
 
             {/* No address banner — soft suggestion, not a blocker */}
@@ -293,14 +310,19 @@ export default function CustomerDashboard() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {displayedStations.map(station => (
-                        <StationCard
-                            key={station.station_id}
-                            station={station}
-                            selected={selectedStation?.station_id === station.station_id}
-                            onSelect={handleSelect}
-                            API={API}
-                        />
+                    {displayedStations.map((station, i) => (
+                        <div key={station.station_id} className="animate-fade-in-up" style={{ animationDelay: `${i * 70}ms` }}>
+                            <StationCard
+                                station={station}
+                                selected={selectedStation?.station_id === station.station_id}
+                                onSelect={handleSelect}
+                                onNavigate={station => {
+                                    localStorage.setItem('selected_station', JSON.stringify(station))
+                                    navigate('/customer/orders')
+                                }}
+                                API={API}
+                            />
+                        </div>
                     ))}
                 </div>
             )}

@@ -1,3 +1,4 @@
+﻿// pos.routes - /pos/* endpoints for point-of-sale transactions
 import express from 'express'
 import multer from 'multer'
 import path from 'path'
@@ -8,7 +9,7 @@ import { verifyToken } from '../middleware/verifyToken.middleware.js'
 const router = express.Router()
 router.use(verifyToken)
 
-// -- Multer for GCash receipts ---------------------------------------------
+// Multer for GCash receipts
 const uploadDir = path.join(process.cwd(), 'uploads', 'receipts')
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
 
@@ -28,18 +29,18 @@ const upload = multer({
     },
 })
 
-// -- POST /pos/upload-receipt - Upload GCash receipt image -----------------
+// POST /pos/upload-receipt - Upload GCash receipt image
 router.post('/upload-receipt', upload.single('receipt'), (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
     return res.json({ image_url: `/uploads/receipts/${req.file.filename}` })
 })
 
-// -- POST /pos/transaction - Create POS transaction ------------------------
+// POST /pos/transaction - Create POS transaction
 router.post('/transaction', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
     const {
-        c_name, c_address,
+        c_name, c_phone, c_address,
         payment_method, // 'cash' | 'gcash'
         items,          // [{ product_id, quantity, price_snapshot }]
         total_amount,
@@ -47,8 +48,14 @@ router.post('/transaction', async (req, res) => {
         delivery_type,  // 'pickup' | 'delivery'
     } = req.body
 
-    if (!c_name || !items?.length || !total_amount || !payment_method) {
+    if (!items?.length || !total_amount || !payment_method) {
         return res.status(400).json({ message: 'Missing required fields' })
+    }
+    if (delivery_type === 'delivery' && !c_name?.trim()) {
+        return res.status(400).json({ message: 'Customer name is required for delivery' })
+    }
+    if (delivery_type === 'delivery' && !c_address?.trim()) {
+        return res.status(400).json({ message: 'Delivery address is required for delivery' })
     }
 
     const db = await connectToDatabase()
@@ -64,11 +71,11 @@ router.post('/transaction', async (req, res) => {
         const payment_mode = payment_method === 'gcash' ? 'gcash' :
             delivery_type === 'delivery' ? 'delivery' : 'cash'
 
-        // 1. Create order
+        // 1. Create order — customer_name/address stored from POS form, user_id is the processing admin
         const [orderResult]: any = await conn.query(
-            `INSERT INTO orders (station_id, order_reference, user_id, total_amount, payment_mode, order_status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())`,
-            [station_id, ref, user.id, total_amount, payment_mode]
+            `INSERT INTO orders (station_id, order_reference, user_id, customer_name, customer_contact, customer_address, total_amount, payment_mode, order_status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())`,
+            [station_id, ref, user.id, c_name?.trim() || 'Walk-in', c_phone?.trim() || null, c_address?.trim() || null, total_amount, payment_mode]
         )
         const order_id = orderResult.insertId
 
@@ -123,7 +130,7 @@ router.post('/transaction', async (req, res) => {
     }
 })
 
-// -- GET /pos/transactions - Get POS history for station -------------------
+// GET /pos/transactions - Get POS history for station
 router.get('/transactions', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id

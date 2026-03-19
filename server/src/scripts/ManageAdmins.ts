@@ -1,3 +1,4 @@
+﻿// ManageAdmins - interactive CLI to list, update, or delete admin accounts
 import { connectToDatabase } from '../config/db.js'
 import bcrypt from 'bcrypt'
 import readline from 'readline'
@@ -12,7 +13,7 @@ const ask = (question: string): Promise<string> =>
 
 const divider = () => console.log('─'.repeat(50))
 
-// ── List all admins ────────────────────────────────────────────────────────
+// List all admins
 async function listAdmins(pool: any) {
     const [rows]: any = await pool.query(
         `SELECT u.user_id, u.full_name, u.email, u.role, u.station_id, s.station_name
@@ -41,7 +42,7 @@ async function listAdmins(pool: any) {
     return rows
 }
 
-// ── Create admin ───────────────────────────────────────────────────────────
+// Create admin
 async function createAdmin(pool: any) {
     console.log('\n👤 Create New Admin\n')
     divider()
@@ -94,7 +95,7 @@ async function createAdmin(pool: any) {
     if (station_id) console.log(`   Assigned to Station #${station_id}`)
 }
 
-// ── Change role ────────────────────────────────────────────────────────────
+// Change role
 async function changeRole(pool: any) {
     console.log('\n🔄 Change Admin Role\n')
     const admins = await listAdmins(pool)
@@ -123,7 +124,7 @@ async function changeRole(pool: any) {
     console.log(`✅ Role updated: ${user.full_name} is now "${newRole}"`)
 }
 
-// ── Reset password ─────────────────────────────────────────────────────────
+// Reset password
 async function resetPassword(pool: any) {
     console.log('\n🔐 Reset Admin Password\n')
     const admins = await listAdmins(pool)
@@ -149,7 +150,7 @@ async function resetPassword(pool: any) {
     console.log(`✅ Password reset for: ${user.full_name}`)
 }
 
-// ── Reassign station ───────────────────────────────────────────────────────
+// Reassign station
 async function reassignStation(pool: any) {
     console.log('\n🏪 Reassign Admin to Station\n')
     const admins = await listAdmins(pool)
@@ -191,7 +192,7 @@ async function reassignStation(pool: any) {
     )
 }
 
-// ── Delete admin ───────────────────────────────────────────────────────────
+// Delete admin
 async function deleteAdmin(pool: any) {
     console.log('\n🗑️  Delete Admin User\n')
     const admins = await listAdmins(pool)
@@ -225,7 +226,7 @@ async function deleteAdmin(pool: any) {
     console.log(`✅ Deleted: ${user.full_name}`)
 }
 
-// ── Main menu ──────────────────────────────────────────────────────────────
+// Main menu
 async function main() {
     console.log('\n🔧 AquaLasTech — Admin Manager\n')
     divider()

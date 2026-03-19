@@ -1,3 +1,4 @@
+﻿// inventory.routes - /inventory/* endpoints for stock management
 import express from 'express'
 import multer from 'multer'
 import path from 'path'
@@ -8,7 +9,7 @@ import { verifyToken } from '../middleware/verifyToken.middleware.js'
 const router = express.Router()
 router.use(verifyToken)
 
-// ── Multer setup — saves to /uploads/products/ ────────────────────────────
+// Multer setup — saves to /uploads/products/
 const uploadDir = path.join(process.cwd(), 'uploads', 'products')
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
 
@@ -31,7 +32,7 @@ const upload = multer({
     },
 })
 
-// ── POST /inventory/upload-image — Upload product image ───────────────────
+// POST /inventory/upload-image — Upload product image
 router.post('/upload-image', upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No image uploaded' })
     // Return the public URL path the frontend can use
@@ -39,7 +40,7 @@ router.post('/upload-image', upload.single('image'), (req, res) => {
     return res.json({ image_url: imageUrl })
 })
 
-// ── GET /inventory — Get all products + stock for a station ───────────────
+// GET /inventory — Get all products + stock for a station
 router.get('/', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
@@ -67,7 +68,7 @@ router.get('/', async (req, res) => {
     }
 })
 
-// ── POST /inventory/products — Add new product ────────────────────────────
+// POST /inventory/products — Add new product
 router.post('/products', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
@@ -103,7 +104,7 @@ router.post('/products', async (req, res) => {
     }
 })
 
-// ── DELETE /inventory/products/:id — Delete product ──────────────────────
+// DELETE /inventory/products/:id — Delete product
 router.delete('/products/:id', async (req, res) => {
     const { id } = req.params
     try {
@@ -117,7 +118,7 @@ router.delete('/products/:id', async (req, res) => {
     }
 })
 
-// ── PUT /inventory/products/:id — Edit product details ───────────────────
+// PUT /inventory/products/:id — Edit product details
 router.put('/products/:id', async (req, res) => {
     const { id } = req.params
     const { product_name, description, price, unit, image_url, is_active, min_stock_level } = req.body
@@ -145,7 +146,7 @@ router.put('/products/:id', async (req, res) => {
     }
 })
 
-// ── POST /inventory/restock — Restock a product ───────────────────────────
+// POST /inventory/restock — Restock a product
 router.post('/restock', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
@@ -181,10 +182,9 @@ router.post('/restock', async (req, res) => {
     }
 })
 
-// ── POST /inventory/check-low-stock ─────────────────────────────────────
+// POST /inventory/check-low-stock
 router.post('/check-low-stock', async (_req, res) => {
     return res.json({ low_stock_count: 0 })
 })
-
 
 export default router

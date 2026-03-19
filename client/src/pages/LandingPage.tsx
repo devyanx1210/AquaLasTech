@@ -1,3 +1,4 @@
+﻿// LandingPage - public marketing page with hero, features, and CTA sections
 import React, { useState, useEffect, useRef } from "react";
 import "./LandingPage.css";
 import logo from "../assets/aqualastech-logo-noBG.png";
@@ -5,16 +6,17 @@ import teamLogo from "../assets/team-logo.png";
 import water_bg from "../assets/water-bg.jpg";
 import {
     FiArrowRight, FiMapPin, FiPackage, FiUsers,
-    FiBarChart2, FiShield, FiZap, FiMail, FiPhone, FiFacebook,
+    FiBarChart2, FiShield, FiList, FiShoppingCart,
+    FiMail, FiPhone, FiFacebook,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
-/* ─── CONFIG ─────────────────────────────────────────────── */
+// CONFIG
 const FB_PAGE_URL = "https://www.facebook.com/marklevi.roldan.5";
 const CONTACT_EMAIL = "aqualastech@gmail.com";
 const CONTACT_PHONE = "09672534800";
 
-/* ─── Scroll reveal hook ─────────────────────────────────── */
+// Scroll reveal hook
 function useVisible(threshold = 0.12) {
     const ref = useRef<HTMLDivElement>(null);
     const [visible, setVisible] = useState(false);
@@ -31,17 +33,17 @@ function useVisible(threshold = 0.12) {
     return { ref, visible };
 }
 
-/* ─── Feature data ───────────────────────────────────────── */
+// Feature data
 const FEATURES = [
-    { icon: FiZap, title: "Order Automation", desc: "Automate customer orders and schedule deliveries with real-time status updates." },
-    { icon: FiPackage, title: "Inventory Tracking", desc: "Monitor water bottle levels and supplies in real-time with low-stock alerts." },
-    { icon: FiUsers, title: "Customer Management", desc: "Manage customer profiles, track orders and service logs with ease." },
-    { icon: FiMapPin, title: "Geolocation Tracking", desc: "Monitor real-time position of devices, helping admins track customer locations efficiently." },
-    { icon: FiBarChart2, title: "Report and Analytics", desc: "Generate insightful sales and inventory reports to optimize your business." },
-    { icon: FiShield, title: "Secure & Reliable", desc: "Built with secure authentication and reliable uptime for peace of mind." },
+    { icon: FiList, title: "Smart Order Management", desc: "Admins get a clear, organized view of all orders: confirmed, preparing, out for delivery, and completed. Customers enjoy real-time status updates on every order they place." },
+    { icon: FiPackage, title: "Inventory & Restock Alerts", desc: "Track water supply levels at a glance. Automatic low-stock alerts notify admins before supplies run out, keeping deliveries on time and customers satisfied." },
+    { icon: FiShoppingCart, title: "Built-in Point of Sale", desc: "Process walk-in transactions instantly with the built-in POS, supporting cash and GCash payments with automatic inventory deduction and receipt printing." },
+    { icon: FiUsers, title: "Customer Management", desc: "Manage customer profiles, saved delivery addresses, and full order history in one place, making repeat orders faster and personalized service easier." },
+    { icon: FiBarChart2, title: "Reports & Analytics", desc: "View and generate sales reports covering all orders processed by your station. Get a full picture of your station's activity to help you run things more efficiently." },
+    { icon: FiShield, title: "Secure & Reliable", desc: "Role-based access keeps admin and customer data separate and safe. Built on secure authentication and a reliable infrastructure designed for daily station operations." },
 ];
 
-/* ─── Feature card ───────────────────────────────────────── */
+// Feature card
 function FeatureCard({ icon: Icon, title, desc, delay, index }: {
     icon: React.ElementType; title: string; desc: string; delay: number; index: number;
 }) {
@@ -67,9 +69,7 @@ function FeatureCard({ icon: Icon, title, desc, delay, index }: {
     );
 }
 
-/* ════════════════════════════════════════════════════════════
-   PAGE
-════════════════════════════════════════════════════════════ */
+// PAGE
 const LandingPage = () => {
     const navigate = useNavigate();
     const [bgLoaded, setBgLoaded] = useState(false);
@@ -81,9 +81,7 @@ const LandingPage = () => {
         <div className="lp-root">
             <img src={water_bg} alt="" className="hidden" onLoad={() => setBgLoaded(true)} />
 
-            {/* ════════════════════════════════════════════
-                HERO
-            ════════════════════════════════════════════ */}
+            {/* HERO */}
             <div className="hero-section">
                 <div className="absolute inset-0"
                     style={{ background: "linear-gradient(155deg,#001a4d 0%,#003a8c 40%,#1a6faf 75%,#4aa3d4 100%)" }} />
@@ -109,12 +107,12 @@ const LandingPage = () => {
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2">
                         <button onClick={() => navigate("/login")}
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-white/25 whitespace-nowrap
+                            className="px-4 py-2 rounded-xl border border-white/30 whitespace-nowrap
                             text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
                             style={{ color: "rgba(220,240,255,0.95)" }}>Log in</button>
                         <button onClick={() => navigate("/signup")}
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-white/35 whitespace-nowrap
-                            text-xs sm:text-sm font-semibold bg-white/20 hover:bg-white/30 active:scale-95 transition-all"
+                            className="px-4 py-2 rounded-xl border border-white/30 whitespace-nowrap
+                            text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
                             style={{ color: "rgba(220,240,255,0.95)" }}>Sign up</button>
                     </div>
                 </nav>
@@ -123,12 +121,7 @@ const LandingPage = () => {
                 <div className="hero-body relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pb-32"
                     style={{ animation: "heroIn 0.85s cubic-bezier(.22,1,.36,1) forwards" }}>
                     <div className="hero-left flex flex-col items-center">
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/25 mb-5"
-                            style={{ background: "rgba(56,189,248,0.12)", backdropFilter: "blur(10px)" }}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
-                            <span className="text-[10px] font-bold tracking-widest uppercase"
-                                style={{ color: "rgba(160,220,255,0.95)" }}>Boac, Marinduque</span>
-                        </div>
+
                         <h1 className="font-black tracking-tight leading-none text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
                             style={{ color: "#fff", textShadow: "0 4px 32px rgba(0,30,90,0.5)" }}>
                             AquaLasTech
@@ -142,12 +135,12 @@ const LandingPage = () => {
                         </p>
                     </div>
                     <div className="hero-right flex flex-col items-center mt-8">
-                        <a href={FB_PAGE_URL} target="_blank" rel="noopener noreferrer" className="cta-btn-hero group">
+                        <button onClick={() => navigate("/login")} className="cta-btn-hero group">
                             Order Water Now
                             <FiArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
-                        </a>
+                        </button>
                         <p className="mt-2.5 text-xs" style={{ color: "rgba(180,215,255,0.50)" }}>
-                            Digital Payment · Real-time Tracking · Easy Order
+                            Inventory Management · Real-time Tracking · Easy Order
                         </p>
                         <button
                             onClick={() => featuresRef.current?.scrollIntoView({ behavior: "smooth" })}
@@ -162,9 +155,7 @@ const LandingPage = () => {
                 </div>
             </div>
 
-            {/* ════════════════════════════════════════════
-                FEATURES
-            ════════════════════════════════════════════ */}
+            {/* FEATURES */}
             <div className="features-section">
                 <div
                     ref={aboutRef}
@@ -226,13 +217,7 @@ const LandingPage = () => {
                 </div>
             </div>
 
-            {/* ════════════════════════════════════════════
-                CTA
-                The section itself carries the background.
-                The footer wave is absolutely pinned to the
-                section bottom so it visually overlaps the
-                card's lower edge. Footer starts flush below.
-            ════════════════════════════════════════════ */}
+            {/* CTA - section carries background; footer wave is pinned to bottom */}
             <div
                 className="cta-section"
                 style={{
@@ -247,51 +232,34 @@ const LandingPage = () => {
                     ref={ctaRef}
                     className="relative overflow-hidden mx-4 md:mx-8 lg:mx-auto lg:max-w-5xl rounded-3xl"
                     style={{
-                        background: "linear-gradient(135deg,#004a9f 0%,#0070cc 50%,#1a9fd4 100%)",
-                        boxShadow: "0 24px 70px rgba(0,60,180,0.40)",
+                        background: "#ffffff",
+                        boxShadow: "0 20px 60px rgba(0,60,180,0.12)",
                         opacity: ctaVisible ? 1 : 0,
                         transform: ctaVisible ? "scale(1)" : "scale(0.96)",
                         transition: "opacity 0.7s ease, transform 0.7s ease",
                     }}
                 >
-                    {/* Orbs */}
-                    <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl opacity-20 pointer-events-none"
-                        style={{ background: "radial-gradient(circle,#fff,transparent)" }} />
-                    <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none"
-                        style={{ background: "radial-gradient(circle,#38bdf8,transparent)" }} />
-
                     <div className="relative z-10 text-center px-6 py-14 md:py-20">
 
-                        {/* Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/30 mb-5"
-                            style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(10px)" }}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
-                            <span className="text-[11px] font-bold tracking-widest uppercase"
-                                style={{ color: "rgba(200,240,255,0.90)" }}>Ready to modernize?</span>
-                        </div>
-
-                        {/* Heading — big on all screens */}
+                        {/* Heading */}
                         <h2
                             className="font-black leading-[1.05] mb-5"
                             style={{
                                 fontSize: "clamp(2.4rem, 7vw, 5.5rem)",
-                                background: "linear-gradient(160deg,#ffffff 0%,rgba(185,232,255,0.95) 55%,rgba(100,200,255,0.85) 100%)",
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent",
-                                backgroundClip: "text",
+                                color: "#0d2a4a",
                             }}
                         >
                             Start Your Smart<br />Water Business Today
                         </h2>
 
                         <p className="text-base md:text-xl mb-4 max-w-xl mx-auto font-light"
-                            style={{ color: "rgba(210,240,255,0.82)" }}>
+                            style={{ color: "rgba(10,50,90,0.65)" }}>
                             Join water refilling stations in Boac, Marinduque that are already
                             growing faster with AquaLasTech.
                         </p>
 
                         <p className="font-bold text-base md:text-lg mb-10"
-                            style={{ color: "rgba(200,238,255,0.88)" }}>Free · Powerful · Easy</p>
+                            style={{ color: "#0070cc" }}>Free · Powerful · Easy</p>
 
                         {/* Button */}
                         <a
@@ -300,23 +268,20 @@ const LandingPage = () => {
                             rel="noopener noreferrer"
                             className="group inline-flex items-center gap-3 px-10 md:px-14 py-4 md:py-5
                                 rounded-2xl font-black text-base md:text-lg
-                                bg-white text-[#003a8c] hover:bg-blue-50 active:scale-95 transition-all no-underline"
-                            style={{ boxShadow: "0 14px 50px rgba(0,30,100,0.45), 0 2px 0 rgba(255,255,255,0.55) inset" }}
+                                bg-[#0d2a4a] text-white hover:bg-[#1a4a7a] active:scale-95 transition-all no-underline"
+                            style={{ boxShadow: "0 14px 40px rgba(0,30,100,0.25)" }}
                         >
-                            Get Started — It's Free
+                            Get Started
                             <FiArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform duration-200" />
                         </a>
 
-                        <p className="mt-4 text-xs md:text-sm" style={{ color: "rgba(200,235,255,0.50)" }}>
+                        <p className="mt-4 text-xs md:text-sm" style={{ color: "rgba(10,50,90,0.40)" }}>
                             Message us on Facebook to register your station
                         </p>
                     </div>
                 </div>
 
-                {/* ── Wave pinned to section bottom ──────────────────
-                    fill="#0d2a4a" matches the footer bg exactly.
-                    It visually cuts up into the CTA section,
-                    removing any gap between CTA and footer. */}
+                {/* Wave pinned to section bottom - fill matches footer bg (#0d2a4a) */}
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, lineHeight: 0, zIndex: 5 }}>
                     <svg viewBox="0 0 1440 100" preserveAspectRatio="none" style={{ width: "100%", height: "100px", display: "block" }}>
                         <path d="M0,40 C300,85 700,5 1050,60 C1250,85 1380,35 1440,55 L1440,100 L0,100 Z"
@@ -329,9 +294,7 @@ const LandingPage = () => {
                 </div>
             </div>
 
-            {/* ════════════════════════════════════════════
-                FOOTER — zero gap, starts flush
-            ════════════════════════════════════════════ */}
+            {/* FOOTER — zero gap, starts flush */}
             <footer className="footer-section" style={{ marginTop: 0 }}>
                 <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
 

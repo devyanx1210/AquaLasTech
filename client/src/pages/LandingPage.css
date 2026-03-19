@@ -266,10 +266,10 @@
     line-height: 0;
 }
 
-/* ══ CTA SECTION ═══════════════════════════════════════════════
+/* ══ CTA SECTION ═══════════════════════════════════════════════ */
 .cta-section {
-    background: linear-gradient(145deg, #002d7a 0%, #0057c8 40%, #0f8fcc 75%, #1ab0e0 100%);
-} */
+    background: linear-gradient(180deg, #eef9ff 0%, #dff4ff 60%, #d0eefa 100%);
+}
 
 /* ══ FOOTER ════════════════════════════════════════════════════ */
 .footer-section {

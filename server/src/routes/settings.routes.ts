@@ -1,3 +1,4 @@
+﻿// settings.routes - /settings/* endpoints for station configuration
 import express from 'express'
 import bcrypt from 'bcrypt'
 import multer from 'multer'
@@ -13,7 +14,7 @@ const __dirname = path.dirname(__filename)
 const router = express.Router()
 router.use(verifyToken)
 
-// ── Super admin guard ─────────────────────────────────────────────────────
+// Super admin guard
 router.use((req, res, next) => {
     const u = (req as any).user
     if (u?.role !== 'super_admin') {
@@ -22,7 +23,7 @@ router.use((req, res, next) => {
     next()
 })
 
-// ── Multer — station logos ────────────────────────────────────────────────
+// Multer — station logos
 const logoStorage = multer.diskStorage({
     destination: (_req, _file, cb) => {
         const dir = path.join(__dirname, '..', '..', 'uploads', 'stations')
@@ -43,7 +44,7 @@ const uploadLogo = multer({
     },
 })
 
-// ── Multer — GCash QR codes ───────────────────────────────────────────────
+// Multer — GCash QR codes
 const qrStorage = multer.diskStorage({
     destination: (_req, _file, cb) => {
         const dir = path.join(__dirname, '..', '..', 'uploads', 'qrcodes')
@@ -64,9 +65,17 @@ const uploadQR = multer({
     },
 })
 
-// ── PUT /settings/station/:id — Update station details ────────────────────
+// Auto-add complete_address column if not yet present
+;(async () => {
+    try {
+        const db = await connectToDatabase()
+        await db.query('ALTER TABLE stations ADD COLUMN complete_address VARCHAR(500) NULL')
+    } catch { /* column already exists — ignore */ }
+})()
+
+// PUT /settings/station/:id — Update station details
 router.put('/station/:id', async (req, res) => {
-    const { station_name, address, contact_number, latitude, longitude } = req.body
+    const { station_name, address, complete_address, contact_number, latitude, longitude } = req.body
     const { id } = req.params
 
     if (!station_name || !address || !contact_number) {
@@ -77,10 +86,10 @@ router.put('/station/:id', async (req, res) => {
         const db = await connectToDatabase()
         const [result]: any = await db.query(
             `UPDATE stations
-             SET station_name = ?, address = ?, contact_number = ?,
+             SET station_name = ?, address = ?, complete_address = ?, contact_number = ?,
                  latitude = ?, longitude = ?, updated_at = NOW()
              WHERE station_id = ?`,
-            [station_name, address, contact_number, latitude ?? null, longitude ?? null, id]
+            [station_name, address, complete_address ?? null, contact_number, latitude ?? null, longitude ?? null, id]
         )
         if (result.affectedRows === 0)
             return res.status(404).json({ message: 'Station not found' })
@@ -91,7 +100,7 @@ router.put('/station/:id', async (req, res) => {
     }
 })
 
-// ── POST /settings/station/:id/upload-logo ────────────────────────────────
+// POST /settings/station/:id/upload-logo
 router.post('/station/:id/upload-logo', uploadLogo.single('logo'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
     const image_path = `/uploads/stations/${req.file.filename}`
@@ -108,7 +117,7 @@ router.post('/station/:id/upload-logo', uploadLogo.single('logo'), async (req, r
     }
 })
 
-// ── POST /settings/station/:id/upload-qr ─────────────────────────────────
+// POST /settings/station/:id/upload-qr
 router.post('/station/:id/upload-qr', uploadQR.single('qr'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
     const qr_code_path = `/uploads/qrcodes/${req.file.filename}`
@@ -129,7 +138,7 @@ router.post('/station/:id/upload-qr', uploadQR.single('qr'), async (req, res) =>
     }
 })
 
-// ── POST /settings/create-admin ───────────────────────────────────────────
+// POST /settings/create-admin
 router.post('/create-admin', async (req, res) => {
     const { full_name, email, password, station_id } = req.body
     if (!full_name || !email || !password || !station_id)

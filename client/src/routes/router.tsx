@@ -1,3 +1,4 @@
+﻿// router - defines all client-side routes and their layouts
 import { createBrowserRouter } from 'react-router-dom'
 import { Navigate } from 'react-router-dom'
 
@@ -50,7 +51,7 @@ const router = createBrowserRouter([
             { path: "pos", element: <PointOfSale /> },         // ← sibling, not child
             { path: "inventory", element: <AdminInventory /> },
 
-            // ── Super admin only ──────────────────────────────────────────
+            // Super admin only
             {
                 element: <SuperAdminRoute />,
                 children: [
@@ -80,5 +81,4 @@ const router = createBrowserRouter([
 ])
 
 export default router
-
 

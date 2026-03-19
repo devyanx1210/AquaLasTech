@@ -1,3 +1,4 @@
+﻿// station.routes - /stations/* endpoints for admin station management
 import express from 'express'
 import multer from 'multer'
 import path from 'path'
@@ -11,7 +12,7 @@ const router = express.Router()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// ── Multer setup for station images ───────────────────────────────────────
+// Multer setup for station images
 const stationImageStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = path.join(__dirname, '..', '..', 'uploads', 'stations')
@@ -33,7 +34,7 @@ const uploadStationImage = multer({
     },
 })
 
-// ── GET /stations/customer/list ────────────────────────────────────────────
+// GET /stations/customer/list
 // IMPORTANT: Must be BEFORE /:id so Express doesn't treat "customer" as an ID
 router.get('/customer/list', verifyToken, async (req, res) => {
     try {
@@ -43,6 +44,7 @@ router.get('/customer/list', verifyToken, async (req, res) => {
                 s.station_id,
                 s.station_name,
                 s.address,
+                s.complete_address,
                 s.latitude,
                 s.longitude,
                 s.image_path,
@@ -62,12 +64,12 @@ router.get('/customer/list', verifyToken, async (req, res) => {
     }
 })
 
-// ── GET /stations/:id ──────────────────────────────────────────────────────
+// GET /stations/:id
 router.get('/:id', verifyToken, async (req, res) => {
     try {
         const pool = await connectToDatabase()
         const [rows]: any = await pool.query(
-            `SELECT station_id, station_name, address, contact_number, status,
+            `SELECT station_id, station_name, address, complete_address, contact_number, status,
                     latitude, longitude, image_path, qr_code_path
              FROM stations
              WHERE station_id = ?`,
@@ -82,7 +84,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     }
 })
 
-// ── POST /stations/:id/upload-image ───────────────────────────────────────
+// POST /stations/:id/upload-image
 router.post('/:id/upload-image', verifyToken, uploadStationImage.single('image'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
     const image_path = `/uploads/stations/${req.file.filename}`

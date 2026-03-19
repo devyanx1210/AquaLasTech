@@ -1,3 +1,4 @@
+﻿// MainLayout - wrapper for public pages (landing, login, signup)
 import React from 'react'
 import "../index.css"
 import { Outlet } from 'react-router-dom'

@@ -1,3 +1,4 @@
+﻿// AdminSettings - station configuration including logo, QR code, and pricing
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useStation } from '../../hooks/useStation'
@@ -9,10 +10,11 @@ import {
     Upload, X, QrCode, ImageIcon,
 } from 'lucide-react'
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// Types
 interface StationForm {
     station_name: string
     address: string
+    complete_address: string
     contact_number: string
     latitude: number | null
     longitude: number | null
@@ -26,7 +28,20 @@ interface AdminForm {
 type ToastType = 'success' | 'error'
 interface ToastData { message: string; type: ToastType }
 
-// ── Reverse geocode via OpenStreetMap Nominatim ────────────────────────────
+interface GeoResult { place_id: number; display_name: string; lat: string; lon: string }
+
+async function searchGeocode(query: string): Promise<GeoResult[]> {
+    if (query.trim().length < 3) return []
+    try {
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=ph`,
+            { headers: { 'Accept-Language': 'en' } }
+        )
+        return await res.json()
+    } catch { return [] }
+}
+
+// Reverse geocode via OpenStreetMap Nominatim
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
         const res = await fetch(
@@ -47,22 +62,22 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
     }
 }
 
-// ── Toast ──────────────────────────────────────────────────────────────────
+// Toast
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => {
         const t = setTimeout(onDone, 3500)
         return () => clearTimeout(t)
     }, [onDone])
     return (
-        <div className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-sm font-medium
-            ${toast.type === 'success' ? 'bg-white border-emerald-200 text-emerald-700 shadow-emerald-100' : 'bg-white border-red-200 text-red-600 shadow-red-100'}`}>
+        <div className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-md border border-gray-200 text-sm font-medium
+            ${toast.type === 'success' ? 'bg-white text-emerald-700' : 'bg-white text-red-600'}`}>
             {toast.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> : <AlertCircle size={16} className="text-red-500 shrink-0" />}
             {toast.message}
         </div>
     )
 }
 
-// ── Field ──────────────────────────────────────────────────────────────────
+// Field
 const Field = ({ label, icon, error, className = '', ...props }: {
     label: string; icon?: React.ReactNode; error?: string; className?: string
 } & React.InputHTMLAttributes<HTMLInputElement>) => (
@@ -76,11 +91,11 @@ const Field = ({ label, icon, error, className = '', ...props }: {
     </div>
 )
 
-// ── Section ────────────────────────────────────────────────────────────────
-const Section = ({ title, subtitle, icon, children }: { title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode }) => (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+// Section
+const Section = ({ title, subtitle, icon, children, delay = 0 }: { title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode; delay?: number }) => (
+    <div className="animate-fade-in-up bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm" style={{ animationDelay: `${delay}ms` }}>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#0d2a4a] flex items-center justify-center text-[#38bdf8] shrink-0">{icon}</div>
+            <div className="text-[#38bdf8] shrink-0">{icon}</div>
             <div>
                 <h2 className="text-sm font-bold text-gray-800">{title}</h2>
                 <p className="text-[10px] text-gray-400">{subtitle}</p>
@@ -90,13 +105,12 @@ const Section = ({ title, subtitle, icon, children }: { title: string; subtitle:
     </div>
 )
 
-// ══════════════════════════════════════════════════════════════════════════
 export default function AdminSettings() {
     const { user } = useAuth()
     const { station, loading: stationLoading, refetch: refetchStation } = useStation(user?.station_id)
 
     const [stationForm, setStationForm] = useState<StationForm>({
-        station_name: '', address: '', contact_number: '', latitude: null, longitude: null,
+        station_name: '', address: '', complete_address: '', contact_number: '', latitude: null, longitude: null,
     })
     const [stationErrors, setStationErrors] = useState<Partial<Record<keyof StationForm, string>>>({})
     const [savingStation, setSavingStation] = useState(false)
@@ -114,7 +128,40 @@ export default function AdminSettings() {
     const [mapReady, setMapReady] = useState(false)
     const [gettingLocation, setGettingLocation] = useState(false)
 
-    // ── Logo + QR state ──────────────────────────────────────────────────
+    // Address search (forward geocode)
+    const [geoResults, setGeoResults] = useState<GeoResult[]>([])
+    const [geoSearching, setGeoSearching] = useState(false)
+    const geoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const handleAddressChange = (val: string) => {
+        setStationForm(f => ({ ...f, address: val }))
+        setGeoResults([])
+        if (geoTimerRef.current) clearTimeout(geoTimerRef.current)
+        if (val.trim().length >= 3) {
+            setGeoSearching(true)
+            geoTimerRef.current = setTimeout(async () => {
+                const results = await searchGeocode(val)
+                setGeoResults(results)
+                setGeoSearching(false)
+            }, 500)
+        } else {
+            setGeoSearching(false)
+        }
+    }
+
+    const handleGeoSelect = (r: GeoResult) => {
+        const lat = parseFloat(r.lat), lng = parseFloat(r.lon)
+        setStationForm(f => ({ ...f, address: r.display_name, latitude: lat, longitude: lng }))
+        setGeoResults([])
+        setGeoSearching(false)
+        if (geoTimerRef.current) clearTimeout(geoTimerRef.current)
+        if (markerRef.current) {
+            markerRef.current.setLatLng([lat, lng])
+            mapInstanceRef.current?.setView([lat, lng], 16)
+        }
+    }
+
+    // Logo + QR state
     const [logoPreview, setLogoPreview] = useState<string | null>(null)
     const [uploadingLogo, setUploadingLogo] = useState(false)
     const [qrPreview, setQrPreview] = useState<string | null>(null)
@@ -125,20 +172,21 @@ export default function AdminSettings() {
     const [toast, setToast] = useState<ToastData | null>(null)
     const showToast = useCallback((message: string, type: ToastType) => setToast({ message, type }), [])
 
-    // ── Reverse geocode + update form ─────────────────────────────────────
+    // Reverse geocode + update form
     const updateAddressFromCoords = useCallback(async (lat: number, lng: number) => {
         setGeocoding(true)
         const address = await reverseGeocode(lat, lng)
-        setStationForm(f => ({ ...f, latitude: lat, longitude: lng, ...(address ? { address } : {}) }))
+        setStationForm(f => ({ ...f, latitude: lat, longitude: lng, complete_address: '', ...(address ? { address } : {}) }))
         setGeocoding(false)
     }, [])
 
-    // ── Populate form from station data ───────────────────────────────────
+    // Populate form from station data
     useEffect(() => {
         if (station) {
             setStationForm({
                 station_name: station.station_name ?? '',
                 address: station.address ?? '',
+                complete_address: station.complete_address ?? '',
                 contact_number: station.contact_number ?? '',
                 latitude: (station as any).latitude != null ? parseFloat((station as any).latitude) : null,
                 longitude: (station as any).longitude != null ? parseFloat((station as any).longitude) : null,
@@ -151,7 +199,7 @@ export default function AdminSettings() {
         }
     }, [station])
 
-    // ── Load Leaflet ──────────────────────────────────────────────────────
+    // Load Leaflet
     const initMap = useCallback((node: HTMLDivElement | null) => {
         if (!node) return
 
@@ -232,7 +280,7 @@ export default function AdminSettings() {
             }, 50)
         }
     }, [])
-    // ── GPS ───────────────────────────────────────────────────────────────
+    // GPS
     const handleGetLocation = () => {
         if (!navigator.geolocation) return showToast('Geolocation not supported', 'error')
         setGettingLocation(true)
@@ -254,7 +302,7 @@ export default function AdminSettings() {
         )
     }
 
-    // ── Upload logo ───────────────────────────────────────────────────────
+    // Upload logo
     const handleLogoUpload = async (file: File) => {
         setUploadingLogo(true)
         try {
@@ -275,7 +323,7 @@ export default function AdminSettings() {
         }
     }
 
-    // ── Upload QR code ────────────────────────────────────────────────────
+    // Upload QR code
     const handleQRUpload = async (file: File) => {
         setUploadingQR(true)
         try {
@@ -296,7 +344,7 @@ export default function AdminSettings() {
         }
     }
 
-    // ── Validate + save station ───────────────────────────────────────────
+    // Validate + save station
     const validateStation = () => {
         const errs: Partial<Record<keyof StationForm, string>> = {}
         if (!stationForm.station_name.trim()) errs.station_name = 'Station name is required'
@@ -324,7 +372,7 @@ export default function AdminSettings() {
         }
     }
 
-    // ── Validate + create admin ───────────────────────────────────────────
+    // Validate + create admin
     const validateAdmin = () => {
         const errs: Partial<Record<keyof AdminForm, string>> = {}
         if (!adminForm.full_name.trim()) errs.full_name = 'Name is required'
@@ -373,8 +421,8 @@ export default function AdminSettings() {
                 <p className="text-xs text-gray-400 mt-0.5">Manage your station details and admin accounts</p>
             </div>
 
-            {/* ── Station Details ────────────────────────────────────────── */}
-            <Section title="Station Details" subtitle="Update your water refilling station information" icon={<Building2 size={16} />}>
+            {/* Station Details */}
+            <Section title="Station Details" subtitle="Update your water refilling station information" icon={<Building2 size={16} />} delay={0}>
                 <div className="flex flex-col gap-4">
                     <Field
                         label="Station Name" icon={<Building2 size={14} />}
@@ -384,7 +432,7 @@ export default function AdminSettings() {
                         error={stationErrors.station_name}
                     />
 
-                    {/* Address — auto-filled from map pin */}
+                    {/* Address — searchable + auto-filled from map pin */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                             Address
@@ -395,17 +443,36 @@ export default function AdminSettings() {
                             )}
                         </label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><MapPin size={14} /></span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10"><MapPin size={14} /></span>
                             <input
-                                placeholder="Pin a location on the map below"
+                                placeholder="Type to search or pin on the map"
                                 value={stationForm.address}
-                                onChange={e => setStationForm(f => ({ ...f, address: e.target.value }))}
+                                onChange={e => handleAddressChange(e.target.value)}
                                 disabled={geocoding}
-                                className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-4 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${stationErrors.address ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'} ${geocoding ? 'opacity-60' : ''}`}
+                                autoComplete="off"
+                                className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-8 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${stationErrors.address ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'} ${geocoding ? 'opacity-60' : ''}`}
                             />
+                            {geoSearching && (
+                                <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#38bdf8] animate-spin" />
+                            )}
+                            {(geoResults.length > 0 || geoSearching) && (
+                                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden animate-slide-down">
+                                    {geoSearching && geoResults.length === 0 ? (
+                                        <div className="flex items-center gap-2 px-4 py-3 text-xs text-gray-400">
+                                            <Loader2 size={11} className="animate-spin" /> Searching…
+                                        </div>
+                                    ) : geoResults.map(r => (
+                                        <button key={r.place_id} type="button" onClick={() => handleGeoSelect(r)}
+                                            className="w-full text-left px-4 py-2.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-[#0d2a4a] flex items-start gap-2 border-b border-gray-50 last:border-0 transition-colors">
+                                            <MapPin size={11} className="text-[#38bdf8] shrink-0 mt-0.5" />
+                                            <span className="line-clamp-2">{r.display_name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         {stationErrors.address && <p className="text-[10px] text-red-500 font-medium">{stationErrors.address}</p>}
-                        <p className="text-[10px] text-gray-400">Auto-filled when you pin a location on the map. You can also edit it manually.</p>
+                        <p className="text-[10px] text-gray-400">Search by address or barangay, or pin directly on the map.</p>
                     </div>
 
                     <Field
@@ -464,8 +531,21 @@ export default function AdminSettings() {
                             </div>
                         </div>
                         <p className="text-[10px] text-gray-400">
-                            Click the map or drag the pin — address auto-updates from the pinned location.
+                            Click on the map or drag the pin to set your location. The address field will update automatically.
                         </p>
+                    </div>
+
+                    {/* Complete Delivery Address */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Complete Station Address</label>
+                        <input
+                            placeholder="Purok, House No., Barangay, Municipality"
+                            value={stationForm.complete_address}
+                            onChange={e => setStationForm(f => ({ ...f, complete_address: e.target.value }))}
+                            autoComplete="off"
+                            className="w-full bg-gray-50 border border-gray-200 hover:border-gray-300 rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none px-4 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200"
+                        />
+                        <p className="text-[10px] text-gray-400">Specific address details shown to customers on the station card.</p>
                     </div>
 
                     <button
@@ -478,8 +558,8 @@ export default function AdminSettings() {
                 </div>
             </Section>
 
-            {/* ── Station Logo ──────────────────────────────────────────── */}
-            <Section title="Station Logo" subtitle="Shown on the customer app and admin sidebar" icon={<ImageIcon size={16} />}>
+            {/* Station Logo */}
+            <Section title="Station Logo" subtitle="Shown on the customer app and admin sidebar" icon={<ImageIcon size={16} />} delay={70}>
                 <div className="flex flex-col gap-4">
                     {/* Preview */}
                     <div className="flex items-center gap-4">
@@ -518,8 +598,8 @@ export default function AdminSettings() {
                 </div>
             </Section>
 
-            {/* ── GCash QR Code ──────────────────────────────────────────── */}
-            <Section title="GCash QR Code" subtitle="Shown to customers when paying via GCash" icon={<QrCode size={16} />}>
+            {/* GCash QR Code */}
+            <Section title="GCash QR Code" subtitle="Shown to customers when paying via GCash" icon={<QrCode size={16} />} delay={140}>
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4">
                         <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
@@ -556,8 +636,8 @@ export default function AdminSettings() {
                 </div>
             </Section>
 
-            {/* ── Create Admin ───────────────────────────────────────────── */}
-            <Section title="Create Admin Account" subtitle={`New admin will be assigned to ${station?.station_name ?? 'this station'}`} icon={<UserPlus size={16} />}>
+            {/* Create Admin */}
+            <Section title="Create Admin Account" subtitle={`New admin will be assigned to ${station?.station_name ?? 'this station'}`} icon={<UserPlus size={16} />} delay={210}>
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500">
                         <Building2 size={13} className="text-[#38bdf8] shrink-0" />

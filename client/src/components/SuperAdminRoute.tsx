@@ -1,3 +1,4 @@
+﻿// SuperAdminRoute - route guard that blocks non-super_admin users
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 

@@ -1,3 +1,4 @@
+﻿// LocationMap - lazy-loaded Leaflet map for picking delivery address
 // This component is lazy-loaded by CustomerSettings to avoid
 // Leaflet's "illegal invocation" error on initial render.
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'

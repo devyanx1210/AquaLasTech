@@ -1,0 +1,1 @@
+// auth.controller - handles signup, login, logout, and session checks

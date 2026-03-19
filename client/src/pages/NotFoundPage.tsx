@@ -1,3 +1,4 @@
+﻿// NotFoundPage - 404 fallback page
 import React from 'react'
 
 const NotFoundPage = () => {

@@ -1,3 +1,4 @@
+﻿// PointOfSale - walk-in customer transactions and payment processing
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
@@ -5,11 +6,11 @@ import {
     Search, Plus, Minus, Trash2, ShoppingCart,
     CheckCircle2, AlertCircle, Loader2, X,
     ImageIcon, User, MapPin, Droplets, Printer, Calculator,
-    Delete,
+    Delete, Phone,
 } from 'lucide-react'
 import { FaMoneyBillWave, FaMobileAlt, FaStore, FaTruck } from 'react-icons/fa'
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// Types
 interface Product {
     product_id: number
     product_name: string
@@ -33,7 +34,7 @@ const fmtDate = () => new Date().toLocaleString('en-PH', {
     hour: '2-digit', minute: '2-digit',
 })
 
-// ── Toast ──────────────────────────────────────────────────────────────────
+// Toast
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
     return (
@@ -47,7 +48,7 @@ const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     )
 }
 
-// ── Inline Calculator Panel ────────────────────────────────────────────────
+// Inline Calculator Panel
 const InlineCalculator = () => {
     const [display, setDisplay] = useState('0')
     const [prev, setPrev] = useState<string | null>(null)
@@ -126,34 +127,36 @@ const InlineCalculator = () => {
     )
 }
 
-// ── Receipt Modal ──────────────────────────────────────────────────────────
-const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, paymentMethod, deliveryType, stationName, onClose }: {
+// Receipt Modal
+const ReceiptModal = ({ orderRef, total, items, customerName, customerPhone, customerAddress, paymentMethod, deliveryType, stationName, onClose }: {
     orderRef: string; total: number; items: CartItem[]
-    customerName: string; customerAddress: string
+    customerName: string; customerPhone: string; customerAddress: string
     paymentMethod: PaymentMethod; deliveryType: DeliveryType
     stationName: string; onClose: () => void
 }) => {
     const printDate = fmtDate()
 
     const handlePrint = () => {
-        const win = window.open('', '_blank', 'width=400,height=700')
+        const win = window.open('', '_blank', 'width=900,height=800')
         if (!win) return
         win.document.write(`
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Receipt - ${orderRef}</title>
 <style>
+  @page { size: A4 portrait; margin: 20mm 30mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #000; background: #fff; width: 80mm; padding: 8mm; }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #000; background: #fff; max-width: 380px; margin: 0 auto; padding: 16px; }
   .center { text-align: center; }
   .bold { font-weight: bold; }
-  .big { font-size: 15px; font-weight: bold; }
-  .dash { border-top: 1px dashed #000; margin: 6px 0; }
-  .row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-  .small { font-size: 10px; color: #555; }
-  .total-row { display: flex; justify-content: space-between; font-size: 15px; font-weight: bold; margin-top: 4px; }
+  .big { font-size: 17px; font-weight: bold; }
+  .dash { border-top: 1px dashed #000; margin: 8px 0; }
+  .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .small { font-size: 11px; color: #555; }
+  .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -165,6 +168,7 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
   <div class="row"><span>Order</span><span class="bold">${orderRef}</span></div>
   <div class="row"><span>Date</span><span class="bold">${printDate}</span></div>
   <div class="row"><span>Customer</span><span class="bold">${customerName || 'Walk-in'}</span></div>
+  ${customerPhone ? `<div class="row"><span>Phone</span><span class="bold">${customerPhone}</span></div>` : ''}
   ${customerAddress ? `<div class="row"><span>Address</span><span class="bold">${customerAddress}</span></div>` : ''}
   <div class="row"><span>Payment</span><span class="bold">${paymentMethod.toUpperCase()}</span></div>
   <div class="row"><span>Type</span><span class="bold">${deliveryType.charAt(0).toUpperCase() + deliveryType.slice(1)}</span></div>
@@ -186,12 +190,12 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
 </html>`)
         win.document.close()
         win.focus()
-        setTimeout(() => { win.print(); win.close() }, 300)
+        setTimeout(() => { win.print() }, 400)
     }
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
             <div className="relative z-10 w-full max-w-sm mx-4 mb-4 sm:mb-0 flex flex-col gap-3">
                 <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
                     <div className="bg-[#0d2a4a] px-5 pt-5 pb-5 text-center relative overflow-hidden">
@@ -206,6 +210,7 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
                     <div className="px-5 py-4 font-mono text-[11px]">
                         {[
                             ['Customer', customerName || 'Walk-in'],
+                            ...(customerPhone ? [['Phone', customerPhone]] : []),
                             ['Date', printDate],
                             ['Payment', paymentMethod.toUpperCase()],
                             ['Type', deliveryType.charAt(0).toUpperCase() + deliveryType.slice(1)],
@@ -256,7 +261,6 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerAddress, p
     )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
 export default function PointOfSale() {
     const { user } = useAuth()
     const API = import.meta.env.VITE_API_URL
@@ -270,6 +274,7 @@ export default function PointOfSale() {
     const [mobileTab, setMobileTab] = useState<'products' | 'order'>('products')
 
     const [customerName, setCustomerName] = useState('')
+    const [customerPhone, setCustomerPhone] = useState('')
     const [customerAddress, setCustomerAddress] = useState('')
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
     const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup')
@@ -328,7 +333,7 @@ export default function PointOfSale() {
     }
 
     const clearCart = () => {
-        setCart([]); setCustomerName(''); setCustomerAddress('')
+        setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress('')
         setPaymentMethod('cash'); setDeliveryType('pickup')
         setGcashPreview(''); setGcashReceiptUrl('')
     }
@@ -352,11 +357,14 @@ export default function PointOfSale() {
 
     const handlePlaceOrder = async () => {
         if (cart.length === 0) { showToast('Cart is empty', 'error'); return }
+        if (deliveryType === 'delivery' && !customerName.trim()) { showToast('Customer name is required for delivery', 'error'); return }
+        if (deliveryType === 'delivery' && !customerAddress.trim()) { showToast('Delivery address is required for delivery', 'error'); return }
         if (paymentMethod === 'gcash' && !gcashReceiptUrl) { showToast('Please upload GCash receipt', 'error'); return }
         setPlacing(true)
         try {
             const res = await axios.post(`${API}/pos/transaction`, {
                 c_name: customerName || 'Walk-in',
+                c_phone: customerPhone.trim() || null,
                 c_address: customerAddress || null,
                 payment_method: paymentMethod,
                 delivery_type: deliveryType,
@@ -374,7 +382,7 @@ export default function PointOfSale() {
     return (
         <div className="flex flex-col lg:flex-row gap-0 lg:gap-4 lg:h-[calc(100vh-120px)] lg:min-h-[600px]">
 
-            {/* ── Mobile tab switcher ── */}
+            {/* Mobile tab switcher */}
             <div className="lg:hidden flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-3 shrink-0">
                 <button onClick={() => setMobileTab('products')}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all
@@ -390,7 +398,7 @@ export default function PointOfSale() {
                 </button>
             </div>
 
-            {/* ── LEFT: Product Grid ───────────────────────────────── */}
+            {/* LEFT: Product Grid */}
             <div className={`flex-1 flex-col gap-3 min-w-0 lg:overflow-hidden ${mobileTab === 'products' ? 'flex' : 'hidden lg:flex'}`}>
                 <div className="flex flex-col gap-2 shrink-0">
                     <div className="flex items-center justify-between">
@@ -410,7 +418,7 @@ export default function PointOfSale() {
                     </div>
                 </div>
 
-                {/* ── Product Grid ── */}
+                {/* Product Grid */}
                 <div className="lg:flex-1 lg:overflow-y-auto pr-1">
                     {loading ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -430,11 +438,12 @@ export default function PointOfSale() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 pb-4">
-                            {filtered.map(p => (
+                            {filtered.map((p, i) => (
                                 <button
                                     key={p.product_id}
                                     onClick={() => addToCart(p)}
-                                    className={`bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md active:scale-[0.97] transition-all text-left relative flex flex-col
+                                    style={{ animationDelay: `${i * 50}ms` }}
+                                    className={`animate-fade-in-up bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md active:scale-[0.97] transition-all text-left relative flex flex-col
                                         ${highlightedProduct === p.product_id
                                             ? 'border-[#38bdf8] ring-2 ring-[#38bdf8]/25 scale-[0.97]'
                                             : 'border-gray-200 hover:border-[#38bdf8]/40'}`}>
@@ -489,7 +498,7 @@ export default function PointOfSale() {
                 )}
             </div>
 
-            {/* ── RIGHT: Order Panel ───────────────────────────────── */}
+            {/* RIGHT: Order Panel */}
             <div className={`w-full lg:w-[340px] xl:w-[380px] shrink-0 flex-col mt-0 lg:mt-0 ${mobileTab === 'order' ? 'flex' : 'hidden lg:flex'}`}>
                 <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(13,42,74,0.18)] flex flex-col h-full overflow-hidden border border-gray-200">
 
@@ -511,7 +520,7 @@ export default function PointOfSale() {
                         </button>
                     </div>
 
-                    {/* ── ORDER VIEW ── */}
+                    {/* ORDER VIEW */}
                     {panelView === 'order' && (<>
                         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
 
@@ -519,16 +528,33 @@ export default function PointOfSale() {
                             <div className="flex flex-col gap-2">
                                 <div className="relative">
                                     <User size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <input placeholder="Customer Name (optional)"
+                                    <input
+                                        placeholder={deliveryType === 'delivery' ? 'Customer Name *' : 'Customer Name (optional)'}
                                         value={customerName} onChange={e => setCustomerName(e.target.value)}
-                                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 placeholder:text-gray-300 outline-none focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all" />
+                                        className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 rounded-xl text-xs text-gray-700 placeholder:text-gray-300 outline-none focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all border
+                                            ${deliveryType === 'delivery' && !customerName.trim() ? 'border-amber-300 focus:border-amber-400' : 'border-gray-200 focus:border-[#38bdf8]'}`} />
                                 </div>
                                 <div className="relative">
                                     <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <input placeholder="Complete Address (optional)"
+                                    <input
+                                        placeholder={deliveryType === 'delivery' ? 'Complete Address *' : 'Complete Address (optional)'}
                                         value={customerAddress} onChange={e => setCustomerAddress(e.target.value)}
-                                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 placeholder:text-gray-300 outline-none focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all" />
+                                        className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 rounded-xl text-xs text-gray-700 placeholder:text-gray-300 outline-none focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all border
+                                            ${deliveryType === 'delivery' && !customerAddress.trim() ? 'border-amber-300 focus:border-amber-400' : 'border-gray-200 focus:border-[#38bdf8]'}`} />
                                 </div>
+                                <div className="relative">
+                                    <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input
+                                        placeholder="Phone Number (optional)"
+                                        value={customerPhone} onChange={e => setCustomerPhone(e.target.value)}
+                                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 rounded-xl text-xs text-gray-700 placeholder:text-gray-300 outline-none focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all border border-gray-200 focus:border-[#38bdf8]" />
+                                </div>
+                                {deliveryType === 'delivery' && (!customerName.trim() || !customerAddress.trim()) && (
+                                    <p className="text-[10px] text-amber-500 font-medium flex items-center gap-1">
+                                        <span className="w-1 h-1 rounded-full bg-amber-500 inline-block" />
+                                        Name and address are required for delivery
+                                    </p>
+                                )}
                             </div>
 
                             {/* Payment Type */}
@@ -678,7 +704,7 @@ export default function PointOfSale() {
                         </div>
                     </>)}
 
-                    {/* ── CALCULATOR VIEW ── */}
+                    {/* CALCULATOR VIEW */}
                     {panelView === 'calc' && <InlineCalculator />}
                 </div>
             </div>
@@ -689,6 +715,7 @@ export default function PointOfSale() {
                     total={receipt.total}
                     items={cart}
                     customerName={customerName}
+                    customerPhone={customerPhone}
                     customerAddress={customerAddress}
                     paymentMethod={paymentMethod}
                     deliveryType={deliveryType}

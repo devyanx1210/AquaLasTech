@@ -1,3 +1,4 @@
+﻿// AuthContext - provides authenticated user state and login/logout actions
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import axios from "axios";
 
@@ -7,10 +8,10 @@ type User = {
     email: string;
     role: "super_admin" | "admin" | "customer";
     station_id: number | null;
-    // ── Added for customer nearby station feature ──
     address: string | null;
     latitude: number | null;
     longitude: number | null;
+    complete_address: string | null;
 } | null;
 
 type AuthContextType = {

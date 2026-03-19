@@ -1,4 +1,6 @@
+﻿// AdminDashboard - overview of sales, orders, and inventory for station admins
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import {
     TrendingUp, ShoppingBag, PackageCheck, XCircle,
@@ -7,7 +9,7 @@ import {
     ArrowDownRight, Minus as MinusIcon, Package,
 } from 'lucide-react'
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// Types
 type Period = 'daily' | 'weekly' | 'monthly' | 'yearly'
 
 interface SummaryRow {
@@ -60,20 +62,20 @@ interface DaySummary {
     earned_revenue: number
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// Helpers
 const fmt = (n: number) => `₱${Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
 const num = (n: any) => Number(n ?? 0)
 
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any }> = {
-    confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2 },
-    preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock },
-    out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck },
-    delivered: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2 },
-    cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle },
-    returned: { label: 'Returned', color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-200', dot: 'bg-gray-400', icon: RotateCcw },
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any; btnBg: string }> = {
+    confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2, btnBg: 'bg-blue-600' },
+    preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock, btnBg: 'bg-amber-500' },
+    out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck, btnBg: 'bg-purple-600' },
+    delivered: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2, btnBg: 'bg-emerald-600' },
+    cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle, btnBg: 'bg-red-500' },
+    returned: { label: 'Returned', color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-200', dot: 'bg-gray-400', icon: RotateCcw, btnBg: 'bg-gray-500' },
 }
 
-// ── Pure CSS Bar Chart (no recharts) ───────────────────────────────────────
+// Pure CSS Bar Chart (no recharts)
 const BarChartCustom = ({ data, onBarClick }: {
     data: { name: string; revenue: number; orders: number }[]
     onBarClick?: (name: string) => void
@@ -152,7 +154,7 @@ const BarChartCustom = ({ data, onBarClick }: {
     )
 }
 
-// ── Line Chart (pure CSS/SVG) ──────────────────────────────────────────────
+// Line Chart (pure CSS/SVG)
 const LineChartCustom = ({ data }: { data: { name: string; revenue: number; orders: number }[] }) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const [width, setWidth] = useState(600)
@@ -225,7 +227,7 @@ const LineChartCustom = ({ data }: { data: { name: string; revenue: number; orde
     )
 }
 
-// ── Day Detail Modal ───────────────────────────────────────────────────────
+// Day Detail Modal
 const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; API: string }) => {
     const [loading, setLoading] = useState(true)
     const [data, setData] = useState<{ orders: DayOrder[]; summary: DaySummary } | null>(null)
@@ -242,13 +244,13 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
     const formatDateFull = (d: string) => new Date(d).toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 
     const statCards = data ? [
-        { label: 'Total Orders', value: num(data.summary.total_orders), icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Delivered', value: num(data.summary.delivered), icon: PackageCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'Cancelled', value: num(data.summary.cancelled), icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' },
-        { label: 'Returned', value: num(data.summary.returned), icon: RotateCcw, color: 'text-gray-500', bg: 'bg-gray-100' },
-        { label: 'Confirmed', value: num(data.summary.confirmed), icon: CheckCircle2, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { label: 'Preparing', value: num(data.summary.preparing), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-        { label: 'Out for Delivery', value: num(data.summary.out_for_delivery), icon: Truck, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { label: 'Total Orders', value: num(data.summary.total_orders), icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-100' },
+        { label: 'Delivered', value: num(data.summary.delivered), icon: PackageCheck, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+        { label: 'Cancelled', value: num(data.summary.cancelled), icon: XCircle, color: 'text-red-500', bg: 'bg-red-100' },
+        { label: 'Returned', value: num(data.summary.returned), icon: RotateCcw, color: 'text-gray-500', bg: 'bg-gray-200' },
+        { label: 'Confirmed', value: num(data.summary.confirmed), icon: CheckCircle2, color: 'text-blue-500', bg: 'bg-blue-100' },
+        { label: 'Preparing', value: num(data.summary.preparing), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100' },
+        { label: 'Out for Delivery', value: num(data.summary.out_for_delivery), icon: Truck, color: 'text-purple-600', bg: 'bg-purple-100' },
     ] : []
 
     return (
@@ -311,7 +313,7 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
                                                         <p className="text-xs font-black text-[#0d2a4a]">{fmt(o.total_amount)}</p>
                                                         <p className="text-[10px] text-gray-400">{formatTime(o.created_at)}</p>
                                                     </div>
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${cfg.bg} ${cfg.color} ${cfg.border} whitespace-nowrap`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg text-white whitespace-nowrap ${cfg.btnBg}`}>
                                                         {cfg.label}
                                                     </span>
                                                 </div>
@@ -330,9 +332,9 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
     )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
 export default function AdminDashboard() {
     const API = import.meta.env.VITE_API_URL
+    const navigate = useNavigate()
     const [period, setPeriod] = useState<Period>('daily')
     const [loading, setLoading] = useState(true)
     const [rows, setRows] = useState<SummaryRow[]>([])
@@ -416,35 +418,35 @@ export default function AdminDashboard() {
                     {/* KPI Cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         {[
-                            { label: 'Total Revenue', value: fmt(num(totals?.total_revenue)), sub: `${fmt(num(totals?.confirmed_revenue))} earned`, icon: TrendingUp, color: 'text-[#38bdf8]', bg: 'bg-[#0d2a4a]', dark: true },
-                            { label: 'Total Orders', value: num(totals?.total_orders), sub: `${num(totals?.delivered)} delivered`, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50', dark: false },
-                            { label: 'Cancelled', value: num(totals?.cancelled), sub: 'orders cancelled', icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', dark: false },
-                            { label: 'Returned', value: num(totals?.returned), sub: 'return requests', icon: RotateCcw, color: 'text-gray-500', bg: 'bg-gray-100', dark: false },
-                        ].map(({ label, value, sub, icon: Icon, color, bg, dark }) => (
-                            <div key={label} className={`${bg} rounded-2xl p-4 flex flex-col gap-2 border ${dark ? 'border-[#1a4a7a]' : 'border-white'} shadow-sm`}>
+                            { label: 'Total Revenue', value: fmt(num(totals?.total_revenue)), sub: `${fmt(num(totals?.confirmed_revenue))} earned`, icon: TrendingUp, color: 'text-[#38bdf8]', bg: 'bg-[#0d2a4a]', dark: true, to: '/admin/orders' },
+                            { label: 'Total Orders', value: num(totals?.total_orders), sub: `${num(totals?.delivered)} delivered`, icon: ShoppingBag, color: 'text-blue-700', bg: 'bg-blue-200', dark: false, to: '/admin/orders' },
+                            { label: 'Cancelled', value: num(totals?.cancelled), sub: 'orders cancelled', icon: XCircle, color: 'text-red-600', bg: 'bg-red-200', dark: false, to: '/admin/orders?status=cancelled' },
+                            { label: 'Returned', value: num(totals?.returned), sub: 'return requests', icon: RotateCcw, color: 'text-gray-600', bg: 'bg-gray-300', dark: false, to: '/admin/orders?status=returned' },
+                        ].map(({ label, value, sub, icon: Icon, color, bg, dark, to }, i) => (
+                            <div key={label} onClick={() => navigate(to)} className={`animate-fade-in-up cursor-pointer ${bg} rounded-2xl p-4 flex flex-col gap-2 ${dark ? 'border border-[#1a4a7a]' : ''} shadow-sm hover:opacity-90 transition-opacity`} style={{ animationDelay: `${i * 60}ms` }}>
                                 <div className="flex items-center justify-between">
-                                    <p className={`text-[10px] font-semibold uppercase tracking-wider ${dark ? 'text-white/50' : 'text-gray-400'}`}>{label}</p>
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${dark ? 'bg-white/10' : 'bg-white'}`}>
+                                    <p className={`text-[10px] font-semibold uppercase tracking-wider ${dark ? 'text-white/50' : 'text-gray-500'}`}>{label}</p>
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${dark ? 'bg-white/10' : ''}`}>
                                         <Icon size={16} className={color} />
                                     </div>
                                 </div>
                                 <p className={`text-2xl font-black ${dark ? 'text-white' : 'text-gray-800'}`}>{value}</p>
-                                <p className={`text-[10px] ${dark ? 'text-[#38bdf8]' : 'text-gray-400'}`}>{sub}</p>
+                                <p className={`text-[10px] ${dark ? 'text-[#38bdf8]' : 'text-gray-500'}`}>{sub}</p>
                             </div>
                         ))}
                     </div>
 
-                    {/* Insight banner */}
+                    {/* Insight */}
                     {insight && (
-                        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-xs font-semibold
-                            ${insight.up === true ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
-                                insight.up === false ? 'bg-red-50 border-red-200 text-red-600' :
-                                    'bg-gray-50 border-gray-200 text-gray-500'}`}>
-                            {insight.up === true ? <ArrowUpRight size={15} /> :
-                                insight.up === false ? <ArrowDownRight size={15} /> :
-                                    <MinusIcon size={15} />}
+                        <p className={`flex items-center gap-1.5 text-[11px] font-medium px-1
+                            ${insight.up === true ? 'text-emerald-500' :
+                                insight.up === false ? 'text-red-400' :
+                                    'text-gray-400'}`}>
+                            {insight.up === true ? <ArrowUpRight size={13} /> :
+                                insight.up === false ? <ArrowDownRight size={13} /> :
+                                    <MinusIcon size={13} />}
                             {insight.text}
-                        </div>
+                        </p>
                     )}
 
                     {/* Chart */}

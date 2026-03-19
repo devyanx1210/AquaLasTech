@@ -1,3 +1,4 @@
+﻿// createStation - CLI script to create a new water station
 import { connectToDatabase } from '../config/db.js'
 import bcrypt from 'bcrypt'
 import readline from 'readline'
@@ -17,7 +18,7 @@ async function createStation() {
     const pool = await connectToDatabase()
 
     try {
-        // ── Step 1: Collect station details ──────────────────
+        // Step 1: Collect station details
         const station_name = await ask('Station Name       : ')
         const address = await ask('Address            : ')
         const latitude = await ask('Latitude  (optional, press Enter to skip): ')
@@ -29,7 +30,7 @@ async function createStation() {
             process.exit(1)
         }
 
-        // ── Step 2: Show available admin users ────────────────
+        // Step 2: Show available admin users
         console.log('\n📋 Checking for existing admin users...\n')
         const [adminRows]: any = await pool.query(
             `SELECT user_id, full_name, email, role, station_id 
@@ -41,7 +42,7 @@ async function createStation() {
         let admin_user_id: number
 
         if (adminRows.length === 0) {
-            // ── No admins exist — create one now ─────────────
+            // No admins exist — create one now
             console.log('⚠️  No admin users found. Let\'s create one now.\n')
 
             const full_name = await ask('Full Name    : ')
@@ -72,7 +73,7 @@ async function createStation() {
             console.log(`\n✅ Super admin created: ${full_name} (user_id: ${admin_user_id})`)
 
         } else {
-            // ── Existing admins found — pick one ──────────────
+            // Existing admins found — pick one
             adminRows.forEach((u: any) => {
                 const assigned = u.station_id
                     ? ` (assigned to Station #${u.station_id})`
@@ -140,7 +141,7 @@ async function createStation() {
             }
         }
 
-        // ── Step 3: Insert the station ────────────────────────
+        // Step 3: Insert the station
         console.log('\n⏳ Creating station...')
 
         const [stationResult]: any = await pool.query(
@@ -159,13 +160,13 @@ async function createStation() {
         const new_station_id = stationResult.insertId
         console.log(`✅ Station created with ID: ${new_station_id}`)
 
-        // ── Step 4: Assign station to the admin ──────────────
+        // Step 4: Assign station to the admin
         await pool.query(
             `UPDATE users SET station_id = ?, updated_at = NOW() WHERE user_id = ?`,
             [new_station_id, admin_user_id]
         )
 
-        // ── Step 5: Summary ───────────────────────────────────
+        // Step 5: Summary
         const [userRow]: any = await pool.query(
             `SELECT full_name, email, role FROM users WHERE user_id = ?`,
             [admin_user_id]

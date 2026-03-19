@@ -1,0 +1,1 @@
+// auth.middleware - verifies JWT and attaches user to request

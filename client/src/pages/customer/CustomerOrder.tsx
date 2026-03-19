@@ -1,3 +1,4 @@
+﻿// CustomerOrder - place new water delivery orders and track their status
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
@@ -8,11 +9,12 @@ import {
     Loader2, Upload, X, ChevronRight, Smartphone,
     Banknote, Package, RefreshCw, Clock, Truck,
     XCircle, RotateCcw, History, Zap, ChevronDown,
+    Maximize2, Download,
 } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// Types
 interface Product {
     product_id: number
     product_name: string
@@ -61,14 +63,14 @@ type PaymentMode = 'gcash' | 'cash_on_delivery' | 'cash_on_pickup'
 type ToastType = 'success' | 'error'
 type PanelTab = 'active' | 'history'
 
-// ── Status config ──────────────────────────────────────────────────────────
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any }> = {
-    confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2 },
-    preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock },
-    out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck },
-    delivered: { label: 'Delivered', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2 },
-    cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle },
-    returned: { label: 'Returned', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200', dot: 'bg-orange-400', icon: RotateCcw },
+// Status config
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any; btnBg: string }> = {
+    confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2, btnBg: 'bg-blue-600' },
+    preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock, btnBg: 'bg-amber-500' },
+    out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck, btnBg: 'bg-purple-600' },
+    delivered: { label: 'Delivered', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2, btnBg: 'bg-emerald-600' },
+    cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle, btnBg: 'bg-red-500' },
+    returned: { label: 'Returned', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200', dot: 'bg-orange-400', icon: RotateCcw, btnBg: 'bg-orange-500' },
 }
 
 const PAYMENT_LABEL: Record<string, string> = {
@@ -91,7 +93,7 @@ const timeAgo = (d: string) => {
 const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-// ── Toast ──────────────────────────────────────────────────────────────────
+// Toast
 function Toast({ msg, type, onDone }: { msg: string; type: ToastType; onDone: () => void }) {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
     return (
@@ -103,13 +105,13 @@ function Toast({ msg, type, onDone }: { msg: string; type: ToastType; onDone: ()
     )
 }
 
-// ── Status Timeline (horizontal steps) ────────────────────────────────────
+// Status Timeline (horizontal steps)
 function StatusTimeline({ status }: { status: string }) {
     const steps = ['confirmed', 'preparing', 'out_for_delivery', 'delivered']
     if (status === 'cancelled' || status === 'returned') {
         const cfg = STATUS_CFG[status]
         return (
-            <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold ${cfg.bg} ${cfg.color} ${cfg.border} border`}>
+            <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white ${cfg.btnBg}`}>
                 <cfg.icon size={13} /> Order {cfg.label}
             </div>
         )
@@ -143,7 +145,7 @@ function StatusTimeline({ status }: { status: string }) {
     )
 }
 
-// ── Order Detail Modal ─────────────────────────────────────────────────────
+// Order Detail Modal
 // Replaces inline expand — opens as a proper full modal with scroll
 function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
     order: CustomerOrder
@@ -162,7 +164,14 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
             {/* Sheet — slides up on mobile, centered on desktop */}
-            <div className="relative z-10 w-full sm:max-w-md bg-white sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div
+                className="relative z-10 w-full sm:max-w-md bg-white sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[90vh]"
+                onTouchStart={e => (e.currentTarget.dataset.touchY = String(e.touches[0].clientY))}
+                onTouchEnd={e => {
+                    const startY = Number(e.currentTarget.dataset.touchY)
+                    if (e.changedTouches[0].clientY - startY > 80) onClose()
+                }}
+            >
 
                 {/* Handle bar (mobile) */}
                 <div className="flex justify-center pt-3 pb-1 sm:hidden">
@@ -188,18 +197,22 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
                     {/* Status badge + timeline */}
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white ${cfg.btnBg}`}>
                                 <cfg.icon size={12} /> {cfg.label}
                             </span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold border
-                                ${order.payment_status === 'verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
-                                {order.payment_status === 'verified' ? '✓ Paid' : '⏳ Payment Pending'}
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold text-white
+                                ${order.payment_status === 'verified' ? 'bg-emerald-600' : 'bg-amber-500'}`}>
+                                {order.payment_status === 'verified'
+                                    ? <><CheckCircle2 size={11} /> Paid</>
+                                    : <><Clock size={11} /> Payment Pending</>}
                             </span>
                             <span className="ml-auto text-base font-black text-[#0d2a4a]">{fmt(order.total_amount)}</span>
                         </div>
-                        <div className="bg-gray-50 rounded-2xl p-3">
-                            <StatusTimeline status={order.order_status} />
-                        </div>
+                        {order.order_status !== 'cancelled' && order.order_status !== 'returned' && (
+                            <div className="bg-gray-50 rounded-2xl p-3">
+                                <StatusTimeline status={order.order_status} />
+                            </div>
+                        )}
                     </div>
 
                     {/* Payment mode */}
@@ -285,17 +298,18 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
     )
 }
 
-// ── Order Card (compact list item — tap to open modal) ─────────────────────
-function OrderCard({ order, onOpen }: {
+// Order Card (compact list item — tap to open modal)
+function OrderCard({ order, onOpen, onDelete }: {
     order: CustomerOrder
     onOpen: () => void
+    onDelete?: (o: CustomerOrder) => void
 }) {
     const cfg = STATUS_CFG[order.order_status] ?? STATUS_CFG.confirmed
 
     return (
-        <button
+        <div
             onClick={onOpen}
-            className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-gray-200 transition-all active:scale-[0.98]"
+            className="relative w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all active:scale-[0.98] cursor-pointer"
         >
             {/* Header row */}
             <div className="flex items-center gap-3 px-4 py-3">
@@ -314,9 +328,9 @@ function OrderCard({ order, onOpen }: {
             </div>
 
             {/* Status strip */}
-            <div className="px-4 pb-3">
+            <div className="px-4 pb-5">
                 {order.order_status === 'cancelled' || order.order_status === 'returned' ? (
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${cfg.bg} ${cfg.color}`}>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white ${cfg.btnBg}`}>
                         <cfg.icon size={10} /> {cfg.label}
                         {order.order_status === 'returned' && order.return_status && order.return_status !== 'pending' && (
                             <span className="opacity-70"> · {order.return_status}</span>
@@ -345,11 +359,20 @@ function OrderCard({ order, onOpen }: {
                     <RotateCcw size={10} /> Return under review
                 </div>
             )}
-        </button>
+            {/* Delete button — history orders only */}
+            {onDelete && (
+                <button
+                    onClick={e => { e.stopPropagation(); onDelete(order) }}
+                    className="absolute bottom-3 right-3 p-1.5 rounded-lg text-red-400 hover:bg-red-50 active:scale-95 transition-all"
+                >
+                    <Trash2 size={13} />
+                </button>
+            )}
+        </div>
     )
 }
 
-// ── Cancel Modal (with reason field, no admin approval needed) ─────────────
+// Cancel Modal (with reason field, no admin approval needed)
 function CancelModal({ order, onClose, onConfirm }: {
     order: CustomerOrder
     onClose: () => void
@@ -413,7 +436,7 @@ function CancelModal({ order, onClose, onConfirm }: {
     )
 }
 
-// ── Return Modal ───────────────────────────────────────────────────────────
+// Return Modal
 function ReturnModal({ order, onClose, onConfirm }: {
     order: CustomerOrder
     onClose: () => void
@@ -476,7 +499,6 @@ function ReturnModal({ order, onClose, onConfirm }: {
     )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
 export default function CustomerOrder() {
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -503,7 +525,7 @@ export default function CustomerOrder() {
         } catch { }
     }, [])
 
-    // ── Products + Cart ───────────────────────────────────────────────────
+    // Products + Cart
     const [products, setProducts] = useState<Product[]>([])
     const [cart, setCart] = useState<CartItem[]>([])
     const [view, setView] = useState<View>('products')
@@ -512,9 +534,11 @@ export default function CustomerOrder() {
     const [payMode, setPayMode] = useState<PaymentMode>('gcash')
     const [receipt, setReceipt] = useState<File | null>(null)
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
+    const [receiptExpanded, setReceiptExpanded] = useState(false)
+    const [qrExpanded, setQrExpanded] = useState(false)
     const fileRef = useRef<HTMLInputElement>(null)
 
-    // ── Orders panel ─────────────────────────────────────────────────────
+    // Orders panel
     const [showOrdersPanel, setShowOrdersPanel] = useState(false)
     const [orders, setOrders] = useState<CustomerOrder[]>([])
     const [loadingOrders, setLoadingOrders] = useState(true)
@@ -523,11 +547,11 @@ export default function CustomerOrder() {
     const [cancelTarget, setCancelTarget] = useState<CustomerOrder | null>(null)
     const [returnTarget, setReturnTarget] = useState<CustomerOrder | null>(null)
 
-    // ── Toast ─────────────────────────────────────────────────────────────
+    // Toast
     const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null)
     const showToast = useCallback((msg: string, type: ToastType) => setToast({ msg, type }), [])
 
-    // ── Fetch products ────────────────────────────────────────────────────
+    // Fetch products
     const fetchProducts = useCallback(async () => {
         if (!station) return
         setLoadingProds(true)
@@ -538,7 +562,7 @@ export default function CustomerOrder() {
         finally { setLoadingProds(false) }
     }, [station])
 
-    // ── Fetch orders ──────────────────────────────────────────────────────
+    // Fetch orders
     const fetchOrders = useCallback(async () => {
         setLoadingOrders(true)
         try {
@@ -570,7 +594,7 @@ export default function CustomerOrder() {
         return () => clearInterval(t)
     }, [fetchOrders])
 
-    // ── Cart helpers ──────────────────────────────────────────────────────
+    // Cart helpers
     const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0)
     const cartItemCount = cart.reduce((s, i) => s + i.qty, 0)
 
@@ -601,7 +625,7 @@ export default function CustomerOrder() {
     const getQtyInCart = (product_id: number) =>
         cart.find(i => i.product_id === product_id)?.qty ?? 0
 
-    // ── Receipt ───────────────────────────────────────────────────────────
+    // Receipt
     const handleReceiptPick = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
@@ -609,7 +633,7 @@ export default function CustomerOrder() {
         setReceiptPreview(URL.createObjectURL(file))
     }
 
-    // ── Place order ───────────────────────────────────────────────────────
+    // Place order
     const handlePlaceOrder = async () => {
         if (cart.length === 0) { showToast('Your cart is empty', 'error'); return }
         if (payMode === 'gcash' && !receipt) { showToast('Please upload your GCash receipt', 'error'); return }
@@ -643,7 +667,7 @@ export default function CustomerOrder() {
         }
     }
 
-    // ── Cancel order ──────────────────────────────────────────────────────
+    // Cancel order
     const handleCancel = async (reason: string) => {
         if (!cancelTarget) return
         try {
@@ -657,7 +681,18 @@ export default function CustomerOrder() {
         }
     }
 
-    // ── Return request ────────────────────────────────────────────────────
+    // Delete history order
+    const handleDeleteOrder = async (order: CustomerOrder) => {
+        try {
+            await axios.delete(`${API}/customer/orders/${order.order_id}`, { withCredentials: true })
+            showToast('Order removed from history', 'success')
+            setOrders(prev => prev.filter(o => o.order_id !== order.order_id))
+        } catch (err: any) {
+            showToast(err.response?.data?.message ?? 'Failed to delete order', 'error')
+        }
+    }
+
+    // Return request
     const handleReturn = async (reason: string) => {
         if (!returnTarget) return
         try {
@@ -671,12 +706,12 @@ export default function CustomerOrder() {
         }
     }
 
-    // ── Filter orders ─────────────────────────────────────────────────────
+    // Filter orders
     const activeOrders = orders.filter(o => !['delivered', 'cancelled', 'returned'].includes(o.order_status))
     const historyOrders = orders.filter(o => ['delivered', 'cancelled', 'returned'].includes(o.order_status))
     const displayOrders = panelTab === 'active' ? activeOrders : historyOrders
 
-    // ── No station selected ───────────────────────────────────────────────
+    // No station selected
     if (!station) {
         return (
             <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
@@ -695,7 +730,7 @@ export default function CustomerOrder() {
         )
     }
 
-    // ── Station banner ────────────────────────────────────────────────────
+    // Station banner
     const StationBanner = () => (
         <div className="relative w-full rounded-2xl overflow-hidden mb-5 shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-r from-[#0d2a4a] to-[#1a4a7a]" />
@@ -721,7 +756,7 @@ export default function CustomerOrder() {
         </div>
     )
 
-    // ══════════════════════════════════════════════════════════════════════
+    
     return (
         <div className="flex flex-col gap-5 pb-24 lg:pb-10">
             <StationBanner />
@@ -794,7 +829,7 @@ export default function CustomerOrder() {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {products.map(product => {
+                                    {products.map((product, i) => {
                                         const inCart = getQtyInCart(product.product_id)
                                         const outOfStock = product.quantity <= 0
                                         const imgSrc = product.image_url
@@ -802,9 +837,10 @@ export default function CustomerOrder() {
                                             : null
                                         return (
                                             <div key={product.product_id}
-                                                className={`bg-white rounded-2xl border overflow-hidden shadow-sm flex flex-col transition-all
+                                                className={`animate-fade-in-up bg-white rounded-2xl border overflow-hidden shadow-sm flex flex-col transition-all
                                                     ${outOfStock ? 'opacity-60' : 'hover:shadow-md hover:-translate-y-0.5'}
-                                                    ${inCart > 0 ? 'border-[#0d2a4a]' : 'border-gray-100'}`}>
+                                                    ${inCart > 0 ? 'border-[#0d2a4a]' : 'border-gray-100'}`}
+                                                style={{ animationDelay: `${i * 60}ms` }}>
                                                 <div className="relative aspect-square bg-gradient-to-br from-[#e8f4fd] to-[#dbeeff] overflow-hidden">
                                                     {imgSrc ? (
                                                         <img src={imgSrc} alt={product.product_name}
@@ -856,7 +892,7 @@ export default function CustomerOrder() {
                             )}
                         </>
                     ) : (
-                        /* ── CART & CHECKOUT ── */
+                        // CART & CHECKOUT
                         <>
                             <button onClick={() => setView('products')}
                                 className="flex items-center gap-1.5 text-sm font-bold text-[#0d2a4a] hover:text-[#38bdf8] transition-colors w-fit">
@@ -974,12 +1010,17 @@ export default function CustomerOrder() {
                                                     {/* QR code image */}
                                                     {station.qr_code_path && (
                                                         <div className="flex flex-col items-center gap-1.5 pt-1">
-                                                            <div className="bg-white rounded-xl border border-blue-200 p-2 shadow-sm">
+                                                            <div className="relative bg-white rounded-xl border border-blue-200 p-2 shadow-sm">
                                                                 <img
                                                                     src={station.qr_code_path.startsWith('http') ? station.qr_code_path : `${API}${station.qr_code_path}`}
                                                                     alt="GCash QR Code"
                                                                     className="w-36 h-36 object-contain"
                                                                 />
+                                                                <button
+                                                                    onClick={() => setQrExpanded(true)}
+                                                                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center shadow transition-all">
+                                                                    <Maximize2 size={11} className="text-white" />
+                                                                </button>
                                                             </div>
                                                             <p className="text-[10px] text-blue-500 font-semibold">Scan with GCash app</p>
                                                         </div>
@@ -992,8 +1033,12 @@ export default function CustomerOrder() {
                                                         <div className="relative">
                                                             <img src={receiptPreview} alt="Receipt" className="w-full max-h-36 object-contain rounded-lg" />
                                                             <button onClick={e => { e.stopPropagation(); setReceipt(null); setReceiptPreview(null) }}
-                                                                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shadow">
-                                                                <X size={10} className="text-white" />
+                                                                className="absolute top-1 left-1 w-6 h-6 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow transition-all">
+                                                                <X size={11} className="text-white" />
+                                                            </button>
+                                                            <button onClick={e => { e.stopPropagation(); setReceiptExpanded(true) }}
+                                                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center shadow transition-all">
+                                                                <Maximize2 size={11} className="text-white" />
                                                             </button>
                                                         </div>
                                                     ) : (
@@ -1079,19 +1124,21 @@ export default function CustomerOrder() {
                                         ? <><Zap size={22} className="text-gray-300" /><p className="text-xs text-gray-400">No active orders</p></>
                                         : <><History size={22} className="text-gray-300" /><p className="text-xs text-gray-400">No order history yet</p></>}
                                 </div>
-                            ) : displayOrders.map(order => (
-                                <OrderCard
-                                    key={order.order_id}
-                                    order={order}
-                                    onOpen={() => openOrderDetail(order)}
-                                />
+                            ) : displayOrders.map((order, i) => (
+                                <div key={order.order_id} className="animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>
+                                    <OrderCard
+                                        order={order}
+                                        onOpen={() => openOrderDetail(order)}
+                                        onDelete={panelTab === 'history' ? handleDeleteOrder : undefined}
+                                    />
+                                </div>
                             ))}
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* ── Order Detail Modal ── */}
+            {/* Order Detail Modal */}
             {detailOrder && (
                 <OrderDetailModal
                     order={detailOrder}
@@ -1101,7 +1148,7 @@ export default function CustomerOrder() {
                 />
             )}
 
-            {/* ── Cancel Modal ── */}
+            {/* Cancel Modal */}
             {cancelTarget && (
                 <CancelModal
                     order={cancelTarget}
@@ -1110,13 +1157,59 @@ export default function CustomerOrder() {
                 />
             )}
 
-            {/* ── Return Modal ── */}
+            {/* Return Modal */}
             {returnTarget && (
                 <ReturnModal
                     order={returnTarget}
                     onClose={() => setReturnTarget(null)}
                     onConfirm={handleReturn}
                 />
+            )}
+
+            {/* QR Code Lightbox */}
+            {qrExpanded && station?.qr_code_path && (
+                <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-black/90"
+                    onClick={() => setQrExpanded(false)}>
+                    <div className="relative flex flex-col items-center gap-4 px-4 w-full max-w-sm"
+                        onClick={e => e.stopPropagation()}>
+                        <img
+                            src={station.qr_code_path.startsWith('http') ? station.qr_code_path : `${API}${station.qr_code_path}`}
+                            alt="GCash QR Code"
+                            className="w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl bg-white p-4" />
+                        <a
+                            href={station.qr_code_path.startsWith('http') ? station.qr_code_path : `${API}${station.qr_code_path}`}
+                            download="gcash-qr-code"
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#0d2a4a] font-bold text-sm shadow-lg hover:bg-gray-100 transition-all active:scale-95">
+                            <Download size={15} /> Download QR Code
+                        </a>
+                    </div>
+                    <button onClick={() => setQrExpanded(false)}
+                        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all">
+                        <X size={18} className="text-white" />
+                    </button>
+                </div>
+            )}
+
+            {/* Receipt Lightbox */}
+            {receiptExpanded && receiptPreview && (
+                <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-black/90"
+                    onClick={() => setReceiptExpanded(false)}>
+                    <div className="relative flex flex-col items-center gap-4 px-4 w-full max-w-lg"
+                        onClick={e => e.stopPropagation()}>
+                        <img src={receiptPreview} alt="GCash Receipt"
+                            className="w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl" />
+                        <a
+                            href={receiptPreview}
+                            download="gcash-receipt"
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#0d2a4a] font-bold text-sm shadow-lg hover:bg-gray-100 transition-all active:scale-95">
+                            <Download size={15} /> Download Receipt
+                        </a>
+                    </div>
+                    <button onClick={() => setReceiptExpanded(false)}
+                        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all">
+                        <X size={18} className="text-white" />
+                    </button>
+                </div>
             )}
 
             {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}

@@ -1,3 +1,4 @@
+﻿// app - Express app setup with middleware, routes, and error handling
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -30,7 +31,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options("/{*path}", cors(corsOptions));
 
-// ── Helmet — allow cross-origin images ────────────────────────────────────
+// Helmet — allow cross-origin images
 app.use(
     helmet({
         crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -41,7 +42,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ── Serve uploaded files as static ────────────────────────────────────────
+// Serve uploaded files as static
 // Covers /uploads/products/, /uploads/stations/, /uploads/receipts/
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
@@ -49,7 +50,7 @@ app.get("/", (req, res) => {
     res.json({ message: "AquaLasTech API is running" });
 });
 
-// ── Routes ─────────────────────────────────────────────────────────────────
+// Routes
 app.use("/auth", authRoutes);
 app.use("/stations", stationRoutes);
 app.use("/settings", settingsRoutes);

@@ -1,3 +1,4 @@
+﻿// InputField - reusable labeled input with error state support
 import { FiEye, FiEyeOff } from "react-icons/fi"
 
 export default function InputField({

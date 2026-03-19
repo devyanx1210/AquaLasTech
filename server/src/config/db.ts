@@ -1,3 +1,4 @@
+﻿// db - MySQL connection pool and database initialization
 import mysql from "mysql2/promise"; //promise because we use await and async
 import dotenv from "dotenv";
 

@@ -1,3 +1,4 @@
+﻿// customer.routes - /customers/* endpoints for customer-facing data
 import express from 'express'
 import bcrypt from 'bcrypt'
 import multer from 'multer'
@@ -13,7 +14,7 @@ router.use(verifyToken)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// ── Multer for GCash receipt uploads ──────────────────────────────────────
+// Multer for GCash receipt uploads
 const receiptStorage = multer.diskStorage({
     destination: (_req, _file, cb) => {
         const dir = path.join(__dirname, '..', '..', 'uploads', 'receipts')
@@ -34,20 +35,20 @@ const uploadReceipt = multer({
     },
 })
 
-// ── PUT /customer/profile ──────────────────────────────────────────────────
+// PUT /customer/profile
 router.put('/profile', async (req, res) => {
     const userId = (req as any).user.id
-    const { full_name, phone_number, address, latitude, longitude } = req.body
+    const { full_name, phone_number, address, latitude, longitude, complete_address } = req.body
     if (!full_name?.trim())
         return res.status(400).json({ message: 'Name is required' })
     try {
         const pool = await connectToDatabase()
         await pool.query(
-            `UPDATE users SET full_name=?, phone_number=?, address=?, latitude=?, longitude=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?`,
-            [full_name.trim(), phone_number ?? null, address?.trim() || null, latitude ?? null, longitude ?? null, userId]
+            `UPDATE users SET full_name=?, phone_number=?, address=?, latitude=?, longitude=?, complete_address=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?`,
+            [full_name.trim(), phone_number ?? null, address?.trim() || null, latitude ?? null, longitude ?? null, complete_address?.trim() || null, userId]
         )
         const [rows]: any = await pool.query(
-            `SELECT user_id, full_name, email, role, station_id, address, latitude, longitude FROM users WHERE user_id=?`,
+            `SELECT user_id, full_name, email, role, station_id, address, latitude, longitude, complete_address FROM users WHERE user_id=?`,
             [userId]
         )
         const u = rows[0]
@@ -59,6 +60,7 @@ router.put('/profile', async (req, res) => {
                 address: u.address ?? null,
                 latitude: u.latitude != null ? parseFloat(u.latitude) : null,
                 longitude: u.longitude != null ? parseFloat(u.longitude) : null,
+                complete_address: u.complete_address ?? null,
             },
         })
     } catch (err) {
@@ -67,7 +69,7 @@ router.put('/profile', async (req, res) => {
     }
 })
 
-// ── PUT /customer/password ─────────────────────────────────────────────────
+// PUT /customer/password
 router.put('/password', async (req, res) => {
     const userId = (req as any).user.id
     const { current_password, new_password } = req.body
@@ -90,7 +92,7 @@ router.put('/password', async (req, res) => {
     }
 })
 
-// ── GET /customer/products/:station_id ────────────────────────────────────
+// GET /customer/products/:station_id
 // Returns all active products with current stock for a given station
 router.get('/products/:station_id', async (req, res) => {
     const { station_id } = req.params
@@ -117,7 +119,7 @@ router.get('/products/:station_id', async (req, res) => {
     }
 })
 
-// ── POST /customer/orders ──────────────────────────────────────────────────
+// POST /customer/orders
 // Creates an order, order_items, payment record, and notifies the station admin
 router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
     const userId = (req as any).user.id
@@ -147,11 +149,19 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
         const rand = Math.random().toString(36).substring(2, 7).toUpperCase()
         const order_reference = `AQL-${dateStr}-${rand}`
 
-        // Insert order — status starts as 'pending'
+        // Fetch customer name and address to snapshot on the order
+        const [userRows]: any = await conn.query(
+            `SELECT full_name, address, complete_address FROM users WHERE user_id = ?`, [userId]
+        )
+        const snapName = userRows[0]?.full_name ?? null
+        const snapAddress = userRows[0]?.address ?? null
+        const snapCompleteAddress = userRows[0]?.complete_address ?? null
+
+        // Insert order — snapshot customer fields so they never change if profile updates
         const [orderResult]: any = await conn.query(
-            `INSERT INTO orders (user_id, station_id, order_reference, total_amount, payment_mode, order_status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())`,
-            [userId, station_id, order_reference, total_amount, payment_mode]
+            `INSERT INTO orders (user_id, station_id, order_reference, customer_name, customer_address, customer_complete_address, total_amount, payment_mode, order_status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())`,
+            [userId, station_id, order_reference, snapName, snapAddress, snapCompleteAddress, total_amount, payment_mode]
         )
         const order_id = orderResult.insertId
 
@@ -243,7 +253,7 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
     }
 })
 
-// ── GET /customer/orders ───────────────────────────────────────────────────
+// GET /customer/orders
 // Returns all orders for the logged-in customer
 router.get('/orders', async (req, res) => {
     const userId = (req as any).user.id
@@ -259,7 +269,7 @@ router.get('/orders', async (req, res) => {
             FROM orders o
             LEFT JOIN stations s  ON s.station_id = o.station_id
             LEFT JOIN payments p  ON p.order_id   = o.order_id
-            WHERE o.user_id = ?
+            WHERE o.user_id = ? AND o.hidden_at IS NULL
             ORDER BY o.created_at DESC
         `, [userId])
         return res.json(orders)
@@ -269,7 +279,7 @@ router.get('/orders', async (req, res) => {
     }
 })
 
-// ── GET /customer/orders/:id ───────────────────────────────────────────────
+// GET /customer/orders/:id
 router.get('/orders/:id', async (req, res) => {
     const userId = (req as any).user.id
     const { id } = req.params
@@ -299,7 +309,7 @@ router.get('/orders/:id', async (req, res) => {
     }
 })
 
-// ── GET /customer/notifications ────────────────────────────────────────────
+// GET /customer/notifications
 router.get('/notifications', async (req, res) => {
     const userId = (req as any).user.id
     try {
@@ -318,7 +328,7 @@ router.get('/notifications', async (req, res) => {
     }
 })
 
-// ── PUT /customer/notifications/read-all ──────────────────────────────────
+// PUT /customer/notifications/read-all
 router.put('/notifications/read-all', async (req, res) => {
     const userId = (req as any).user.id
     try {
@@ -331,7 +341,7 @@ router.put('/notifications/read-all', async (req, res) => {
     }
 })
 
-// ── PUT /customer/notifications/:id/read ──────────────────────────────────
+// PUT /customer/notifications/:id/read
 router.put('/notifications/:id/read', async (req, res) => {
     const userId = (req as any).user.id
     const { id } = req.params
@@ -345,7 +355,21 @@ router.put('/notifications/:id/read', async (req, res) => {
     }
 })
 
-// ── PUT /customer/orders/:id/cancel ───────────────────────────────────────
+// DELETE /customer/notifications/:id
+router.delete('/notifications/:id', async (req, res) => {
+    const userId = (req as any).user.id
+    const { id } = req.params
+    try {
+        const pool = await connectToDatabase()
+        await pool.query('DELETE FROM notifications WHERE notification_id = ? AND user_id = ?', [id, userId])
+        return res.json({ message: 'Deleted' })
+    } catch (err) {
+        console.error('DELETE /customer/notifications/:id error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// PUT /customer/orders/:id/cancel
 // Customer can only cancel when status is 'confirmed'
 router.put('/orders/:id/cancel', async (req, res) => {
     const userId = (req as any).user.id
@@ -394,7 +418,7 @@ router.put('/orders/:id/cancel', async (req, res) => {
     }
 })
 
-// ── POST /customer/orders/:id/return ──────────────────────────────────────
+// POST /customer/orders/:id/return
 // Customer can request return only when status is 'delivered'
 router.post('/orders/:id/return', async (req, res) => {
     const userId = (req as any).user.id
@@ -431,6 +455,30 @@ router.post('/orders/:id/return', async (req, res) => {
         return res.status(201).json({ message: 'Return request submitted' })
     } catch (err) {
         console.error('POST /customer/orders/:id/return error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// DELETE /customer/orders/:id
+// Customer can delete from history (delivered, cancelled, returned only)
+router.delete('/orders/:id', async (req, res) => {
+    const userId = (req as any).user.id
+    const { id } = req.params
+    try {
+        const pool = await connectToDatabase()
+        const [rows]: any = await pool.query(
+            `SELECT order_id, order_status FROM orders WHERE order_id = ? AND user_id = ?`,
+            [id, userId]
+        )
+        if (!rows.length) return res.status(404).json({ message: 'Order not found' })
+        const { order_status } = rows[0]
+        if (!['delivered', 'cancelled', 'returned'].includes(order_status))
+            return res.status(400).json({ message: 'Only completed orders can be deleted' })
+
+        await pool.query(`UPDATE orders SET hidden_at = NOW() WHERE order_id = ? AND user_id = ?`, [id, userId])
+        return res.json({ message: 'Order deleted' })
+    } catch (err) {
+        console.error('DELETE /customer/orders/:id error:', err)
         return res.status(500).json({ message: 'Server error' })
     }
 })

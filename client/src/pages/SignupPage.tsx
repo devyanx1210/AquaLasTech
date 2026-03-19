@@ -1,3 +1,4 @@
+﻿// SignupPage - registers new customers and links them to a water station
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiUser, FiMail, FiLock, FiX } from "react-icons/fi";

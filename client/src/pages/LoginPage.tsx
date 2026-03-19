@@ -1,3 +1,4 @@
+﻿// LoginPage - authenticates existing users and redirects by role
 import { useState } from "react";
 import logo from "../assets/aqualastech-logo-noBG.png"
 import { FiMail, FiLock, FiX } from "react-icons/fi";

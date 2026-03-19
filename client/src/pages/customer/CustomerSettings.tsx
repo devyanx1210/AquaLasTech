@@ -1,3 +1,4 @@
+﻿// CustomerSettings - customer profile and delivery address management
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
@@ -10,7 +11,20 @@ import {
 type ToastType = 'success' | 'error'
 interface ToastData { message: string; type: ToastType }
 
-// ── Reverse geocode via OpenStreetMap Nominatim (same as AdminSettings) ────
+interface GeoResult { place_id: number; display_name: string; lat: string; lon: string }
+
+async function searchGeocode(query: string): Promise<GeoResult[]> {
+    if (query.trim().length < 3) return []
+    try {
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=ph`,
+            { headers: { 'Accept-Language': 'en' } }
+        )
+        return await res.json()
+    } catch { return [] }
+}
+
+// Reverse geocode via OpenStreetMap Nominatim (same as AdminSettings)
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
         const res = await fetch(
@@ -31,17 +45,17 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
     }
 }
 
-// ── Toast (same as AdminSettings) ─────────────────────────────────────────
+// Toast (same as AdminSettings)
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => {
         const t = setTimeout(onDone, 3500)
         return () => clearTimeout(t)
     }, [onDone])
     return (
-        <div className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-sm font-medium
+        <div className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-md border text-sm font-medium
             ${toast.type === 'success'
-                ? 'bg-white border-emerald-200 text-emerald-700 shadow-emerald-100'
-                : 'bg-white border-red-200 text-red-600 shadow-red-100'}`}>
+                ? 'bg-white border-gray-200 text-emerald-700'
+                : 'bg-white border-gray-200 text-red-600'}`}>
             {toast.type === 'success'
                 ? <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                 : <AlertCircle size={16} className="text-red-500 shrink-0" />}
@@ -50,13 +64,13 @@ const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     )
 }
 
-// ── Section (same as AdminSettings) ───────────────────────────────────────
-const Section = ({ title, subtitle, icon, children }: {
-    title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode
+// Section (same as AdminSettings)
+const Section = ({ title, subtitle, icon, children, delay = 0 }: {
+    title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode; delay?: number
 }) => (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+    <div className="animate-fade-in-up bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm" style={{ animationDelay: `${delay}ms` }}>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#0d2a4a] flex items-center justify-center text-[#38bdf8] shrink-0">
+            <div className="text-[#38bdf8] shrink-0">
                 {icon}
             </div>
             <div>
@@ -73,15 +87,15 @@ const inputCls = `w-full bg-gray-50 border border-gray-200 rounded-xl text-sm te
     focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15
     hover:border-gray-300 transition-all duration-200`
 
-// ══════════════════════════════════════════════════════════════════════════
 export default function CustomerSettings() {
     const { user, setUser } = useAuth()
     const API = import.meta.env.VITE_API_URL
 
-    // ── Profile state ─────────────────────────────────────────────────────
+    // Profile state
     const [fullName, setFullName] = useState(user?.full_name ?? '')
     const [phone, setPhone] = useState('')
     const [address, setAddress] = useState(user?.address ?? '')
+    const [completeAddress, setCompleteAddress] = useState(user?.complete_address ?? '')
     const [latitude, setLatitude] = useState<number | null>(
         user?.latitude != null ? parseFloat(String(user.latitude)) : null
     )
@@ -92,7 +106,7 @@ export default function CustomerSettings() {
     const [gettingLocation, setGettingLocation] = useState(false)
     const [savingProfile, setSavingProfile] = useState(false)
 
-    // ── Password state ────────────────────────────────────────────────────
+    // Password state
     const [currentPw, setCurrentPw] = useState('')
     const [newPw, setNewPw] = useState('')
     const [confirmPw, setConfirmPw] = useState('')
@@ -100,16 +114,51 @@ export default function CustomerSettings() {
     const [showCpw, setShowCpw] = useState(false)
     const [savingPassword, setSavingPassword] = useState(false)
 
-    // ── Map refs (identical pattern to AdminSettings) ─────────────────────
+    // Map refs (identical pattern to AdminSettings)
     const mapInstanceRef = useRef<any>(null)
     const markerRef = useRef<any>(null)
     const [mapReady, setMapReady] = useState(false)
+
+    // Address search (forward geocode)
+    const [geoResults, setGeoResults] = useState<GeoResult[]>([])
+    const [geoSearching, setGeoSearching] = useState(false)
+    const geoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const handleAddressChange = (val: string) => {
+        setAddress(val)
+        setGeoResults([])
+        if (geoTimerRef.current) clearTimeout(geoTimerRef.current)
+        if (val.trim().length >= 3) {
+            setGeoSearching(true)
+            geoTimerRef.current = setTimeout(async () => {
+                const results = await searchGeocode(val)
+                setGeoResults(results)
+                setGeoSearching(false)
+            }, 500)
+        } else {
+            setGeoSearching(false)
+        }
+    }
+
+    const handleGeoSelect = (r: GeoResult) => {
+        const lat = parseFloat(r.lat), lng = parseFloat(r.lon)
+        setAddress(r.display_name)
+        setLatitude(lat)
+        setLongitude(lng)
+        setGeoResults([])
+        setGeoSearching(false)
+        if (geoTimerRef.current) clearTimeout(geoTimerRef.current)
+        if (markerRef.current) {
+            markerRef.current.setLatLng([lat, lng])
+            mapInstanceRef.current?.setView([lat, lng], 16)
+        }
+    }
 
     const [toast, setToast] = useState<ToastData | null>(null)
     const showToast = useCallback((message: string, type: ToastType) =>
         setToast({ message, type }), [])
 
-    // ── Load fresh user on mount ──────────────────────────────────────────
+    // Load fresh user on mount
     useEffect(() => {
         axios.get(`${API}/auth/me`, { withCredentials: true })
             .then(res => {
@@ -120,11 +169,12 @@ export default function CustomerSettings() {
                 setAddress(u.address ?? '')
                 setLatitude(u.latitude != null ? parseFloat(String(u.latitude)) : null)
                 setLongitude(u.longitude != null ? parseFloat(String(u.longitude)) : null)
+                setCompleteAddress(u.complete_address ?? '')
             })
             .catch(() => { })
     }, [])
 
-    // ── Cleanup map on unmount ────────────────────────────────────────────
+    // Cleanup map on unmount
     useEffect(() => {
         return () => {
             if (mapInstanceRef.current) {
@@ -134,17 +184,18 @@ export default function CustomerSettings() {
         }
     }, [])
 
-    // ── Reverse geocode + update address (same as AdminSettings) ─────────
+    // Reverse geocode + update address; clears complete_address since location changed
     const updateAddressFromCoords = useCallback(async (lat: number, lng: number) => {
         setGeocoding(true)
         setLatitude(lat)
         setLongitude(lng)
         const resolved = await reverseGeocode(lat, lng)
         if (resolved) setAddress(resolved)
+        setCompleteAddress('')
         setGeocoding(false)
     }, [])
 
-    // ── Init Leaflet map ─────────────────────────────────────────────────
+    // Init Leaflet map
     const initMap = useCallback((node: HTMLDivElement | null) => {
         if (!node) return
 
@@ -227,7 +278,7 @@ export default function CustomerSettings() {
             }, 50)
         }
     }, [])
-    // ── GPS (same as AdminSettings handleGetLocation) ─────────────────────
+    // GPS (same as AdminSettings handleGetLocation)
     const handleGetLocation = () => {
         if (!navigator.geolocation) return showToast('Geolocation not supported', 'error')
         setGettingLocation(true)
@@ -249,7 +300,7 @@ export default function CustomerSettings() {
         )
     }
 
-    // ── Save profile ──────────────────────────────────────────────────────
+    // Save profile
     const handleSaveProfile = async () => {
         if (!fullName.trim()) { showToast('Name is required', 'error'); return }
         setSavingProfile(true)
@@ -260,6 +311,7 @@ export default function CustomerSettings() {
                 address: address.trim() || null,
                 latitude,
                 longitude,
+                complete_address: completeAddress.trim() || null,
             }, { withCredentials: true })
             setUser(res.data.user)
             showToast('Profile updated successfully!', 'success')
@@ -270,7 +322,7 @@ export default function CustomerSettings() {
         }
     }
 
-    // ── Change password ───────────────────────────────────────────────────
+    // Change password
     const handleSavePassword = async () => {
         if (!currentPw || !newPw || !confirmPw) { showToast('Fill in all password fields', 'error'); return }
         if (newPw.length < 6) { showToast('New password must be at least 6 characters', 'error'); return }
@@ -290,9 +342,6 @@ export default function CustomerSettings() {
         }
     }
 
-    const initials = user?.full_name
-        ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-        : 'CU'
 
     return (
         <div className="max-w-2xl mx-auto flex flex-col gap-5 pb-10">
@@ -303,9 +352,9 @@ export default function CustomerSettings() {
             </div>
 
             {/* Avatar */}
-            <div className="flex items-center gap-4 px-5 py-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <div className="animate-fade-in-up flex items-center gap-4 px-5 py-4 bg-white rounded-2xl border border-gray-100 shadow-sm" style={{ animationDelay: '0ms' }}>
                 <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xl font-black text-white select-none">
-                    {initials}
+                    {user?.full_name ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'CU'}
                 </div>
                 <div>
                     <p className="font-bold text-gray-800">{user?.full_name ?? 'Customer'}</p>
@@ -314,11 +363,12 @@ export default function CustomerSettings() {
                 </div>
             </div>
 
-            {/* ── Profile & Delivery Info ── */}
+            {/* Profile & Delivery Info */}
             <Section
                 title="Profile & Delivery Info"
                 subtitle="Your name, phone, and delivery address"
                 icon={<User size={16} />}
+                delay={70}
             >
                 <div className="flex flex-col gap-4">
 
@@ -352,7 +402,7 @@ export default function CustomerSettings() {
                         </div>
                     </div>
 
-                    {/* Address — auto-filled from map */}
+                    {/* Address — auto-filled from map or searchable */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                             Delivery Address
@@ -363,17 +413,52 @@ export default function CustomerSettings() {
                             )}
                         </label>
                         <div className="relative">
-                            <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
                             <input
                                 value={address}
-                                onChange={e => setAddress(e.target.value)}
+                                onChange={e => handleAddressChange(e.target.value)}
                                 disabled={geocoding}
                                 className={`${inputCls} pl-9 ${geocoding ? 'opacity-60' : ''}`}
-                                placeholder="Pin a location on the map below"
+                                placeholder="Type to search or pin on the map"
+                                autoComplete="off"
                             />
+                            {geoSearching && (
+                                <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#38bdf8] animate-spin" />
+                            )}
+                            {(geoResults.length > 0 || geoSearching) && (
+                                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden animate-slide-down">
+                                    {geoSearching && geoResults.length === 0 ? (
+                                        <div className="flex items-center gap-2 px-4 py-3 text-xs text-gray-400">
+                                            <Loader2 size={11} className="animate-spin" /> Searching…
+                                        </div>
+                                    ) : geoResults.map(r => (
+                                        <button key={r.place_id} type="button" onClick={() => handleGeoSelect(r)}
+                                            className="w-full text-left px-4 py-2.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-[#0d2a4a] flex items-start gap-2 border-b border-gray-50 last:border-0 transition-colors">
+                                            <MapPin size={11} className="text-[#38bdf8] shrink-0 mt-0.5" />
+                                            <span className="line-clamp-2">{r.display_name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <p className="text-[10px] text-gray-400">
-                            Auto-filled when you pin a location on the map. You can also edit it manually.
+                            Search by barangay/municipality, or pin directly on the map.
+                        </p>
+                    </div>
+
+                    {/* Complete / Specific Delivery Address */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Complete Delivery Address
+                        </label>
+                        <input
+                            value={completeAddress}
+                            onChange={e => setCompleteAddress(e.target.value)}
+                            className={inputCls}
+                            placeholder="Purok, House No., Barangay, Municipality"
+                        />
+                        <p className="text-[10px] text-gray-400">
+                            Your specific address including purok, house number, and barangay. Used for delivery.
                         </p>
                     </div>
 
@@ -428,7 +513,7 @@ export default function CustomerSettings() {
                             </div>
                         </div>
                         <p className="text-[10px] text-gray-400">
-                            Click the map or drag the pin — address auto-updates from the pinned location.
+                            Click on the map or drag the pin to set your location. The address field will update automatically.
                         </p>
                     </div>
 
@@ -441,11 +526,12 @@ export default function CustomerSettings() {
                 </div>
             </Section>
 
-            {/* ── Change Password ── */}
+            {/* Change Password */}
             <Section
                 title="Change Password"
                 subtitle="Update your account password"
                 icon={<Lock size={16} />}
+                delay={140}
             >
                 <div className="flex flex-col gap-4">
 

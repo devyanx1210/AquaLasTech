@@ -1,3 +1,4 @@
+﻿// WaterLoader - animated water-drop loading spinner
 import { useEffect, useState } from "react";
 
 type WaterLoaderProps = {

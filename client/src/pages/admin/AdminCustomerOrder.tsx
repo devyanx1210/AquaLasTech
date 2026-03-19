@@ -1,24 +1,27 @@
+﻿// AdminCustomerOrder - view and manage incoming customer orders
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
 import {
-    Search, Eye, CheckCircle2, XCircle, AlertCircle,
+    Search, Eye, CheckCircle2, XCircle,
     Clock, Truck, RefreshCw, Loader2, ChevronDown,
     X, Droplets, ImageIcon, ExternalLink, RotateCcw,
-    History, ShoppingBag, ChevronRight, Printer,
+    History, ShoppingBag, ChevronRight, Printer, Trash2,
 } from 'lucide-react'
 import { FaMoneyBillWave, FaMobileAlt } from 'react-icons/fa'
 
-
 // BUG WHen in landscape mode is my order must be there
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// Types
 interface Order {
     order_id: number
     order_reference: string
     customer_name: string
     customer_email: string
     customer_contact: string | null
+    customer_address: string | null
+    customer_complete_address: string | null
     total_amount: number
     payment_mode: 'gcash' | 'cash' | 'cash_on_delivery' | 'cash_on_pickup'
     order_status: 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'returned'
@@ -44,7 +47,7 @@ interface OrderDetail extends Order {
     }[]
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// Helpers
 const fmt = (p: number) => `₱${Number(p).toFixed(2)}`
 
 // Split date and time so they never get squished together
@@ -55,107 +58,84 @@ const formatDateParts = (d: string) => {
     return { datePart, timePart }
 }
 
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any }> = {
-    confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2 },
-    preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock },
-    out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck },
-    cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle },
-    delivered: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2 },
-    returned: { label: 'Returned', color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-200', dot: 'bg-gray-400', icon: RotateCcw },
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any; btnBg: string }> = {
+    confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2, btnBg: 'bg-blue-600' },
+    preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock, btnBg: 'bg-amber-500' },
+    out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck, btnBg: 'bg-purple-600' },
+    cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle, btnBg: 'bg-red-500' },
+    delivered: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2, btnBg: 'bg-emerald-600' },
+    returned: { label: 'Returned', color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-200', dot: 'bg-gray-400', icon: RotateCcw, btnBg: 'bg-gray-500' },
 }
 
-const PAY_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-    pending: { label: 'Pending', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
-    verified: { label: 'Paid', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-    rejected: { label: 'Rejected', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200' },
-    not_required: { label: 'COD', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200' },
+const PAY_CFG: Record<string, { label: string; color: string; bg: string; border: string; solidBg: string }> = {
+    pending: { label: 'Pending', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', solidBg: 'bg-amber-500' },
+    verified: { label: 'Paid', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', solidBg: 'bg-emerald-600' },
+    rejected: { label: 'Rejected', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', solidBg: 'bg-red-500' },
+    not_required: { label: 'COD', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200', solidBg: 'bg-gray-500' },
 }
 
-// ── Print Delivery List ────────────────────────────────────────────────────
-const printDeliveryList = (orders: Order[], stationName: string) => {
-    const deliveryOrders = orders.filter(o =>
-        o.order_status === 'confirmed' || o.order_status === 'preparing' || o.order_status === 'out_for_delivery'
-    )
-    if (deliveryOrders.length === 0) {
-        alert('No confirmed or delivering orders to print.')
-        return
-    }
-
+// buildDeliveryHtml - pure function, no side effects
+const buildDeliveryHtml = (deliveryOrders: Order[], stationName: string) => {
     const now = new Date().toLocaleString('en-PH', {
         month: 'long', day: 'numeric', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
     })
-
     const rows = deliveryOrders.map((o, i) => {
         const { datePart, timePart } = formatDateParts(o.created_at)
-        const status = STATUS_CFG[o.order_status]
+        const payLabel = o.payment_mode === 'gcash' ? 'GCash'
+            : o.payment_mode === 'cash_on_delivery' ? 'Cash on Delivery'
+            : o.payment_mode === 'cash_on_pickup' ? 'Cash on Pickup'
+            : 'Cash'
+        const addrLine = o.customer_complete_address
+            ? `${o.customer_complete_address}`
+            : (o.customer_address || '—')
+        const areaLine = o.customer_complete_address && o.customer_address
+            ? `<span class="small">${o.customer_address}</span>` : ''
         return `
         <tr>
             <td>${i + 1}</td>
             <td><strong>${o.order_reference}</strong></td>
             <td>${o.customer_name || 'Walk-in'}</td>
             <td>${o.customer_contact || '—'}</td>
+            <td class="addr">${addrLine}${areaLine ? '<br/>' + areaLine : ''}</td>
             <td>${datePart}<br/><span class="small">${timePart}</span></td>
-            <td>${o.payment_mode.toUpperCase()}</td>
+            <td>${payLabel}</td>
             <td>${fmt(o.total_amount)}</td>
-            <td><span class="badge badge-${o.order_status}">${status.label}</span></td>
         </tr>`
     }).join('')
-
-    const win = window.open('', '_blank', 'width=900,height=700')
-    if (!win) return
-    win.document.write(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
 <title>Delivery List — ${stationName}</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 20px; }
-  h1 { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
-  .sub { font-size: 11px; color: #666; margin-bottom: 16px; }
-  table { width: 100%; border-collapse: collapse; }
-  thead tr { background: #0d2a4a; color: white; }
-  th { padding: 9px 10px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-  td { padding: 9px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-  tr:nth-child(even) td { background: #f9fafb; }
-  .small { color: #888; font-size: 10px; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; }
-  .badge-confirmed  { background: #dbeafe; color: #1d4ed8; }
-  .badge-preparing  { background: #fef3c7; color: #d97706; }
-  .badge-out_for_delivery { background: #ede9fe; color: #7c3aed; }
-  .footer { margin-top: 20px; font-size: 10px; color: #999; text-align: right; }
-  @media print { body { padding: 0; } }
-</style>
-</head>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:Arial,sans-serif; font-size:12px; color:#111; padding:20px; }
+  h1 { font-size:18px; font-weight:bold; margin-bottom:2px; }
+  .sub { font-size:11px; color:#666; margin-bottom:16px; }
+  table { width:100%; border-collapse:collapse; }
+  thead tr { background:#0d2a4a; color:white; }
+  th { padding:9px 10px; text-align:left; font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+  td { padding:9px 10px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
+  tr:nth-child(even) td { background:#f9fafb; }
+  .addr { max-width:180px; word-wrap:break-word; }
+  .small { color:#888; font-size:10px; }
+  .footer { margin-top:20px; font-size:10px; color:#999; text-align:right; }
+  @media print { body { padding:0; } }
+</style></head>
 <body>
-  <h1>${stationName || 'AquaLasTech'} — Delivery List</h1>
+  <h1>${stationName || 'AquaLasTech'} — Out for Delivery</h1>
   <p class="sub">Printed: ${now} &nbsp;·&nbsp; ${deliveryOrders.length} order(s)</p>
   <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Order Ref</th>
-        <th>Customer</th>
-        <th>Contact</th>
-        <th>Date</th>
-        <th>Payment</th>
-        <th>Total</th>
-        <th>Status</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th>#</th><th>Order Ref</th><th>Customer</th><th>Contact</th>
+      <th>Address</th><th>Date</th><th>Payment</th><th>Total</th>
+    </tr></thead>
     <tbody>${rows}</tbody>
   </table>
   <div class="footer">Generated by AquaLasTech</div>
-</body>
-</html>`)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print(); win.close() }, 300)
+</body></html>`
 }
 
-// ── GCash Verify Modal ─────────────────────────────────────────────────────
+// GCash Verify Modal
 const GCashModal = ({ order, onClose, onVerify, API }: {
     order: OrderDetail; onClose: () => void
     onVerify: (id: number, status: 'verified' | 'rejected') => Promise<void>; API: string
@@ -283,7 +263,7 @@ const ReturnModal = ({ order, onClose, onResolve }: {
     )
 }
 
-// ── Order Detail Modal ─────────────────────────────────────────────────────
+// Order Detail Modal
 const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn, API }: {
     order: OrderDetail; onClose: () => void
     onStatusChange: (id: number, status: string) => Promise<void>
@@ -305,7 +285,6 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
     }
     const available = nextStatuses[order.order_status] ?? []
     const isOnline = order.payment_mode === 'gcash'
-    const isCash = order.payment_mode === 'cash_on_delivery' || order.payment_mode === 'cash_on_pickup' || order.payment_mode === 'cash'
     const needsGcashVerify = isOnline && order.payment_status === 'pending'
     const hasReturn = !!order.return_id
 
@@ -323,17 +302,17 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
                 </div>
                 <div className="overflow-y-auto flex-1 p-5 flex flex-col gap-4">
                     <div className="flex flex-wrap gap-2 items-center">
-                        <span className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold border ${status.bg} ${status.color} ${status.border}`}>
+                        <span className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold text-white ${status.btnBg}`}>
                             <status.icon size={11} /> {status.label}
                         </span>
                         {isOnline ? (
                             <button onClick={onOpenGCash}
-                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold border transition-all hover:opacity-80 ${payment.bg} ${payment.color} ${payment.border}`}>
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold text-white transition-all hover:opacity-80 ${payment.solidBg}`}>
                                 <FaMobileAlt size={10} /> GCash · {payment.label}
-                                {needsGcashVerify && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse ml-0.5" />}
+                                {needsGcashVerify && <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse ml-0.5" />}
                             </button>
                         ) : (
-                            <span className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold border ${payment.bg} ${payment.color} ${payment.border}`}>
+                            <span className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold text-white ${payment.solidBg}`}>
                                 <FaMoneyBillWave size={10} /> Cash · {payment.label}
                             </span>
                         )}
@@ -396,8 +375,8 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
                                         <button key={s}
                                             onClick={async () => { setBusy(true); await onStatusChange(order.order_id, s); setBusy(false) }}
                                             disabled={busy}
-                                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all disabled:opacity-60 hover:opacity-80 ${cfg.bg} ${cfg.color} ${cfg.border}`}>
-                                            {busy ? <Loader2 size={11} className="animate-spin" /> : <cfg.icon size={11} />}
+                                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-60 hover:opacity-85 ${cfg.btnBg}`}>
+                                            {busy && <Loader2 size={11} className="animate-spin" />}
                                             Mark as {cfg.label}
                                         </button>
                                     )
@@ -411,16 +390,25 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
     )
 }
 
-// ── Order Row ──────────────────────────────────────────────────────────────
-const OrderRow = ({ order, onOpen }: { order: Order; onOpen: () => void }) => {
+// Order Row
+const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0 }: {
+    order: Order; onOpen: () => void; delay?: number
+    showCheckbox?: boolean; isSelected?: boolean; onToggle?: () => void
+}) => {
     const status = STATUS_CFG[order.order_status] ?? STATUS_CFG.confirmed
     const payment = PAY_CFG[order.payment_status] ?? PAY_CFG.pending
     const isGcashPending = order.payment_mode === 'gcash' && order.payment_status === 'pending'
-    const hasReturn = !!order.return_id && order.return_status === 'pending'
     const { datePart, timePart } = formatDateParts(order.created_at)
 
     return (
-        <tr className="hover:bg-blue-50/30 transition-colors cursor-pointer border-b border-gray-100 last:border-0" onClick={onOpen}>
+        <tr className={`animate-fade-in-up transition-colors cursor-pointer border-b border-gray-100 last:border-0 ${isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/30'}`} style={{ animationDelay: `${delay}ms` }} onClick={onOpen}>
+            {/* Checkbox (select mode) */}
+            {showCheckbox && (
+                <td className="w-10 px-3 py-3.5 border-r border-gray-100 text-center" onClick={e => { e.stopPropagation(); onToggle?.() }}>
+                    <input type="checkbox" checked={!!isSelected} onChange={() => {}}
+                        className="w-4 h-4 rounded accent-[#0d2a4a] cursor-pointer" />
+                </td>
+            )}
             {/* Order ref */}
             <td className="px-4 py-3.5 border-r border-gray-100">
                 <div className="flex items-center gap-2.5">
@@ -437,7 +425,10 @@ const OrderRow = ({ order, onOpen }: { order: Order; onOpen: () => void }) => {
             {/* Customer */}
             <td className="px-4 py-3.5 border-r border-gray-100">
                 <p className="font-semibold text-gray-800 text-xs leading-tight">{order.customer_name || 'Walk-in'}</p>
-                <p className="text-[10px] text-gray-400 truncate max-w-[110px]">{order.customer_email || '—'}</p>
+                {order.customer_address
+                    ? <p className="text-[10px] text-gray-500 leading-tight mt-0.5 max-w-[140px] break-words">{order.customer_address}</p>
+                    : <p className="text-[10px] text-gray-400 truncate max-w-[110px]">{order.customer_email || '—'}</p>
+                }
             </td>
 
             {/* Date — two lines so it never squishes */}
@@ -465,11 +456,11 @@ const OrderRow = ({ order, onOpen }: { order: Order; onOpen: () => void }) => {
             {/* Payment */}
             <td className="px-4 py-3.5 border-r border-gray-100 text-center">
                 {isGcashPending ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg whitespace-nowrap">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pending
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-amber-500 px-2 py-1 rounded-lg whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse" /> Pending
                     </span>
                 ) : (
-                    <span className={`text-xs font-semibold whitespace-nowrap ${payment.color}`}>{payment.label}</span>
+                    <span className={`inline-flex text-[10px] font-bold text-white px-2 py-1 rounded-lg whitespace-nowrap ${payment.solidBg}`}>{payment.label}</span>
                 )}
                 {order.return_id && (
                     <span className={`block text-[9px] font-bold mt-0.5 whitespace-nowrap
@@ -485,8 +476,7 @@ const OrderRow = ({ order, onOpen }: { order: Order; onOpen: () => void }) => {
 
             {/* Status */}
             <td className="px-4 py-3.5 border-r border-gray-100 text-center">
-                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${status.bg} ${status.color} ${status.border}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.dot}`} />
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold text-white whitespace-nowrap ${status.btnBg}`}>
                     {status.label}
                 </span>
             </td>
@@ -504,12 +494,14 @@ const OrderRow = ({ order, onOpen }: { order: Order; onOpen: () => void }) => {
 export default function AdminCustomerOrder() {
     const { user } = useAuth()
     const API = import.meta.env.VITE_API_URL
+    const [searchParams] = useSearchParams()
 
-    const [view, setView] = useState<'active' | 'history'>('active')
+    const initStatus = searchParams.get('status') ?? 'all'
+    const [view, setView] = useState<'active' | 'history'>(['cancelled', 'returned', 'delivered'].includes(initStatus) ? 'history' : 'active')
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
-    const [filterStatus, setFilterStatus] = useState('all')
+    const [filterStatus, setFilterStatus] = useState(initStatus)
     const [filterPayment, setFilterPayment] = useState('all')
     const [stationName, setStationName] = useState('')
 
@@ -517,6 +509,12 @@ export default function AdminCustomerOrder() {
     const [gcashOrder, setGcashOrder] = useState<OrderDetail | null>(null)
     const [returnOrder, setReturnOrder] = useState<OrderDetail | null>(null)
     const [loadingDetail, setLoadingDetail] = useState(false)
+
+    const [selectMode, setSelectMode] = useState(false)
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [deletingSelected, setDeletingSelected] = useState(false)
+    const [bulkUpdating, setBulkUpdating] = useState(false)
 
     // Fetch station name for print header
     useEffect(() => {
@@ -531,7 +529,8 @@ export default function AdminCustomerOrder() {
         setLoading(true)
         try {
             const params: any = { view }
-            if (filterStatus !== 'all') params.status = filterStatus
+            // 'returned_cancelled' is a client-side pseudo-filter; don't send to backend
+            if (filterStatus !== 'all' && filterStatus !== 'returned_cancelled') params.status = filterStatus
             if (filterPayment !== 'all') params.payment_mode = filterPayment
             if (search) params.search = search
             const res = await axios.get(`${API}/orders`, { params, withCredentials: true })
@@ -581,10 +580,88 @@ export default function AdminCustomerOrder() {
         await refreshOrder(id)
     }
 
-    const statuses = ['all', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled', 'returned']
-    // Note: selecting a specific status bypasses the active/history date filter in the backend
+    const handlePrint = async () => {
+        // Open window synchronously (before any await) so the browser does not block it as a popup
+        const win = window.open('', '_blank', 'width=1050,height=700')
+        if (!win) { alert('Please allow popups for this site.'); return }
+        win.document.write('<p style="font-family:Arial;padding:20px">Loading delivery list...</p>')
+        try {
+            const res = await axios.get(`${API}/orders`, { params: { view: 'active' }, withCredentials: true })
+            const deliveryOrders = (res.data as Order[]).filter(o =>
+                o.order_status === 'out_for_delivery'
+            )
+            if (deliveryOrders.length === 0) {
+                win.close()
+                alert('No orders currently out for delivery.')
+                return
+            }
+            win.document.open()
+            win.document.write(buildDeliveryHtml(deliveryOrders, stationName))
+            win.document.close()
+            win.focus()
+            setTimeout(() => { win.print(); win.close() }, 300)
+        } catch {
+            win.close()
+            alert('Failed to load orders. Please try again.')
+        }
+    }
+
+    const handleBulkStatusChange = async (newStatus: string) => {
+        setBulkUpdating(true)
+        try {
+            await Promise.all(
+                Array.from(selectedIds).map(id =>
+                    axios.put(`${API}/orders/${id}/status`, { order_status: newStatus }, { withCredentials: true })
+                )
+            )
+            setSelectedIds(new Set())
+            setSelectMode(false)
+            await fetchOrders()
+        } catch { /* ignore */ }
+        finally { setBulkUpdating(false) }
+    }
+
+    const handleDeleteSelected = async () => {
+        setDeletingSelected(true)
+        try {
+            await Promise.all(
+                Array.from(selectedIds).map(id =>
+                    axios.delete(`${API}/orders/${id}`, { withCredentials: true })
+                )
+            )
+            setSelectedIds(new Set())
+            setShowDeleteConfirm(false)
+            await fetchOrders()
+        } catch (_e) { /* ignore */ }
+        finally { setDeletingSelected(false) }
+    }
+
+    const toggleSelect = (id: number) =>
+        setSelectedIds(prev => {
+            const s = new Set(prev)
+            if (s.has(id)) s.delete(id); else s.add(id)
+            return s
+        })
+
+    const statuses = ['all', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled', 'returned', 'returned_cancelled']
     const pendingGcash = orders.filter(o => o.payment_mode === 'gcash' && o.payment_status === 'pending').length
     const pendingReturns = orders.filter(o => o.return_status === 'pending').length
+
+    // Client-side filter for 'returned_cancelled' pseudo-status
+    const displayed = filterStatus === 'returned_cancelled'
+        ? orders.filter(o => o.order_status === 'returned' || o.order_status === 'cancelled')
+        : orders
+
+    const allSelected = displayed.length > 0 && displayed.every(o => selectedIds.has(o.order_id))
+    const someSelected = selectedIds.size > 0
+
+    // Select mode is only available when filtered to a specific status (not "all active")
+    const canSelect = view === 'history' || (view === 'active' && ['preparing', 'out_for_delivery'].includes(filterStatus))
+
+    // Auto-exit select mode if current filter no longer supports it
+    useEffect(() => {
+        if (!canSelect) { setSelectMode(false); setSelectedIds(new Set()) }
+    }, [canSelect])
 
     return (
         <div className="flex flex-col gap-4 pb-10">
@@ -603,16 +680,56 @@ export default function AdminCustomerOrder() {
                         </span>
                     )}
                     {pendingReturns > 0 && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-1.5 rounded-xl whitespace-nowrap">
+                        <button
+                            onClick={() => { setView('history'); setFilterStatus('returned_cancelled') }}
+                            className="flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-1.5 rounded-xl whitespace-nowrap hover:bg-orange-100 transition-colors"
+                        >
                             <RotateCcw size={10} /> {pendingReturns} return(s)
-                        </span>
+                        </button>
                     )}
                     <span className="text-sm font-bold text-[#0d2a4a] bg-white border border-gray-100 px-3 py-1.5 rounded-xl shadow-sm whitespace-nowrap">
-                        {orders.length} orders
+                        {displayed.length} orders
                     </span>
-                    {/* Print delivery list button */}
+                    {canSelect && (selectMode ? (
+                        <>
+                            {filterStatus === 'preparing' && someSelected && (
+                                <button
+                                    onClick={() => handleBulkStatusChange('out_for_delivery')}
+                                    disabled={bulkUpdating}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap disabled:opacity-60">
+                                    {bulkUpdating ? <Loader2 size={13} className="animate-spin" /> : <Truck size={13} />} Out for Delivery ({selectedIds.size})
+                                </button>
+                            )}
+                            {filterStatus === 'out_for_delivery' && someSelected && (
+                                <button
+                                    onClick={() => handleBulkStatusChange('delivered')}
+                                    disabled={bulkUpdating}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap disabled:opacity-60">
+                                    {bulkUpdating ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Mark Delivered ({selectedIds.size})
+                                </button>
+                            )}
+                            {view === 'history' && someSelected && (
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap">
+                                    <Trash2 size={13} /> Delete ({selectedIds.size})
+                                </button>
+                            )}
+                            <button
+                                onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold transition-all shadow-sm whitespace-nowrap">
+                                <X size={13} /> Cancel
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => setSelectMode(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold transition-all shadow-sm whitespace-nowrap">
+                            Select
+                        </button>
+                    ))}
                     <button
-                        onClick={() => printDeliveryList(orders, stationName)}
+                        onClick={handlePrint}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap">
                         <Printer size={13} /> Print List
                     </button>
@@ -625,12 +742,12 @@ export default function AdminCustomerOrder() {
             {/* View toggle + filters */}
             <div className="flex flex-wrap gap-3 items-center">
                 <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
-                    <button onClick={() => { setView('active'); setFilterStatus('all') }}
+                    <button onClick={() => { setView('active'); setFilterStatus('all'); setSelectedIds(new Set()); setSelectMode(false) }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all
                             ${view === 'active' ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                         <ShoppingBag size={12} /> Active
                     </button>
-                    <button onClick={() => { setView('history'); setFilterStatus('all') }}
+                    <button onClick={() => { setView('history'); setFilterStatus('all'); setSelectedIds(new Set()); setSelectMode(false) }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all
                             ${view === 'history' ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                         <History size={12} /> History
@@ -646,7 +763,9 @@ export default function AdminCustomerOrder() {
                     <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
                         className="appearance-none pl-4 pr-9 py-2.5 bg-[#0d2a4a] text-white text-xs font-semibold rounded-xl border-0 outline-none cursor-pointer">
                         {statuses.map(s => (
-                            <option key={s} value={s}>{s === 'all' ? 'All Status' : STATUS_CFG[s]?.label}</option>
+                            <option key={s} value={s}>
+                                {s === 'all' ? 'All Status' : s === 'returned_cancelled' ? 'Returns & Cancelled' : STATUS_CFG[s]?.label}
+                            </option>
                         ))}
                     </select>
                     <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" />
@@ -664,21 +783,13 @@ export default function AdminCustomerOrder() {
                 </div>
             </div>
 
-            {/* History info notice */}
-            {view === 'history' && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-600">
-                    <History size={14} className="shrink-0" />
-                    Showing completed orders (delivered, cancelled, returned) and all orders from previous days.
-                </div>
-            )}
-
             {/* Orders Table */}
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                 {loading ? (
                     <div className="flex items-center justify-center py-16 text-gray-400 gap-2">
                         <Loader2 size={18} className="animate-spin" /> Loading orders...
                     </div>
-                ) : orders.length === 0 ? (
+                ) : displayed.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-gray-300 gap-2">
                         <ShoppingBag size={32} />
                         <p className="text-sm font-medium">
@@ -695,6 +806,13 @@ export default function AdminCustomerOrder() {
                         <table className="w-full text-sm border-collapse">
                             <thead>
                                 <tr className="bg-gray-50 border-b-2 border-gray-200">
+                                    {selectMode && (
+                                        <th className="w-10 pl-4 pr-2 py-3 border-r border-gray-200 text-center">
+                                            <input type="checkbox" checked={allSelected}
+                                                onChange={() => setSelectedIds(allSelected ? new Set() : new Set(displayed.map(o => o.order_id)))}
+                                                className="w-4 h-4 rounded accent-[#0d2a4a] cursor-pointer" />
+                                        </th>
+                                    )}
                                     {['Order', 'Customer', 'Date', 'Type', 'Total', 'Payment', 'Status', ''].map((h, i) => (
                                         <th key={i} className={`px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-left whitespace-nowrap
                                             ${i < 7 ? 'border-r border-gray-200' : ''}`}>
@@ -704,8 +822,16 @@ export default function AdminCustomerOrder() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {orders.map(order => (
-                                    <OrderRow key={order.order_id} order={order} onOpen={() => openOrder(order)} />
+                                {displayed.map((order, i) => (
+                                    <OrderRow
+                                        key={order.order_id}
+                                        order={order}
+                                        onOpen={() => openOrder(order)}
+                                        delay={i * 40}
+                                        showCheckbox={selectMode}
+                                        isSelected={selectedIds.has(order.order_id)}
+                                        onToggle={() => toggleSelect(order.order_id)}
+                                    />
                                 ))}
                             </tbody>
                         </table>
@@ -738,6 +864,41 @@ export default function AdminCustomerOrder() {
             {returnOrder && (
                 <ReturnModal order={returnOrder} onClose={() => setReturnOrder(null)}
                     onResolve={handleReturnResolve} />
+            )}
+
+            {/* Delete Selected Confirm Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-[999] flex items-center justify-center px-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+                        onClick={() => !deletingSelected && setShowDeleteConfirm(false)} />
+                    <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 flex flex-col gap-4 animate-scale-in">
+                        <button onClick={() => setShowDeleteConfirm(false)} disabled={deletingSelected}
+                            className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors disabled:opacity-40">
+                            <X size={16} />
+                        </button>
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                                <Trash2 size={18} className="text-red-500" />
+                            </div>
+                            <div>
+                                <h2 className="text-gray-800 font-bold text-base">Delete {selectedIds.size} order{selectedIds.size !== 1 ? 's' : ''}?</h2>
+                                <p className="text-gray-500 text-xs mt-1 leading-relaxed">
+                                    This will permanently delete the selected orders. This cannot be undone.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowDeleteConfirm(false)} disabled={deletingSelected}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all disabled:opacity-50">
+                                Cancel
+                            </button>
+                            <button onClick={handleDeleteSelected} disabled={deletingSelected}
+                                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                                {deletingSelected ? <><Loader2 size={14} className="animate-spin" /> Deleting…</> : <><Trash2 size={14} /> Delete</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     )

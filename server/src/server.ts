@@ -1,3 +1,4 @@
+﻿// server - starts the HTTP server on the configured port
 import dotenv from "dotenv";
 import app from "./app.js";
 
@@ -8,5 +9,4 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
 

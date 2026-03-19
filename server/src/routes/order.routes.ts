@@ -1,3 +1,4 @@
+﻿// order.routes - /orders/* endpoints for placing and managing orders
 import express from 'express'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
@@ -5,7 +6,39 @@ import { verifyToken } from '../middleware/verifyToken.middleware.js'
 const router = express.Router()
 router.use(verifyToken)
 
-// ── GET /orders — all orders for a station ────────────────────────────────
+// Ensure required columns exist
+;(async () => {
+    const db = await connectToDatabase()
+    for (const sql of [
+        `ALTER TABLE orders ADD COLUMN customer_name VARCHAR(255) NULL`,
+        `ALTER TABLE orders ADD COLUMN customer_address TEXT NULL`,
+        `ALTER TABLE orders ADD COLUMN customer_complete_address TEXT NULL`,
+        `ALTER TABLE users ADD COLUMN complete_address TEXT NULL`,
+        `ALTER TABLE orders ADD COLUMN hidden_at DATETIME NULL`,
+    ]) { try { await db.query(sql) } catch { /* already exists */ } }
+})()
+
+// DELETE /orders/history — clear all history orders for the station (must be before /:id)
+router.delete('/history', async (req, res) => {
+    const user = (req as any).user
+    const station_id = user.station_id
+    if (!station_id) return res.status(400).json({ message: 'No station assigned' })
+    try {
+        const db = await connectToDatabase()
+        const [result]: any = await db.query(
+            `UPDATE orders SET hidden_at = NOW()
+             WHERE station_id = ? AND hidden_at IS NULL
+             AND (DATE(created_at) < CURDATE() OR (DATE(created_at) = CURDATE() AND order_status IN ('cancelled','returned','delivered')))`,
+            [station_id]
+        )
+        return res.json({ message: 'Order history cleared', deleted: result.affectedRows })
+    } catch (err) {
+        console.error('DELETE /orders/history error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// GET /orders — all orders for a station
 router.get('/', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
@@ -23,9 +56,11 @@ router.get('/', async (req, res) => {
             SELECT
                 o.order_id, o.order_reference, o.total_amount,
                 o.payment_mode, o.order_status, o.created_at,
-                u.full_name  AS customer_name,
+                COALESCE(o.customer_name, u.full_name) AS customer_name,
                 u.email AS customer_email,
                 u.phone_number AS customer_contact,
+                COALESCE(o.customer_address, u.address) AS customer_address,
+                COALESCE(o.customer_complete_address, u.complete_address) AS customer_complete_address,
                 p.payment_type, p.payment_status, p.proof_image_path,
                 r.reason     AS return_reason, r.return_status, r.return_id,
                 (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count
@@ -33,7 +68,7 @@ router.get('/', async (req, res) => {
             LEFT JOIN users u   ON u.user_id  = o.user_id
             LEFT JOIN payments p ON p.order_id = o.order_id
             LEFT JOIN order_returns r ON r.order_id = o.order_id
-            WHERE o.station_id = ?
+            WHERE o.station_id = ? AND o.hidden_at IS NULL
         `
         const params: any[] = [station_id]
 
@@ -78,7 +113,7 @@ router.get('/', async (req, res) => {
     }
 })
 
-// ── GET /orders/:id — single order with items ─────────────────────────────
+// GET /orders/:id — single order with items
 router.get('/:id', async (req, res) => {
     const { id } = req.params
     try {
@@ -111,7 +146,7 @@ router.get('/:id', async (req, res) => {
     }
 })
 
-// ── Notification messages per status ──────────────────────────────────────
+// Notification messages per status
 const STATUS_MESSAGES: Record<string, string> = {
     confirmed: 'Your order has been confirmed and is being processed.',
     preparing: 'Your order is now being prepared at the station.',
@@ -121,7 +156,7 @@ const STATUS_MESSAGES: Record<string, string> = {
     returned: 'Your return request has been processed.',
 }
 
-// ── PUT /orders/:id/status — update order status ──────────────────────────
+// PUT /orders/:id/status — update order status
 router.put('/:id/status', async (req, res) => {
     const { id } = req.params
     const { order_status } = req.body
@@ -192,7 +227,7 @@ router.put('/:id/status', async (req, res) => {
     }
 })
 
-// ── PUT /orders/:id/payment — verify or reject gcash payment ──────────────
+// PUT /orders/:id/payment — verify or reject gcash payment
 router.put('/:id/payment', async (req, res) => {
     const { id } = req.params
     const { payment_status } = req.body
@@ -225,7 +260,7 @@ router.put('/:id/payment', async (req, res) => {
     }
 })
 
-// ── POST /orders/:id/return — customer requests return ────────────────────
+// POST /orders/:id/return — customer requests return
 router.post('/:id/return', async (req, res) => {
     const { id } = req.params
     const { reason } = req.body
@@ -261,7 +296,7 @@ router.post('/:id/return', async (req, res) => {
     }
 })
 
-// ── PUT /orders/:id/return — admin approves or rejects return ─────────────
+// PUT /orders/:id/return — admin approves or rejects return
 router.put('/:id/return', async (req, res) => {
     const { id } = req.params
     const { return_status } = req.body // 'approved' | 'rejected'
@@ -322,6 +357,29 @@ router.put('/:id/return', async (req, res) => {
         return res.json({ message: 'Return updated' })
     } catch (err) {
         console.error('PUT /orders/:id/return error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// DELETE /orders/:id — delete a single completed order
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params
+    const user = (req as any).user
+    try {
+        const db = await connectToDatabase()
+        const [rows]: any = await db.query(
+            `SELECT order_id, order_status, station_id FROM orders WHERE order_id = ?`, [id]
+        )
+        if (!rows.length) return res.status(404).json({ message: 'Order not found' })
+        const order = rows[0]
+        if (!['delivered', 'cancelled', 'returned'].includes(order.order_status))
+            return res.status(400).json({ message: 'Only completed orders can be deleted' })
+        if (order.station_id !== user.station_id)
+            return res.status(403).json({ message: 'Access denied' })
+        await db.query(`UPDATE orders SET hidden_at = NOW() WHERE order_id = ?`, [id])
+        return res.json({ message: 'Order deleted' })
+    } catch (err) {
+        console.error('DELETE /orders/:id error:', err)
         return res.status(500).json({ message: 'Server error' })
     }
 })

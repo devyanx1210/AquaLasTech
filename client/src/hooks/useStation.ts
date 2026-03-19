@@ -1,3 +1,4 @@
+﻿// useStation - fetches and caches the station linked to the current admin
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 
@@ -5,10 +6,12 @@ interface Station {
     station_id: number
     station_name: string
     address: string
+    complete_address: string | null
     contact_number: string
     status: string
     latitude: number | null
     longitude: number | null
+    image_path: string | null
 }
 
 export function useStation(stationId: number | null | undefined) {

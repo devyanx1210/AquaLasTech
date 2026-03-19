@@ -1,3 +1,4 @@
+﻿// reports.routes - /reports/* endpoints for sales and inventory reports
 import express from 'express'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
@@ -5,7 +6,7 @@ import { verifyToken } from '../middleware/verifyToken.middleware.js'
 const router = express.Router()
 router.use(verifyToken)
 
-// ── GET /reports/summary?period=daily|weekly|monthly|yearly ───────────────
+// GET /reports/summary?period=daily|weekly|monthly|yearly
 router.get('/summary', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
@@ -106,12 +107,11 @@ router.get('/summary', async (req, res) => {
     }
 })
 
-// ── GET /reports/day/:date — full breakdown for one day ───────────────────
+// GET /reports/day/:date — full breakdown for one day
 router.get('/day/:date', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
     const { date } = req.params
-
 
     try {
         const db = await connectToDatabase()

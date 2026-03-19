@@ -1,4 +1,4 @@
-import { connectToDatabase } from '../config/db.js'
+﻿import { connectToDatabase } from '../config/db.js'
 
 /**
  * 🌱 AquaLasTech — Seed Sample Orders
@@ -12,11 +12,11 @@ async function seedOrders() {
     console.log('\n🌱 Seeding sample orders...\n')
     const db = await connectToDatabase()
 
-    // ── Config — change these to match your DB ────────────────────────────
+    // Config — change these to match your DB
     const STATION_ID = 1      // ← your station_id
     const USER_ID = 1      // ← admin user_id (processed_by)
 
-    // ── Fetch real products from this station ─────────────────────────────
+    // Fetch real products from this station
     const [products]: any = await db.query(
         `SELECT p.product_id, p.product_name, p.price, i.inventory_id, i.quantity
          FROM products p
@@ -33,7 +33,7 @@ async function seedOrders() {
 
     console.log(`✅ Found ${products.length} products to use`)
 
-    // ── Sample order data ─────────────────────────────────────────────────
+    // Sample order data
     const sampleOrders = [
         {
             customer: 'Jane Doe',

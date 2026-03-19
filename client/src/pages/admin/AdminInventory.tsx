@@ -1,3 +1,4 @@
+﻿// AdminInventory - track and update water container stock levels
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
@@ -93,7 +94,7 @@ export default function AdminInventory() {
     const [restockError, setRestockError] = useState('')
     const [uploadingImage, setUploadingImage] = useState(false)
 
-    // ── Upload image to server ─────────────────────────────────────────────
+    // Upload image to server
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
@@ -188,7 +189,7 @@ export default function AdminInventory() {
 
     const units = ['gallon', 'liter', 'bottle', 'jug', 'container', 'pack', 'piece']
 
-    // ─────────────────────────────────────────────────────────────────────
+    
     return (
         <div className="flex flex-col gap-4 pb-10">
 
@@ -197,16 +198,6 @@ export default function AdminInventory() {
                 <h1 className="text-xl font-bold text-gray-800">Products</h1>
                 <p className="text-xs text-gray-400 mt-0.5">Manage your water refilling products and stock</p>
             </div>
-
-            {/* Low stock warning banner */}
-            {products.filter(p => Number(p.quantity) <= Number(p.min_stock_level)).length > 0 && (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
-                    <AlertTriangle size={16} className="text-amber-500 shrink-0" />
-                    <p className="text-xs text-amber-700 font-medium">
-                        {products.filter(p => Number(p.quantity) <= Number(p.min_stock_level)).length} product(s) are low on stock or out of stock
-                    </p>
-                </div>
-            )}
 
             {/* Search */}
             <div className="relative max-w-xs">
@@ -221,7 +212,7 @@ export default function AdminInventory() {
 
             {/* Main layout: card grid LEFT + stock panel RIGHT */}
             <div className="flex gap-4 items-start flex-col lg:flex-row">
-                {/* ── LEFT: Product Cards Grid ─────────────────────────── */}
+                {/* LEFT: Product Cards Grid */}
                 <div className="flex-1 min-w-0">
                     {loading ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -231,12 +222,13 @@ export default function AdminInventory() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {filtered.map(p => {
+                            {filtered.map((p, i) => {
                                 const status = stockStatus(p.quantity, p.min_stock_level)
                                 return (
                                     <div
                                         key={p.product_id}
-                                        className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all group relative flex flex-col overflow-hidden"
+                                        className="animate-fade-in-up bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all group relative flex flex-col overflow-hidden"
+                                        style={{ animationDelay: `${i * 50}ms` }}
                                     >
                                         {/* Edit button — top right, always visible on touch, hover on desktop */}
                                         <button
@@ -302,7 +294,7 @@ export default function AdminInventory() {
                     )}
                 </div>
 
-                {/* ── RIGHT: Stock Panel ───────────────────────────────── */}
+                {/* RIGHT: Stock Panel */}
                 <div className="w-full lg:w-80 shrink-0">
                     <div className="bg-[#b8d8ec] rounded-2xl overflow-hidden shadow-sm">
                         {/* Header */}
@@ -369,9 +361,9 @@ export default function AdminInventory() {
                 </div>
             </div>
 
-            {/* ══ ADD / EDIT MODAL ══════════════════════════════════════════ */}
+            {/* ADD / EDIT MODAL */}
             {(modal === 'add' || modal === 'edit') && (
-                <Modal title={modal === 'add' ? 'Add New Product' : `Edit — ${selected?.product_name}`} onClose={closeModal}>
+                <Modal title={modal === 'add' ? 'Add New Product' : `Edit ${selected?.product_name}`} onClose={closeModal}>
                     <div className="flex flex-col gap-4">
                         <FL label="Product Name" error={formErrors.product_name}>
                             <input placeholder="e.g. 5-Gallon Slim Jug" value={form.product_name}
@@ -465,9 +457,9 @@ export default function AdminInventory() {
                 </Modal>
             )}
 
-            {/* ══ RESTOCK MODAL ════════════════════════════════════════════ */}
+            {/* RESTOCK MODAL */}
             {modal === 'restock' && selected && (
-                <Modal title={`Restock — ${selected.product_name}`} onClose={closeModal}>
+                <Modal title={`Restock ${selected.product_name}`} onClose={closeModal}>
                     <div className="flex flex-col gap-4">
                         {/* Product summary */}
                         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#e8f4fd] border border-[#b8d8ec]">
@@ -510,7 +502,7 @@ export default function AdminInventory() {
                             </div>
                         )}
 
-                        <FL label="Notes" hint="Optional — reason or supplier">
+                        <FL label="Notes" hint="Optional: reason or supplier">
                             <input placeholder="e.g. Weekly delivery from supplier"
                                 value={restockNotes}
                                 onChange={e => setRestockNotes(e.target.value)}

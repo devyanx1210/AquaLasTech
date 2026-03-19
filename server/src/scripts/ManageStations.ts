@@ -1,3 +1,4 @@
+﻿// ManageStations - interactive CLI to manage water station records
 import { connectToDatabase } from '../config/db.js'
 import readline from 'readline'
 
@@ -11,7 +12,7 @@ const ask = (question: string): Promise<string> =>
 
 const divider = () => console.log('─'.repeat(50))
 
-// ── List all stations ──────────────────────────────────────────────────────
+// List all stations
 async function listStations(pool: any) {
     const [rows]: any = await pool.query(
         `SELECT s.station_id, s.station_name, s.address, s.contact_number,
@@ -47,7 +48,7 @@ async function listStations(pool: any) {
     return rows
 }
 
-// ── Create station ─────────────────────────────────────────────────────────
+// Create station
 async function createStation(pool: any) {
     console.log('\n➕ Create New Station\n')
     divider()
@@ -105,7 +106,7 @@ async function createStation(pool: any) {
     }
 }
 
-// ── Edit station ───────────────────────────────────────────────────────────
+// Edit station
 async function editStation(pool: any) {
     console.log('\n✏️  Edit Station\n')
     const stations = await listStations(pool)
@@ -145,7 +146,7 @@ async function editStation(pool: any) {
     console.log(`\n✅ Station #${station_id} updated.`)
 }
 
-// ── Toggle station status ──────────────────────────────────────────────────
+// Toggle station status
 async function toggleStatus(pool: any) {
     console.log('\n🔄 Toggle Station Status\n')
     const stations = await listStations(pool)
@@ -169,7 +170,7 @@ async function toggleStatus(pool: any) {
     console.log(`✅ Station "${station.station_name}" is now "${newStatus}"`)
 }
 
-// ── Reassign admin ─────────────────────────────────────────────────────────
+// Reassign admin
 async function reassignAdmin(pool: any) {
     console.log('\n👤 Reassign Admin to Station\n')
     const stations = await listStations(pool)
@@ -216,7 +217,7 @@ async function reassignAdmin(pool: any) {
     console.log(`✅ ${user.full_name} assigned to Station #${station_id} — ${station.station_name}`)
 }
 
-// ── Delete station ─────────────────────────────────────────────────────────
+// Delete station
 async function deleteStation(pool: any) {
     console.log('\n🗑️  Delete Station\n')
     const stations = await listStations(pool)
@@ -259,7 +260,7 @@ async function deleteStation(pool: any) {
     console.log(`\n✅ Station "${station.station_name}" and all its data deleted.`)
 }
 
-// ── Main menu ──────────────────────────────────────────────────────────────
+// Main menu
 async function main() {
     console.log('\n🏪 AquaLasTech — Station Manager\n')
     divider()

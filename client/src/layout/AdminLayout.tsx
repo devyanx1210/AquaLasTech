@@ -1,3 +1,4 @@
+﻿// AdminLayout - sidebar and header shell for all admin pages
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -11,14 +12,14 @@ import {
     Menu,
     X,
 } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import logo from "../assets/aqualastech-logo-noBG.png"
 import { useStation } from '../hooks/useStation'
 
 const API = import.meta.env.VITE_API_URL
 
-// ── Base nav items (visible to all admins) ─────────────────────────────────
+// Base nav items (visible to all admins)
 const baseNavItems = [
     { label: 'Home', to: '/admin/dashboard', icon: Home },
     { label: 'Inventory', to: '/admin/inventory', icon: Package },
@@ -26,7 +27,7 @@ const baseNavItems = [
     { label: 'Point of Sale', to: '/admin/pos', icon: CircleDollarSign },
 ]
 
-// ── Settings only for super_admin ──────────────────────────────────────────
+// Settings only for super_admin
 const settingsNavItem = { label: 'Settings', to: '/admin/settings', icon: Settings }
 
 function useWindowSize() {
@@ -64,7 +65,7 @@ export default function AdminLayout() {
     const sidebarIconOnly = isTablet || (isDesktop && collapsed)
     const { station, loading: stationLoading } = useStation(user?.station_id)
 
-    // ── Build nav items based on role ──────────────────────────────────────
+    // Build nav items based on role
     const isSuperAdmin = user?.role === 'super_admin'
     const navItems = isSuperAdmin
         ? [...baseNavItems, settingsNavItem]
@@ -88,27 +89,25 @@ export default function AdminLayout() {
         ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
         : 'AD'
 
-    // ── LOGOUT MODAL ───────────────────────────────────────────────────────
+
+    // LOGOUT MODAL
     const LogoutModal = () => (
         <div className="fixed inset-0 z-[999] flex items-center justify-center px-4">
             <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
                 onClick={() => !loggingOut && setShowLogoutModal(false)}
             />
-            <div className="relative z-10 w-full max-w-sm bg-[#0d2a4a] border border-white/10 rounded-2xl shadow-2xl p-6 flex flex-col items-center gap-4">
+            <div className="relative z-10 w-full max-w-sm bg-white border border-gray-100 rounded-xl shadow-2xl p-6 flex flex-col gap-4 animate-scale-in">
                 <button
                     onClick={() => setShowLogoutModal(false)}
                     disabled={loggingOut}
-                    className="absolute top-3 right-3 p-1.5 rounded-lg text-blue-300 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40"
+                    className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors disabled:opacity-40"
                 >
                     <X size={16} />
                 </button>
-                <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-400/20 flex items-center justify-center mt-1">
-                    <LogOut size={24} className="text-red-400" />
-                </div>
-                <div className="text-center">
-                    <h2 className="text-white font-bold text-lg">Log out?</h2>
-                    <p className="text-blue-200 text-sm mt-1 leading-snug">
+                <div>
+                    <h2 className="text-gray-800 font-bold text-xl">Log out?</h2>
+                    <p className="text-gray-500 text-sm mt-1 leading-snug">
                         Are you sure you want to log out of your session?
                     </p>
                 </div>
@@ -116,14 +115,14 @@ export default function AdminLayout() {
                     <button
                         onClick={() => setShowLogoutModal(false)}
                         disabled={loggingOut}
-                        className="flex-1 py-2.5 rounded-xl border border-white/15 text-blue-200 text-sm font-medium hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50"
+                        className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50"
                     >
                         No, Cancel
                     </button>
                     <button
                         onClick={handleLogout}
                         disabled={loggingOut}
-                        className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 active:scale-95 text-white text-sm font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                        className="flex-1 py-2.5 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] active:scale-95 text-white text-sm font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                     >
                         {loggingOut ? (
                             <>
@@ -140,7 +139,7 @@ export default function AdminLayout() {
         </div>
     )
 
-    // ── Nav links ──────────────────────────────────────────────────────────
+    // Nav links
     const NavLinks = ({ iconOnly = false, onClick }: { iconOnly?: boolean; onClick?: () => void }) => (
         <>
             {navItems.map(({ label, to, icon: Icon }) => (
@@ -166,7 +165,7 @@ export default function AdminLayout() {
         </>
     )
 
-    // ── Topbar ─────────────────────────────────────────────────────────────
+    // Topbar
     const Topbar = () => (
         <header className="top-bar min-h-[52px] bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
             <div className="flex items-center gap-3 min-w-0">
@@ -198,17 +197,20 @@ export default function AdminLayout() {
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold text-white select-none">
+                <button
+                    onClick={() => navigate('/admin/settings')}
+                    title="Go to Settings"
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold text-white select-none hover:opacity-80 active:scale-95 transition-all"
+                >
                     {initials}
-                </div>
+                </button>
             </div>
         </header>
     )
 
-    // ══════════════════════════════════════════════════════════════════════
+    
     // MOBILE LAYOUT
-    // ══════════════════════════════════════════════════════════════════════
+    
     if (isMobile) {
         return (
             <div className="mobile-layout flex flex-col h-[100dvh] bg-[#f0f4f8] overflow-hidden">
@@ -228,7 +230,7 @@ export default function AdminLayout() {
                             <img src={station?.image_path ? (station.image_path.startsWith('http') ? station.image_path : `${API}${station.image_path}`) : logo} alt="AquLasTech" className="w-8 h-8 rounded-full object-cover shrink-0 drop-shadow-lg overflow-hidden"
                             />
                             <span className="font-bold text-[14px] tracking-wide">
-                                AquLas<span className="text-[#38bdf8]">Tech</span>
+                                AquaLas<span className="text-[#38bdf8]">Tech</span>
                             </span>
                         </div>
                         <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
@@ -269,7 +271,7 @@ export default function AdminLayout() {
                     <div className="logout px-2 pb-6 pt-3 flex flex-col gap-2 border-t border-white/10">
                         <button
                             onClick={() => setShowLogoutModal(true)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-all w-full"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-blue-200 hover:bg-white/10 hover:text-white transition-all w-full"
                         >
                             <LogOut size={18} className="shrink-0" />
                             <span>Logout</span>
@@ -321,9 +323,9 @@ export default function AdminLayout() {
         )
     }
 
-    // ══════════════════════════════════════════════════════════════════════
+    
     // TABLET + DESKTOP LAYOUT
-    // ══════════════════════════════════════════════════════════════════════
+    
     return (
         <div className="flex h-[100dvh] bg-[#f0f4f8] overflow-hidden">
             <aside className={`
@@ -336,7 +338,7 @@ export default function AdminLayout() {
                         <img src={station?.image_path ? (station.image_path.startsWith('http') ? station.image_path : `${API}${station.image_path}`) : logo} alt="AquLasTech" className="w-8 h-8 object-contain shrink-0 drop-shadow-lg" />
                         {!sidebarIconOnly && (
                             <span className="font-bold text-[14px] tracking-wide whitespace-nowrap">
-                                AquLas<span className="text-[#38bdf8]">Tech</span>
+                                AquaLas<span className="text-[#38bdf8]">Tech</span>
                             </span>
                         )}
                     </div>
@@ -369,51 +371,29 @@ export default function AdminLayout() {
 
                     <nav className={`flex flex-col gap-1 px-2 mt-1 ${sidebarIconOnly ? 'items-center' : ''}`}>
                         <NavLinks iconOnly={sidebarIconOnly} />
+                        <button
+                            onClick={() => setShowLogoutModal(true)}
+                            title={sidebarIconOnly ? 'Logout' : undefined}
+                            className={`flex items-center gap-3 rounded-xl text-sm font-medium w-full text-blue-200 hover:bg-white/10 hover:text-white transition-all duration-150
+                                ${sidebarIconOnly ? 'justify-center py-3 px-0' : 'px-3 py-2.5'}`}
+                        >
+                            <LogOut size={18} className="shrink-0" />
+                            {!sidebarIconOnly && <span>Logout</span>}
+                        </button>
                     </nav>
                 </div>
 
-                <div className={`px-2 pb-4 flex flex-col gap-1 ${sidebarIconOnly ? 'items-center' : ''}`}>
-                    <button
-                        onClick={() => setShowLogoutModal(true)}
-                        title={sidebarIconOnly ? 'Logout' : undefined}
-                        className={`
-                            flex items-center gap-3 rounded-xl text-sm font-medium w-full
-                            text-red-300 hover:bg-red-500/10 hover:text-red-200
-                            transition-all duration-150
-                            ${sidebarIconOnly ? 'justify-center py-3 px-0' : 'px-3 py-2.5'}
-                        `}
-                    >
-                        <LogOut size={16} className="shrink-0" />
-                        {!sidebarIconOnly && <span>Logout</span>}
-                    </button>
-
-                    {!sidebarIconOnly && (
-                        <div className="mt-1 flex items-center gap-2 px-2 py-2 rounded-xl bg-white/5 border border-white/10">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-[10px] font-bold shrink-0">
-                                {initials}
-                            </div>
-                            <div className="overflow-hidden">
-                                <p className="text-xs font-semibold text-white truncate">{user?.full_name ?? 'Admin'}</p>
-                                <p className="text-[10px] text-blue-300 truncate capitalize">
-                                    {user?.role === 'super_admin' ? 'Super Admin' : user?.role ?? 'admin'}
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {isDesktop && (
+                {isDesktop && (
+                    <div className="px-2 pb-4">
                         <button
                             onClick={() => setCollapsed(c => !c)}
-                            className="mt-1 flex items-center justify-center w-full py-1.5 rounded-lg text-blue-400 hover:text-white hover:bg-white/10 transition-all text-xs gap-1"
+                            className="flex items-center justify-center w-full py-1.5 rounded-lg text-blue-400 hover:text-white hover:bg-white/10 transition-all text-xs gap-1"
                         >
-                            <ChevronRight
-                                size={13}
-                                className={`transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`}
-                            />
+                            <ChevronRight size={13} className={`transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`} />
                             {!collapsed && <span>Collapse</span>}
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
             </aside>
 
             <div className="main-content flex flex-col flex-1 overflow-hidden min-w-0">

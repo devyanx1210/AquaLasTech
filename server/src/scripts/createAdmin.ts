@@ -1,3 +1,4 @@
+﻿// createAdmin - CLI script to create a new admin user
 import bcrypt from "bcrypt";
 import { connectToDatabase } from "../config/db.js";
 

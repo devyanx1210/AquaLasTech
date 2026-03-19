@@ -1,3 +1,4 @@
+﻿// auth.routes - /auth/* endpoints for login, signup, and logout
 import express from "express"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
@@ -8,7 +9,7 @@ import { verifyToken } from '../middleware/verifyToken.middleware.js'
 dotenv.config()
 const router = express.Router()
 
-// ── POST /auth/signup ──────────────────────────────────────────────────────
+// POST /auth/signup
 router.post("/signup", async (req, res) => {
     try {
         const { name, email, password } = req.body
@@ -34,7 +35,7 @@ router.post("/signup", async (req, res) => {
     }
 })
 
-// ── POST /auth/login ───────────────────────────────────────────────────────
+// POST /auth/login
 router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body
@@ -86,7 +87,7 @@ router.post("/login", async (req, res) => {
     }
 })
 
-// ── GET /auth/me ───────────────────────────────────────────────────────────
+// GET /auth/me
 router.get("/me", async (req, res) => {
     const token = (req as any).cookies?.token
     if (!token)
@@ -98,7 +99,7 @@ router.get("/me", async (req, res) => {
 
         const [rows]: any = await db.query(
             `SELECT user_id, full_name, email, role, station_id,
-                    address, latitude, longitude
+                    address, latitude, longitude, complete_address
              FROM users WHERE user_id = ?`,
             [decoded.id]
         )
@@ -116,6 +117,7 @@ router.get("/me", async (req, res) => {
                 address: u.address ?? null,
                 latitude: u.latitude != null ? parseFloat(u.latitude) : null,
                 longitude: u.longitude != null ? parseFloat(u.longitude) : null,
+                complete_address: u.complete_address ?? null,
             },
         })
     } catch {
@@ -123,7 +125,7 @@ router.get("/me", async (req, res) => {
     }
 })
 
-// ── POST /auth/logout ──────────────────────────────────────────────────────
+// POST /auth/logout
 router.post("/logout", (_req, res) => {
     res.clearCookie("token", {
         httpOnly: true,

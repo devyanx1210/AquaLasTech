@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 type Props = {
-    role: "admin" | "customer";
+    role: "admin" | "customer" | "sys_admin";
     children: React.ReactNode;
 };
 
@@ -11,6 +11,7 @@ type Props = {
 const ADMIN_ROLES = ["admin", "super_admin"]
 
 function getRedirect(userRole: string): string {
+    if (userRole === "sys_admin") return "/sysadmin"
     if (ADMIN_ROLES.includes(userRole)) return "/admin/dashboard"
     return "/customer/dashboard"
 }

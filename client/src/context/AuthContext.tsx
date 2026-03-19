@@ -6,12 +6,13 @@ type User = {
     user_id: number;
     full_name: string;
     email: string;
-    role: "super_admin" | "admin" | "customer";
+    role: "super_admin" | "admin" | "customer" | "sys_admin";
     station_id: number | null;
     address: string | null;
     latitude: number | null;
     longitude: number | null;
     complete_address: string | null;
+    profile_picture: string | null;
 } | null;
 
 type AuthContextType = {

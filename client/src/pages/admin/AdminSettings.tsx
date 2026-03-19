@@ -7,10 +7,19 @@ import {
     MapPin, Phone, Building2, Save, UserPlus,
     Eye, EyeOff, CheckCircle2, AlertCircle,
     Loader2, Navigation, Lock, Mail, User,
-    Upload, X, QrCode, ImageIcon,
+    Upload, X, QrCode, ImageIcon, Trash2, Users,
 } from 'lucide-react'
+import ProfileAvatarUpload from '../../components/ProfileAvatarUpload'
 
 // Types
+interface AdminUser {
+    user_id: number
+    full_name: string
+    email: string
+    created_at: string
+    profile_picture: string | null
+}
+
 interface StationForm {
     station_name: string
     address: string
@@ -106,7 +115,7 @@ const Section = ({ title, subtitle, icon, children, delay = 0 }: { title: string
 )
 
 export default function AdminSettings() {
-    const { user } = useAuth()
+    const { user, setUser } = useAuth()
     const { station, loading: stationLoading, refetch: refetchStation } = useStation(user?.station_id)
 
     const [stationForm, setStationForm] = useState<StationForm>({
@@ -121,6 +130,15 @@ export default function AdminSettings() {
     const [savingAdmin, setSavingAdmin] = useState(false)
     const [showPw, setShowPw] = useState(false)
     const [showCpw, setShowCpw] = useState(false)
+
+    // Admin list
+    const [admins, setAdmins] = useState<AdminUser[]>([])
+    const [loadingAdmins, setLoadingAdmins] = useState(true)
+    const [adminTab, setAdminTab] = useState<'create' | 'list'>('create')
+    const [deleteAdminTarget, setDeleteAdminTarget] = useState<AdminUser | null>(null)
+    const [deleteAdminPassword, setDeleteAdminPassword] = useState('')
+    const [deleteAdminError, setDeleteAdminError] = useState('')
+    const [deletingAdmin, setDeletingAdmin] = useState(false)
 
     const mapRef = useRef<HTMLDivElement>(null) // kept for GPS access only
     const mapInstanceRef = useRef<any>(null)
@@ -171,6 +189,74 @@ export default function AdminSettings() {
 
     const [toast, setToast] = useState<ToastData | null>(null)
     const showToast = useCallback((message: string, type: ToastType) => setToast({ message, type }), [])
+
+    const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+    const handleAvatarUpload = async (file: File) => {
+        setUploadingAvatar(true)
+        const API = import.meta.env.VITE_API_URL
+        try {
+            const fd = new FormData()
+            fd.append('avatar', file)
+            const response = await fetch(`${API}/customer/profile-picture`, {
+                method: 'POST',
+                body: fd,
+                credentials: 'include',
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.message ?? 'Upload failed')
+            if (user) setUser({ ...user, profile_picture: data.profile_picture })
+            showToast('Profile photo updated!', 'success')
+        } catch (err) {
+            console.error('[AvatarUpload] error:', err)
+            showToast(err instanceof Error ? err.message : 'Failed to upload photo', 'error')
+        } finally { setUploadingAvatar(false) }
+    }
+
+    const handleAvatarRemove = async () => {
+        const API = import.meta.env.VITE_API_URL
+        try {
+            const response = await fetch(`${API}/customer/profile-picture`, {
+                method: 'DELETE',
+                credentials: 'include',
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.message ?? 'Remove failed')
+            if (user) setUser({ ...user, profile_picture: null })
+            showToast('Profile photo removed', 'success')
+        } catch (err) {
+            console.error('[AvatarRemove] error:', err)
+            showToast(err instanceof Error ? err.message : 'Failed to remove photo', 'error')
+        }
+    }
+
+    const fetchAdmins = useCallback(async () => {
+        setLoadingAdmins(true)
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/settings/admins`, { withCredentials: true })
+            setAdmins(res.data)
+        } catch { /* non-critical */ } finally { setLoadingAdmins(false) }
+    }, [])
+
+    useEffect(() => { fetchAdmins() }, [fetchAdmins])
+
+    const handleDeleteAdmin = async () => {
+        if (!deleteAdminTarget) return
+        if (!deleteAdminPassword) { setDeleteAdminError('Password is required'); return }
+        setDeletingAdmin(true); setDeleteAdminError('')
+        try {
+            await axios.delete(
+                `${import.meta.env.VITE_API_URL}/settings/admins/${deleteAdminTarget.user_id}`,
+                { data: { password: deleteAdminPassword }, withCredentials: true }
+            )
+            showToast(`Admin "${deleteAdminTarget.full_name}" deleted`, 'success')
+            setDeleteAdminTarget(null); setDeleteAdminPassword('')
+            fetchAdmins()
+        } catch (err) {
+            const e = err as { response?: { data?: { message?: string } } }
+            setDeleteAdminError(e.response?.data?.message || 'Failed to delete admin')
+        } finally { setDeletingAdmin(false) }
+    }
 
     // Reverse geocode + update form
     const updateAddressFromCoords = useCallback(async (lat: number, lng: number) => {
@@ -396,6 +482,8 @@ export default function AdminSettings() {
             )
             showToast(`Admin "${adminForm.full_name}" created!`, 'success')
             setAdminForm({ full_name: '', email: '', password: '', confirm: '' })
+            fetchAdmins()
+            setAdminTab('list')
         } catch (err: any) {
             showToast(err.response?.data?.message ?? 'Failed to create admin', 'error')
         } finally {
@@ -415,6 +503,24 @@ export default function AdminSettings() {
 
     return (
         <div className="max-w-2xl mx-auto flex flex-col gap-5 pb-10">
+
+            {/* Profile avatar */}
+            <div className="animate-fade-in-up flex items-center gap-4 px-5 py-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <ProfileAvatarUpload
+                    name={user?.full_name ?? ''}
+                    imageUrl={user?.profile_picture}
+                    uploading={uploadingAvatar}
+                    onUpload={handleAvatarUpload}
+                    onRemove={handleAvatarRemove}
+                />
+                <div>
+                    <p className="font-bold text-gray-800">{user?.full_name}</p>
+                    <p className="text-xs text-gray-400">{user?.email}</p>
+                    <span className="text-[10px] font-semibold text-[#38bdf8] uppercase tracking-wider">
+                        {user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                    </span>
+                </div>
+            </div>
 
             <div>
                 <h1 className="text-xl font-bold text-gray-800">Settings</h1>
@@ -636,44 +742,155 @@ export default function AdminSettings() {
                 </div>
             </Section>
 
-            {/* Create Admin */}
-            <Section title="Create Admin Account" subtitle={`New admin will be assigned to ${station?.station_name ?? 'this station'}`} icon={<UserPlus size={16} />} delay={210}>
-                <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500">
-                        <Building2 size={13} className="text-[#38bdf8] shrink-0" />
-                        <span>Will be assigned to <span className="text-gray-800 font-semibold">{station?.station_name ?? `Station #${user?.station_id}`}</span></span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field label="Full Name" icon={<User size={14} />} placeholder="e.g. Juan dela Cruz" value={adminForm.full_name} onChange={e => setAdminForm(f => ({ ...f, full_name: e.target.value }))} error={adminErrors.full_name} className="sm:col-span-2" />
-                        <Field label="Email Address" icon={<Mail size={14} />} type="email" placeholder="admin@example.com" value={adminForm.email} onChange={e => setAdminForm(f => ({ ...f, email: e.target.value }))} error={adminErrors.email} className="sm:col-span-2" />
-
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Lock size={14} /></span>
-                                <input type={showPw ? 'text' : 'password'} placeholder="Min. 6 characters" value={adminForm.password} onChange={e => setAdminForm(f => ({ ...f, password: e.target.value }))} className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-10 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${adminErrors.password ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`} />
-                                <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showPw ? <EyeOff size={14} /> : <Eye size={14} />}</button>
-                            </div>
-                            {adminErrors.password && <p className="text-[10px] text-red-500 font-medium">{adminErrors.password}</p>}
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Confirm Password</label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Lock size={14} /></span>
-                                <input type={showCpw ? 'text' : 'password'} placeholder="Re-enter password" value={adminForm.confirm} onChange={e => setAdminForm(f => ({ ...f, confirm: e.target.value }))} className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-10 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${adminErrors.confirm ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`} />
-                                <button type="button" onClick={() => setShowCpw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showCpw ? <EyeOff size={14} /> : <Eye size={14} />}</button>
-                            </div>
-                            {adminErrors.confirm && <p className="text-[10px] text-red-500 font-medium">{adminErrors.confirm}</p>}
-                        </div>
-                    </div>
-
-                    <button onClick={handleCreateAdmin} disabled={savingAdmin} className="mt-1 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 border-[#0d2a4a] hover:bg-[#0d2a4a] text-[#0d2a4a] hover:text-white font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-60">
-                        {savingAdmin ? <><Loader2 size={15} className="animate-spin" /> Creating…</> : <><UserPlus size={15} /> Create Admin</>}
+            {/* Admin Accounts — tabbed: Create / List */}
+            <Section title="Admin Accounts" subtitle="Create or manage admins for this station" icon={<Users size={16} />} delay={210}>
+                {/* Tab switcher */}
+                <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
+                    <button
+                        onClick={() => setAdminTab('create')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all
+                            ${adminTab === 'create' ? 'bg-white text-[#0d2a4a] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                    >
+                        <UserPlus size={14} /> Create
+                    </button>
+                    <button
+                        onClick={() => setAdminTab('list')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all
+                            ${adminTab === 'list' ? 'bg-white text-[#0d2a4a] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                    >
+                        <Users size={14} /> Admin List {admins.length > 0 && <span className="text-[10px] bg-[#0d2a4a] text-white rounded-full px-1.5 py-0.5">{admins.length}</span>}
                     </button>
                 </div>
+
+                {/* Create tab */}
+                {adminTab === 'create' && (
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500">
+                            <Building2 size={13} className="text-[#38bdf8] shrink-0" />
+                            <span>Will be assigned to <span className="text-gray-800 font-semibold">{station?.station_name ?? `Station #${user?.station_id}`}</span></span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="Full Name" icon={<User size={14} />} placeholder="e.g. Juan dela Cruz" value={adminForm.full_name} onChange={e => setAdminForm(f => ({ ...f, full_name: e.target.value }))} error={adminErrors.full_name} className="sm:col-span-2" />
+                            <Field label="Email Address" icon={<Mail size={14} />} type="email" placeholder="admin@example.com" value={adminForm.email} onChange={e => setAdminForm(f => ({ ...f, email: e.target.value }))} error={adminErrors.email} className="sm:col-span-2" />
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Lock size={14} /></span>
+                                    <input type={showPw ? 'text' : 'password'} placeholder="Min. 6 characters" value={adminForm.password} onChange={e => setAdminForm(f => ({ ...f, password: e.target.value }))} className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-10 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${adminErrors.password ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`} />
+                                    <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showPw ? <EyeOff size={14} /> : <Eye size={14} />}</button>
+                                </div>
+                                {adminErrors.password && <p className="text-[10px] text-red-500 font-medium">{adminErrors.password}</p>}
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Confirm Password</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Lock size={14} /></span>
+                                    <input type={showCpw ? 'text' : 'password'} placeholder="Re-enter password" value={adminForm.confirm} onChange={e => setAdminForm(f => ({ ...f, confirm: e.target.value }))} className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-10 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${adminErrors.confirm ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`} />
+                                    <button type="button" onClick={() => setShowCpw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showCpw ? <EyeOff size={14} /> : <Eye size={14} />}</button>
+                                </div>
+                                {adminErrors.confirm && <p className="text-[10px] text-red-500 font-medium">{adminErrors.confirm}</p>}
+                            </div>
+                        </div>
+
+                        <button onClick={handleCreateAdmin} disabled={savingAdmin} className="mt-1 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 border-[#0d2a4a] hover:bg-[#0d2a4a] text-[#0d2a4a] hover:text-white font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-60">
+                            {savingAdmin ? <><Loader2 size={15} className="animate-spin" /> Creating…</> : <><UserPlus size={15} /> Create Admin</>}
+                        </button>
+                    </div>
+                )}
+
+                {/* List tab */}
+                {adminTab === 'list' && (
+                    loadingAdmins ? (
+                        <div className="flex items-center justify-center py-8 gap-2 text-gray-400">
+                            <Loader2 size={15} className="animate-spin" /> Loading…
+                        </div>
+                    ) : admins.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-gray-300 gap-2">
+                            <Users size={28} />
+                            <p className="text-xs font-medium">No admins yet</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col divide-y divide-gray-100">
+                            {admins.map(a => {
+                                const API = import.meta.env.VITE_API_URL
+                                const avatarSrc = a.profile_picture
+                                    ? (a.profile_picture.startsWith('http') ? a.profile_picture : `${API}${a.profile_picture}`)
+                                    : null
+                                const initials = a.full_name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                                return (
+                                    <div key={a.user_id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                                        <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
+                                            {avatarSrc
+                                                ? <img src={avatarSrc} alt={a.full_name} className="w-full h-full object-cover" />
+                                                : <span className="text-xs font-black text-white">{initials}</span>
+                                            }
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-gray-800 truncate">{a.full_name}</p>
+                                            <p className="text-xs text-gray-400 truncate">{a.email}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => { setDeleteAdminTarget(a); setDeleteAdminPassword(''); setDeleteAdminError('') }}
+                                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 transition-all shrink-0">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )
+                )}
             </Section>
+
+            {/* Delete Admin Modal */}
+            {deleteAdminTarget && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteAdminTarget(null)} />
+                    <div className="relative z-10 w-full sm:max-w-sm mx-0 sm:mx-4 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+                        <div className="bg-red-500 px-5 py-4 flex items-center justify-between">
+                            <p className="text-white font-bold text-sm">Remove Admin</p>
+                            <button onClick={() => setDeleteAdminTarget(null)} className="text-white/70 hover:text-white">
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="px-5 py-4 flex flex-col gap-3">
+                            <div className="flex items-start gap-2.5 bg-orange-50 border border-orange-100 rounded-xl p-3">
+                                <AlertCircle size={14} className="text-orange-500 mt-0.5 shrink-0" />
+                                <p className="text-xs text-orange-700">
+                                    <span className="font-bold">{deleteAdminTarget.full_name}</span> will lose access to this station. This cannot be undone.
+                                </p>
+                            </div>
+                            <p className="text-xs text-gray-500">Enter your super admin password to confirm.</p>
+                            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-red-400 transition-colors">
+                                <span className="px-3 text-gray-300"><Lock size={13} /></span>
+                                <input
+                                    type="password" placeholder="Your password"
+                                    value={deleteAdminPassword}
+                                    onChange={e => setDeleteAdminPassword(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleDeleteAdmin()}
+                                    className="flex-1 py-2.5 pr-3 text-xs text-gray-800 bg-transparent focus:outline-none"
+                                />
+                            </div>
+                            {deleteAdminError && <p className="text-xs text-red-500 text-center">{deleteAdminError}</p>}
+                            <div className="flex gap-2 pt-1">
+                                <button onClick={() => setDeleteAdminTarget(null)}
+                                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-all">
+                                    Cancel
+                                </button>
+                                <button onClick={handleDeleteAdmin} disabled={deletingAdmin}
+                                    className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5">
+                                    {deletingAdmin
+                                        ? <><Loader2 size={12} className="animate-spin" /> Removing…</>
+                                        : <><Trash2 size={12} /> Remove Admin</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {toast && <Toast toast={toast} onDone={() => setToast(null)} />}
         </div>

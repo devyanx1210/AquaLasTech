@@ -281,6 +281,9 @@ export default function CustomerLayout() {
     const initials = user?.full_name
         ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
         : 'CU'
+    const avatarSrc = user?.profile_picture
+        ? (user.profile_picture.startsWith('http') ? user.profile_picture : `${API}${user.profile_picture}`)
+        : null
 
     const handleLogout = async () => {
         setLoggingOut(true)
@@ -341,9 +344,11 @@ export default function CustomerLayout() {
                 <button
                     onClick={() => navigate('/customer/settings')}
                     title="Go to Settings"
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold text-white select-none hover:opacity-80 active:scale-95 transition-all"
+                    className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold text-white select-none hover:opacity-80 active:scale-95 transition-all shrink-0"
                 >
-                    {initials}
+                    {avatarSrc
+                        ? <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
+                        : initials}
                 </button>
             </div>
         </header>
@@ -378,8 +383,10 @@ export default function CustomerLayout() {
                         </button>
                     </div>
                     <div className="mx-3 mt-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold shrink-0">
-                            {initials}
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold shrink-0">
+                            {avatarSrc
+                                ? <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
+                                : initials}
                         </div>
                         <div className="overflow-hidden">
                             <p className="text-xs font-semibold text-white truncate">{user?.full_name ?? 'Customer'}</p>
@@ -450,8 +457,10 @@ export default function CustomerLayout() {
                     </div>
                     {!sidebarIconOnly && (
                         <div className="mx-2 mb-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-[10px] font-bold shrink-0">
-                                {initials}
+                            <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                {avatarSrc
+                                    ? <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
+                                    : initials}
                             </div>
                             <div className="overflow-hidden">
                                 <p className="text-xs font-semibold text-white truncate">{user?.full_name ?? 'Customer'}</p>

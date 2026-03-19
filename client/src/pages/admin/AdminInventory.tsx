@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
 import {
     Plus, Search, Edit2, RefreshCw,
-    AlertTriangle, CheckCircle2, AlertCircle,
+    CheckCircle2, AlertCircle,
     Loader2, X, ChevronDown, ImageIcon,
     Droplets, Package, Trash2,
 } from 'lucide-react'
@@ -92,6 +92,7 @@ export default function AdminInventory() {
     const [restockQty, setRestockQty] = useState('')
     const [restockNotes, setRestockNotes] = useState('')
     const [restockError, setRestockError] = useState('')
+    const [tab, setTab] = useState<'products' | 'stock'>('products')
     const [uploadingImage, setUploadingImage] = useState(false)
 
     // Upload image to server
@@ -199,8 +200,26 @@ export default function AdminInventory() {
                 <p className="text-xs text-gray-400 mt-0.5">Manage your water refilling products and stock</p>
             </div>
 
-            {/* Search */}
-            <div className="relative max-w-xs">
+            {/* Tabs — mobile/tablet only */}
+            <div className="flex lg:hidden bg-white border border-gray-200 rounded-2xl p-1 shadow-sm">
+                <button
+                    onClick={() => setTab('products')}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all
+                        ${tab === 'products' ? 'bg-[#0d2a4a] text-white shadow' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                    Products
+                </button>
+                <button
+                    onClick={() => setTab('stock')}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all
+                        ${tab === 'stock' ? 'bg-[#0d2a4a] text-white shadow' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                    In Stock
+                </button>
+            </div>
+
+            {/* Search — only on products tab (mobile) or always (desktop) */}
+            <div className={`relative max-w-xs ${tab === 'stock' ? 'hidden lg:block' : ''}`}>
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                     placeholder="Search"
@@ -211,68 +230,55 @@ export default function AdminInventory() {
             </div>
 
             {/* Main layout: card grid LEFT + stock panel RIGHT */}
-            <div className="flex gap-4 items-start flex-col lg:flex-row">
+            <div className="flex gap-4 flex-col lg:flex-row lg:items-start">
                 {/* LEFT: Product Cards Grid */}
-                <div className="flex-1 min-w-0">
+                <div className={`flex-1 min-w-0 w-full ${tab === 'stock' ? 'hidden lg:block' : ''}`}>
                     {loading ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                             {[...Array(4)].map((_, i) => (
-                                <div key={i} className="bg-white rounded-2xl border border-gray-100 aspect-[3/4] animate-pulse" />
+                                <div key={i} className="bg-white rounded-2xl border border-gray-100 aspect-square animate-pulse" />
                             ))}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                             {filtered.map((p, i) => {
-                                const status = stockStatus(p.quantity, p.min_stock_level)
                                 return (
                                     <div
                                         key={p.product_id}
-                                        className="animate-fade-in-up bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all group relative flex flex-col overflow-hidden"
+                                        className="animate-fade-in-up relative bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group flex flex-col"
                                         style={{ animationDelay: `${i * 50}ms` }}
                                     >
-                                        {/* Edit button — top right, always visible on touch, hover on desktop */}
+                                        {/* Stock badge — top right */}
+                                        <div className={`absolute top-2 right-2 z-20 px-1.5 py-0.5 rounded-md text-[9px] font-bold
+                                            ${p.quantity === 0 ? 'bg-red-500 text-white' : p.quantity <= p.min_stock_level ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
+                                            {p.quantity === 0 ? 'OUT' : p.quantity}
+                                        </div>
+
+                                        {/* Edit button — top left */}
                                         <button
                                             onClick={() => openEdit(p)}
-                                            className="absolute top-2 right-2 z-20 w-7 h-7 rounded-lg bg-[#0d2a4a]/80 hover:bg-[#0d2a4a] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                                            className="absolute top-2 left-2 z-20 w-7 h-7 rounded-lg bg-[#0d2a4a]/80 hover:bg-[#0d2a4a] text-white flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                                             title="Edit product"
                                         >
                                             <Edit2 size={12} />
                                         </button>
 
-                                        {/* Stock badge — top left */}
-                                        {p.quantity === 0 && (
-                                            <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                                                <X size={9} /> OUT
-                                            </div>
-                                        )}
-                                        {p.quantity > 0 && p.quantity <= p.min_stock_level && (
-                                            <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-amber-400 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
-                                                <AlertTriangle size={9} /> LOW
-                                            </div>
-                                        )}
-
-                                        {/* Image — square crop, fills most of card */}
+                                        {/* Square image */}
                                         <div className="w-full aspect-square bg-gradient-to-br from-[#e8f4fd] to-[#d0e8f7] flex items-center justify-center overflow-hidden shrink-0">
-                                            {p.image_url ? (
-                                                <img
+                                            {p.image_url
+                                                ? <img
                                                     src={p.image_url.startsWith('http') ? p.image_url : `${import.meta.env.VITE_API_URL}${p.image_url}`}
                                                     alt={p.product_name}
                                                     className="w-full h-full object-cover"
-                                                    onError={e => { e.currentTarget.style.display = 'none' }}
-                                                />
-                                            ) : (
-                                                <Droplets size={40} className="text-[#38bdf8]/40" />
-                                            )}
+                                                    onError={e => { e.currentTarget.style.display = 'none' }} />
+                                                : <Droplets size={32} className="text-[#38bdf8]/40" />}
                                         </div>
 
-                                        {/* Info strip below image */}
-                                        <div className="px-3 py-2.5 flex flex-col gap-1 bg-white">
+                                        {/* Info strip below */}
+                                        <div className="px-2.5 py-2 flex flex-col gap-0.5">
                                             <p className="text-xs font-bold text-gray-800 truncate leading-tight">{p.product_name}</p>
                                             <p className="text-xs font-black text-[#0d2a4a]">{fmt(p.price)}</p>
-                                            <p className={`text-[10px] font-semibold
-                                                ${p.quantity === 0 ? 'text-red-500' : p.quantity <= p.min_stock_level ? 'text-amber-500' : 'text-emerald-600'}`}>
-                                                {p.quantity} {p.unit}
-                                            </p>
+                                            <p className="text-[10px] text-gray-400">{p.unit}</p>
                                         </div>
                                     </div>
                                 )
@@ -281,21 +287,19 @@ export default function AdminInventory() {
                             {/* Add product card */}
                             <button
                                 onClick={openAdd}
-                                className="bg-[#e8f4fd]/60 border-2 border-dashed border-[#38bdf8]/40 rounded-2xl flex flex-col overflow-hidden hover:bg-[#e8f4fd] hover:border-[#38bdf8]/70 transition-all group"
+                                className="aspect-[3/4] bg-[#e8f4fd]/60 border-2 border-dashed border-[#38bdf8]/40 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-[#e8f4fd] hover:border-[#38bdf8]/70 transition-all group"
                             >
-                                <div className="w-full aspect-square flex flex-col items-center justify-center gap-2">
-                                    <div className="w-10 h-10 rounded-full bg-[#0d2a4a] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                        <Plus size={20} className="text-white" />
-                                    </div>
-                                    <span className="text-xs text-gray-400 font-medium">Add Product</span>
+                                <div className="w-10 h-10 rounded-full bg-[#0d2a4a] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                    <Plus size={20} className="text-white" />
                                 </div>
+                                <span className="text-xs text-gray-400 font-medium">Add Product</span>
                             </button>
                         </div>
                     )}
                 </div>
 
                 {/* RIGHT: Stock Panel */}
-                <div className="w-full lg:w-80 shrink-0">
+                <div className={`w-full lg:w-80 shrink-0 ${tab === 'products' ? 'hidden lg:block' : ''}`}>
                     <div className="bg-[#b8d8ec] rounded-2xl overflow-hidden shadow-sm">
                         {/* Header */}
                         <div className="px-5 py-4 border-b border-[#9dc8e0] flex items-center justify-between">

@@ -14,6 +14,65 @@ router.use(verifyToken)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+// Multer for profile avatars
+const avatarStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+        const dir = path.join(__dirname, '..', '..', 'uploads', 'avatars')
+        fs.mkdirSync(dir, { recursive: true })
+        cb(null, dir)
+    },
+    filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname)
+        cb(null, `avatar_${Date.now()}${ext}`)
+    },
+})
+const uploadAvatar = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 3 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) cb(null, true)
+        else cb(new Error('Images only'))
+    },
+})
+
+// Auto-add profile_picture column if not yet present
+;(async () => {
+    try {
+        const db = await connectToDatabase()
+        await db.query('ALTER TABLE users ADD COLUMN profile_picture VARCHAR(500) NULL')
+    } catch { /* already exists */ }
+})()
+
+// POST /customer/profile-picture — works for any authenticated user (customer, admin, super_admin)
+router.post('/profile-picture', uploadAvatar.single('avatar'), async (req: any, res: any) => {
+    console.log('[profile-picture] req.file:', req.file)
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
+    const userId = req.user.id
+    const profile_picture = `/uploads/avatars/${req.file.filename}`
+    try {
+        const pool = await connectToDatabase()
+        await pool.query('UPDATE users SET profile_picture = ? WHERE user_id = ?', [profile_picture, userId])
+        console.log('[profile-picture] updated user', userId, '->', profile_picture)
+        return res.json({ profile_picture })
+    } catch (err) {
+        console.error('POST /customer/profile-picture db error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// DELETE /customer/profile-picture — remove profile picture (revert to initials)
+router.delete('/profile-picture', async (req: any, res) => {
+    const userId = req.user.id
+    try {
+        const pool = await connectToDatabase()
+        await pool.query('UPDATE users SET profile_picture = NULL WHERE user_id = ?', [userId])
+        return res.json({ profile_picture: null })
+    } catch (err) {
+        console.error('DELETE /customer/profile-picture error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
 // Multer for GCash receipt uploads
 const receiptStorage = multer.diskStorage({
     destination: (_req, _file, cb) => {
@@ -481,6 +540,12 @@ router.delete('/orders/:id', async (req, res) => {
         console.error('DELETE /customer/orders/:id error:', err)
         return res.status(500).json({ message: 'Server error' })
     }
+})
+
+// Catch multer & other middleware errors — returns JSON instead of HTML
+router.use((err: any, _req: any, res: any, _next: any) => {
+    console.error('[customer router error]', err)
+    res.status(400).json({ message: err.message ?? 'Request error' })
 })
 
 export default router

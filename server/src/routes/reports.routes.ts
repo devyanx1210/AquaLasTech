@@ -50,18 +50,18 @@ router.get('/summary', async (req, res) => {
         // Main grouped summary — uses o.payment_mode directly, no broken JOIN
         const [rows]: any = await db.query(`
             SELECT
-                DATE_FORMAT(o.created_at, '${fmt}')                                    AS period_label,
-                COUNT(o.order_id)                                                       AS total_orders,
-                SUM(o.total_amount)                                                     AS total_revenue,
-                SUM(CASE WHEN o.order_status = 'delivered'        THEN 1 ELSE 0 END)   AS delivered,
-                SUM(CASE WHEN o.order_status = 'cancelled'        THEN 1 ELSE 0 END)   AS cancelled,
-                SUM(CASE WHEN o.order_status = 'returned'         THEN 1 ELSE 0 END)   AS returned,
-                SUM(CASE WHEN o.order_status = 'confirmed'        THEN 1 ELSE 0 END)   AS confirmed,
-                SUM(CASE WHEN o.order_status = 'preparing'        THEN 1 ELSE 0 END)   AS preparing,
-                SUM(CASE WHEN o.order_status = 'out_for_delivery' THEN 1 ELSE 0 END)   AS out_for_delivery,
-                SUM(CASE WHEN o.order_status = 'delivered' THEN o.total_amount ELSE 0 END) AS confirmed_revenue,
-                SUM(CASE WHEN o.payment_mode = 'cash'  THEN o.total_amount ELSE 0 END) AS cash_revenue,
-                SUM(CASE WHEN o.payment_mode = 'gcash' THEN o.total_amount ELSE 0 END) AS gcash_revenue
+                DATE_FORMAT(o.created_at, '${fmt}')                                                                        AS period_label,
+                SUM(CASE WHEN o.order_status NOT IN ('cancelled', 'returned') THEN 1 ELSE 0 END)                           AS total_orders,
+                SUM(CASE WHEN o.order_status NOT IN ('cancelled', 'returned') THEN o.total_amount ELSE 0 END)              AS total_revenue,
+                SUM(CASE WHEN o.order_status = 'delivered'        THEN 1 ELSE 0 END)                                       AS delivered,
+                SUM(CASE WHEN o.order_status = 'cancelled'        THEN 1 ELSE 0 END)                                       AS cancelled,
+                SUM(CASE WHEN o.order_status = 'returned'         THEN 1 ELSE 0 END)                                       AS returned,
+                SUM(CASE WHEN o.order_status = 'confirmed'        THEN 1 ELSE 0 END)                                       AS confirmed,
+                SUM(CASE WHEN o.order_status = 'preparing'        THEN 1 ELSE 0 END)                                       AS preparing,
+                SUM(CASE WHEN o.order_status = 'out_for_delivery' THEN 1 ELSE 0 END)                                       AS out_for_delivery,
+                SUM(CASE WHEN o.order_status = 'delivered' THEN o.total_amount ELSE 0 END)                                 AS confirmed_revenue,
+                SUM(CASE WHEN o.payment_mode = 'cash'  AND o.order_status NOT IN ('cancelled', 'returned') THEN o.total_amount ELSE 0 END) AS cash_revenue,
+                SUM(CASE WHEN o.payment_mode = 'gcash' AND o.order_status NOT IN ('cancelled', 'returned') THEN o.total_amount ELSE 0 END) AS gcash_revenue
             FROM orders o
             WHERE o.station_id = ?
             ${range}
@@ -72,12 +72,12 @@ router.get('/summary', async (req, res) => {
         // Overall totals for the period
         const [totals]: any = await db.query(`
             SELECT
-                COUNT(order_id)                                                        AS total_orders,
-                SUM(total_amount)                                                      AS total_revenue,
-                SUM(CASE WHEN order_status = 'delivered'  THEN 1    ELSE 0 END)       AS delivered,
-                SUM(CASE WHEN order_status = 'cancelled'  THEN 1    ELSE 0 END)       AS cancelled,
-                SUM(CASE WHEN order_status = 'returned'   THEN 1    ELSE 0 END)       AS returned,
-                SUM(CASE WHEN order_status = 'delivered'  THEN total_amount ELSE 0 END) AS confirmed_revenue
+                SUM(CASE WHEN order_status NOT IN ('cancelled', 'returned') THEN 1 ELSE 0 END)                        AS total_orders,
+                SUM(CASE WHEN order_status NOT IN ('cancelled', 'returned') THEN total_amount ELSE 0 END)             AS total_revenue,
+                SUM(CASE WHEN order_status = 'delivered'  THEN 1    ELSE 0 END)                                       AS delivered,
+                SUM(CASE WHEN order_status = 'cancelled'  THEN 1    ELSE 0 END)                                       AS cancelled,
+                SUM(CASE WHEN order_status = 'returned'   THEN 1    ELSE 0 END)                                       AS returned,
+                SUM(CASE WHEN order_status = 'delivered'  THEN total_amount ELSE 0 END)                               AS confirmed_revenue
             FROM orders
             WHERE station_id = ?
             ${rangeNoAlias}
@@ -129,15 +129,15 @@ router.get('/day/:date', async (req, res) => {
 
         const [summary]: any = await db.query(`
             SELECT
-                COUNT(*)                                                                   AS total_orders,
-                SUM(total_amount)                                                          AS total_revenue,
-                SUM(CASE WHEN order_status = 'delivered'        THEN 1    ELSE 0 END)     AS delivered,
-                SUM(CASE WHEN order_status = 'cancelled'        THEN 1    ELSE 0 END)     AS cancelled,
-                SUM(CASE WHEN order_status = 'returned'         THEN 1    ELSE 0 END)     AS returned,
-                SUM(CASE WHEN order_status = 'confirmed'        THEN 1    ELSE 0 END)     AS confirmed,
-                SUM(CASE WHEN order_status = 'preparing'        THEN 1    ELSE 0 END)     AS preparing,
-                SUM(CASE WHEN order_status = 'out_for_delivery' THEN 1    ELSE 0 END)     AS out_for_delivery,
-                SUM(CASE WHEN order_status = 'delivered' THEN total_amount ELSE 0 END)    AS earned_revenue
+                SUM(CASE WHEN order_status NOT IN ('cancelled', 'returned') THEN 1 ELSE 0 END)             AS total_orders,
+                SUM(CASE WHEN order_status NOT IN ('cancelled', 'returned') THEN total_amount ELSE 0 END)  AS total_revenue,
+                SUM(CASE WHEN order_status = 'delivered'        THEN 1    ELSE 0 END)                      AS delivered,
+                SUM(CASE WHEN order_status = 'cancelled'        THEN 1    ELSE 0 END)                      AS cancelled,
+                SUM(CASE WHEN order_status = 'returned'         THEN 1    ELSE 0 END)                      AS returned,
+                SUM(CASE WHEN order_status = 'confirmed'        THEN 1    ELSE 0 END)                      AS confirmed,
+                SUM(CASE WHEN order_status = 'preparing'        THEN 1    ELSE 0 END)                      AS preparing,
+                SUM(CASE WHEN order_status = 'out_for_delivery' THEN 1    ELSE 0 END)                      AS out_for_delivery,
+                SUM(CASE WHEN order_status = 'delivered' THEN total_amount ELSE 0 END)                     AS earned_revenue
             FROM orders
             WHERE station_id = ? AND DATE(created_at) = ?
         `, [station_id, date])

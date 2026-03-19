@@ -5,8 +5,7 @@ import axios from 'axios'
 import {
     TrendingUp, ShoppingBag, PackageCheck, XCircle,
     RotateCcw, Loader2, X, RefreshCw,
-    ReceiptText, Clock, Truck, CheckCircle2, ArrowUpRight,
-    ArrowDownRight, Minus as MinusIcon, Package,
+    ReceiptText, Clock, Truck, CheckCircle2, Package,
 } from 'lucide-react'
 
 // Types
@@ -371,18 +370,6 @@ export default function AdminDashboard() {
         yearly: 'Last 5 years',
     }
 
-    const getInsight = () => {
-        if (rows.length < 2) return null
-        const last = rows[rows.length - 1]
-        const prev = rows[rows.length - 2]
-        const diff = num(last.total_revenue) - num(prev.total_revenue)
-        const pct = prev.total_revenue > 0 ? Math.abs(diff / num(prev.total_revenue) * 100).toFixed(1) : null
-        const label = period === 'daily' ? 'day' : period === 'weekly' ? 'week' : period === 'monthly' ? 'month' : 'year'
-        if (diff > 0) return { text: `Revenue is up ${pct ? pct + '% ' : ''}compared to the previous ${label}.`, up: true }
-        if (diff < 0) return { text: `Revenue is down ${pct ? pct + '% ' : ''}compared to the previous ${label}.`, up: false }
-        return { text: 'Revenue is unchanged from the previous period.', up: null }
-    }
-    const insight = getInsight()
     const periods: Period[] = ['daily', 'weekly', 'monthly', 'yearly']
 
     return (
@@ -436,18 +423,6 @@ export default function AdminDashboard() {
                         ))}
                     </div>
 
-                    {/* Insight */}
-                    {insight && (
-                        <p className={`flex items-center gap-1.5 text-[11px] font-medium px-1
-                            ${insight.up === true ? 'text-emerald-500' :
-                                insight.up === false ? 'text-red-400' :
-                                    'text-gray-400'}`}>
-                            {insight.up === true ? <ArrowUpRight size={13} /> :
-                                insight.up === false ? <ArrowDownRight size={13} /> :
-                                    <MinusIcon size={13} />}
-                            {insight.text}
-                        </p>
-                    )}
 
                     {/* Chart */}
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">

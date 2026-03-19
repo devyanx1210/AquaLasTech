@@ -26,6 +26,11 @@ import SuperAdminRoute from '../components/SuperAdminRoute'
 import SignupPage from '../pages/SignupPage'
 import LoginPage from '../pages/LoginPage'
 
+// System Admin
+import SystemAdminLayout from '../layout/SystemAdminLayout'
+import SAStations from '../pages/system-admin/SAStations'
+import SALogs from '../pages/system-admin/SALogs'
+
 const router = createBrowserRouter([
     {
         path: "/",
@@ -73,6 +78,20 @@ const router = createBrowserRouter([
             { path: "settings", element: <CustomerSettings /> },
             { path: "orders", element: <CustomerOrder /> },
         ]
+    },
+    {
+        path: "/sysadmin",
+        errorElement: <div className="p-8 text-red-600 font-mono text-sm whitespace-pre-wrap">Sysadmin route error — check console (F12)</div>,
+        element: (
+            <ProtectedRoute role="sys_admin">
+                <SystemAdminLayout />
+            </ProtectedRoute>
+        ),
+        children: [
+            { index: true, element: <Navigate to="stations" replace /> },
+            { path: "stations", element: <SAStations /> },
+            { path: "logs", element: <SALogs /> },
+        ],
     },
     {
         path: "*",

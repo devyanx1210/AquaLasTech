@@ -68,6 +68,19 @@ router.post("/login", async (req, res) => {
             maxAge: 3 * 60 * 60 * 1000,
         })
 
+        // Log login event (non-critical — never fails the login)
+        try {
+            await db.query(
+                `INSERT INTO system_logs (event_type, description, user_id, ip_address) VALUES (?, ?, ?, ?)`,
+                [
+                    'login',
+                    `${user.role} "${user.full_name}" (${user.email}) logged in`,
+                    user.user_id,
+                    req.ip || null,
+                ]
+            )
+        } catch { /* ignore logging errors */ }
+
         return res.json({
             Status: "Success",
             user: {
@@ -99,7 +112,7 @@ router.get("/me", async (req, res) => {
 
         const [rows]: any = await db.query(
             `SELECT user_id, full_name, email, role, station_id,
-                    address, latitude, longitude, complete_address
+                    address, latitude, longitude, complete_address, profile_picture
              FROM users WHERE user_id = ?`,
             [decoded.id]
         )
@@ -118,6 +131,7 @@ router.get("/me", async (req, res) => {
                 latitude: u.latitude != null ? parseFloat(u.latitude) : null,
                 longitude: u.longitude != null ? parseFloat(u.longitude) : null,
                 complete_address: u.complete_address ?? null,
+                profile_picture: u.profile_picture ?? null,
             },
         })
     } catch {

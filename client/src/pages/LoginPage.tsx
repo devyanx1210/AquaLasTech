@@ -34,7 +34,7 @@ export default function LoginPage() {
                 setUser(res.data.user);
                 setForm({ email: "", password: "" });
                 const role = res.data.user.role;
-                navigate(role === "admin" || role === "super_admin" ? "/admin/dashboard" : "/customer/dashboard");
+                navigate(role === "sys_admin" ? "/sysadmin" : (role === "admin" || role === "super_admin") ? "/admin/dashboard" : "/customer/dashboard");
             }
         } catch (err) {
             setError(err.response?.data?.message || "Server error");

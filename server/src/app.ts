@@ -15,6 +15,7 @@ import ordersRoutes from "./routes/order.routes.js";
 import posRoutes from "./routes/pos.routes.js";
 import reportsRoutes from "./routes/reports.routes.js";
 import customerRoutes from "./routes/customer.routes.js";  // ← NEW
+import sysadminRoutes from "./routes/sysadmin.routes.js"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,5 +60,6 @@ app.use("/orders", ordersRoutes);
 app.use("/pos", posRoutes);
 app.use("/reports", reportsRoutes);
 app.use("/customer", customerRoutes);   // ← NEW: PUT /customer/profile & /customer/password
+app.use("/sysadmin", sysadminRoutes)
 
 export default app;

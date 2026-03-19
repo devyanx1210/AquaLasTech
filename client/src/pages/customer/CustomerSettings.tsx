@@ -7,6 +7,7 @@ import {
     Eye, EyeOff, CheckCircle2, AlertCircle,
     Loader2, Navigation,
 } from 'lucide-react'
+import ProfileAvatarUpload from '../../components/ProfileAvatarUpload'
 
 type ToastType = 'success' | 'error'
 interface ToastData { message: string; type: ToastType }
@@ -157,6 +158,44 @@ export default function CustomerSettings() {
     const [toast, setToast] = useState<ToastData | null>(null)
     const showToast = useCallback((message: string, type: ToastType) =>
         setToast({ message, type }), [])
+
+    const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+    const handleAvatarUpload = async (file: File) => {
+        setUploadingAvatar(true)
+        try {
+            const fd = new FormData()
+            fd.append('avatar', file)
+            const response = await fetch(`${API}/customer/profile-picture`, {
+                method: 'POST',
+                body: fd,
+                credentials: 'include',
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.message ?? 'Upload failed')
+            setUser(user ? { ...user, profile_picture: data.profile_picture } : null)
+            showToast('Profile photo updated!', 'success')
+        } catch (err) {
+            console.error('[AvatarUpload] error:', err)
+            showToast(err instanceof Error ? err.message : 'Failed to upload photo', 'error')
+        } finally { setUploadingAvatar(false) }
+    }
+
+    const handleAvatarRemove = async () => {
+        try {
+            const response = await fetch(`${API}/customer/profile-picture`, {
+                method: 'DELETE',
+                credentials: 'include',
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.message ?? 'Remove failed')
+            setUser(user ? { ...user, profile_picture: null } : null)
+            showToast('Profile photo removed', 'success')
+        } catch (err) {
+            console.error('[AvatarRemove] error:', err)
+            showToast(err instanceof Error ? err.message : 'Failed to remove photo', 'error')
+        }
+    }
 
     // Load fresh user on mount
     useEffect(() => {
@@ -353,9 +392,13 @@ export default function CustomerSettings() {
 
             {/* Avatar */}
             <div className="animate-fade-in-up flex items-center gap-4 px-5 py-4 bg-white rounded-2xl border border-gray-100 shadow-sm" style={{ animationDelay: '0ms' }}>
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xl font-black text-white select-none">
-                    {user?.full_name ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'CU'}
-                </div>
+                <ProfileAvatarUpload
+                    name={user?.full_name ?? ''}
+                    imageUrl={user?.profile_picture}
+                    uploading={uploadingAvatar}
+                    onUpload={handleAvatarUpload}
+                    onRemove={handleAvatarRemove}
+                />
                 <div>
                     <p className="font-bold text-gray-800">{user?.full_name ?? 'Customer'}</p>
                     <p className="text-xs text-gray-400">{user?.email}</p>

@@ -138,6 +138,57 @@ router.post('/station/:id/upload-qr', uploadQR.single('qr'), async (req, res) =>
     }
 })
 
+// GET /settings/admins — list all admins for this station
+router.get('/admins', async (req: any, res) => {
+    try {
+        const db = await connectToDatabase()
+        const [rows]: any = await db.query(
+            `SELECT user_id, full_name, email, created_at, profile_picture
+             FROM users
+             WHERE station_id = ? AND role = 'admin'
+             ORDER BY created_at DESC`,
+            [req.user.station_id]
+        )
+        return res.json(rows)
+    } catch (err) {
+        console.error('GET /settings/admins error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// DELETE /settings/admins/:id — requires super_admin password
+router.delete('/admins/:id', async (req: any, res) => {
+    const { password } = req.body
+    const targetId = parseInt(req.params.id)
+
+    if (!password) return res.status(400).json({ message: 'Password is required' })
+
+    try {
+        const db = await connectToDatabase()
+
+        // Verify super_admin password
+        const [rows]: any = await db.query(
+            `SELECT password_hash FROM users WHERE user_id = ?`, [req.user.id]
+        )
+        if (!rows.length) return res.status(401).json({ message: 'Unauthorized' })
+        const match = await bcrypt.compare(password, rows[0].password_hash)
+        if (!match) return res.status(401).json({ message: 'Incorrect password' })
+
+        // Confirm target is an admin belonging to this station
+        const [target]: any = await db.query(
+            `SELECT user_id, full_name FROM users WHERE user_id = ? AND role = 'admin' AND station_id = ?`,
+            [targetId, req.user.station_id]
+        )
+        if (!target.length) return res.status(404).json({ message: 'Admin not found' })
+
+        await db.query(`DELETE FROM users WHERE user_id = ?`, [targetId])
+        return res.json({ message: 'Admin deleted successfully' })
+    } catch (err) {
+        console.error('DELETE /settings/admins error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
 // POST /settings/create-admin
 router.post('/create-admin', async (req, res) => {
     const { full_name, email, password, station_id } = req.body

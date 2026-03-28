@@ -61,11 +61,21 @@ interface DaySummary {
     earned_revenue: number
 }
 
+interface InventoryItem {
+    inventory_id: number
+    product_id: number
+    product_name: string
+    quantity: number
+    min_stock_level: number
+    unit: string
+    is_active: number
+}
+
 // Helpers
 const fmt = (n: number) => `₱${Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
-const num = (n: any) => Number(n ?? 0)
+const num = (n: unknown) => Number(n ?? 0)
 
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any; btnBg: string }> = {
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: React.ComponentType<{ size?: number; className?: string }>; btnBg: string }> = {
     confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2, btnBg: 'bg-blue-600' },
     preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock, btnBg: 'bg-amber-500' },
     out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck, btnBg: 'bg-purple-600' },
@@ -79,7 +89,7 @@ const BarChartCustom = ({ data, onBarClick }: {
     data: { name: string; revenue: number; orders: number }[]
     onBarClick?: (name: string) => void
 }) => {
-    const [tooltip, setTooltip] = useState<{ x: number; y: number; item: any } | null>(null)
+    const [tooltip, setTooltip] = useState<{ x: number; y: number; item: { name: string; revenue: number; orders: number } } | null>(null)
     const maxRevenue = Math.max(...data.map(d => d.revenue), 1)
     const maxOrders = Math.max(...data.map(d => d.orders), 1)
 
@@ -107,9 +117,9 @@ const BarChartCustom = ({ data, onBarClick }: {
                     {/* Bar groups */}
                     <div className="absolute inset-0 flex items-end gap-px px-1">
                         {data.map((d, i) => (
-                            <div key={i} className="flex-1 flex items-end gap-px group cursor-pointer"
+                            <div key={i} className="flex-1 max-w-16 h-full flex items-end gap-px group cursor-pointer"
                                 onClick={() => onBarClick?.(d.name)}
-                                onMouseEnter={e => setTooltip({ x: (e.target as any).getBoundingClientRect().left, y: (e.target as any).getBoundingClientRect().top, item: d })}
+                                onMouseEnter={e => setTooltip({ x: (e.currentTarget as HTMLElement).getBoundingClientRect().left, y: (e.currentTarget as HTMLElement).getBoundingClientRect().top, item: d })}
                                 onMouseLeave={() => setTooltip(null)}>
                                 {/* Revenue bar */}
                                 <div className="flex-1 rounded-t-sm bg-[#0d2a4a] hover:bg-[#1a4a7a] transition-all"
@@ -127,7 +137,7 @@ const BarChartCustom = ({ data, onBarClick }: {
                 <div className="w-10 shrink-0" />
                 <div className="flex-1 flex gap-px px-1">
                     {data.map((d, i) => (
-                        <div key={i} className="flex-1 text-center text-[8px] text-gray-400 truncate">{d.name.slice(-5)}</div>
+                        <div key={i} className="flex-1 max-w-16 text-center text-[8px] text-gray-400 truncate">{d.name.slice(-5)}</div>
                     ))}
                 </div>
             </div>
@@ -232,24 +242,27 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
     const [data, setData] = useState<{ orders: DayOrder[]; summary: DaySummary } | null>(null)
 
     useEffect(() => {
-        setLoading(true)
-        axios.get(`${API}/reports/day/${date}`, { withCredentials: true })
-            .then(r => setData(r.data))
-            .catch(() => { })
-            .finally(() => setLoading(false))
-    }, [date])
+        ;(async () => {
+            setLoading(true)
+            try {
+                const r = await axios.get(`${API}/reports/day/${date}`, { withCredentials: true })
+                setData(r.data)
+            } catch { /* noop */ }
+            setLoading(false)
+        })()
+    }, [date, API])
 
     const formatTime = (d: string) => new Date(d).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })
     const formatDateFull = (d: string) => new Date(d).toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 
     const statCards = data ? [
-        { label: 'Total Orders', value: num(data.summary.total_orders), icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-100' },
-        { label: 'Delivered', value: num(data.summary.delivered), icon: PackageCheck, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        { label: 'Cancelled', value: num(data.summary.cancelled), icon: XCircle, color: 'text-red-500', bg: 'bg-red-100' },
-        { label: 'Returned', value: num(data.summary.returned), icon: RotateCcw, color: 'text-gray-500', bg: 'bg-gray-200' },
-        { label: 'Confirmed', value: num(data.summary.confirmed), icon: CheckCircle2, color: 'text-blue-500', bg: 'bg-blue-100' },
-        { label: 'Preparing', value: num(data.summary.preparing), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100' },
-        { label: 'Out for Delivery', value: num(data.summary.out_for_delivery), icon: Truck, color: 'text-purple-600', bg: 'bg-purple-100' },
+        { label: 'Total Orders', value: num(data.summary.total_orders), icon: ShoppingBag, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { label: 'Delivered', value: num(data.summary.delivered), icon: PackageCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'Cancelled', value: num(data.summary.cancelled), icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' },
+        { label: 'Returned', value: num(data.summary.returned), icon: RotateCcw, color: 'text-gray-500', bg: 'bg-gray-100' },
+        { label: 'Confirmed', value: num(data.summary.confirmed), icon: CheckCircle2, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { label: 'Preparing', value: num(data.summary.preparing), icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50' },
+        { label: 'Out for Delivery', value: num(data.summary.out_for_delivery), icon: Truck, color: 'text-purple-500', bg: 'bg-purple-50' },
     ] : []
 
     return (
@@ -275,18 +288,14 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
                                 <p className="text-white font-black text-3xl mt-1">{fmt(num(data.summary.total_revenue))}</p>
                                 <p className="text-[#38bdf8] text-xs mt-1">{fmt(num(data.summary.earned_revenue))} earned from delivered orders</p>
                             </div>
-                            <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
-                                <TrendingUp size={28} className="text-[#38bdf8]" />
-                            </div>
+                            <TrendingUp size={28} className="text-[#38bdf8]" />
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {statCards.map(({ label, value, icon: Icon, color, bg }) => (
-                                <div key={label} className={`${bg} rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-white`}>
-                                    <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center shrink-0">
-                                        <Icon size={14} className={color} />
-                                    </div>
+                                <div key={label} className={`${bg} rounded-xl px-3 py-2.5 flex items-center gap-2.5`}>
+                                    <Icon size={15} className={`${color} shrink-0`} />
                                     <div>
-                                        <p className="text-[10px] text-gray-500 leading-tight">{label}</p>
+                                        <p className="text-[10px] text-gray-400 leading-tight">{label}</p>
                                         <p className={`text-sm font-black ${color}`}>{value}</p>
                                     </div>
                                 </div>
@@ -301,6 +310,12 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
                                     <div className="divide-y divide-gray-100">
                                         {data.orders.map(o => {
                                             const cfg = STATUS_CFG[o.order_status] ?? STATUS_CFG.confirmed
+                                            const paymentLabel: Record<string, string> = {
+                                                gcash: 'GCash',
+                                                cash: 'Cash',
+                                                cash_on_delivery: 'COD',
+                                                cash_on_pickup: 'Pickup',
+                                            }
                                             return (
                                                 <div key={o.order_id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/70 transition-colors">
                                                     <div className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
@@ -308,6 +323,9 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
                                                         <p className="text-xs font-bold text-gray-800 font-mono">{o.order_reference}</p>
                                                         <p className="text-[10px] text-gray-400">{o.customer_name || 'Walk-in'}</p>
                                                     </div>
+                                                    <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
+                                                        {paymentLabel[o.payment_mode] ?? o.payment_mode}
+                                                    </span>
                                                     <div className="text-right shrink-0">
                                                         <p className="text-xs font-black text-[#0d2a4a]">{fmt(o.total_amount)}</p>
                                                         <p className="text-[10px] text-gray-400">{formatTime(o.created_at)}</p>
@@ -331,6 +349,7 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
     )
 }
 
+
 export default function AdminDashboard() {
     const API = import.meta.env.VITE_API_URL
     const navigate = useNavigate()
@@ -340,7 +359,10 @@ export default function AdminDashboard() {
     const [totals, setTotals] = useState<Totals | null>(null)
     const [topProducts, setTopProducts] = useState<TopProduct[]>([])
     const [selectedDay, setSelectedDay] = useState<string | null>(null)
-    const [chartType, setChartType] = useState<'bar' | 'line'>('bar')
+
+    const [inventory, setInventory] = useState<InventoryItem[]>([])
+    const [inventoryLoading, setInventoryLoading] = useState(true)
+    const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null)
 
     const fetchData = useCallback(async () => {
         setLoading(true)
@@ -351,17 +373,24 @@ export default function AdminDashboard() {
             setRows(res.data.rows ?? [])
             setTotals(res.data.totals ?? null)
             setTopProducts(res.data.topProducts ?? [])
-        } catch { }
+        } catch { /* noop */ }
         finally { setLoading(false) }
     }, [API, period])
 
     useEffect(() => { fetchData() }, [fetchData])
 
-    const chartData = rows.map(r => ({
-        name: r.period_label,
-        revenue: num(r.total_revenue),
-        orders: num(r.total_orders),
-    }))
+    const fetchInventory = useCallback(async () => {
+        setInventoryLoading(true)
+        try {
+            const r = await axios.get(`${API}/inventory`, { withCredentials: true })
+            setInventory(r.data ?? [])
+        } catch { /* noop */ }
+        setInventoryLoading(false)
+    }, [API])
+
+    useEffect(() => { fetchInventory() }, [fetchInventory])
+
+    const chartData = rows.map(r => ({ name: r.period_label, revenue: num(r.total_revenue), orders: num(r.total_orders) }))
 
     const periodDesc: Record<Period, string> = {
         daily: 'Last 30 days',
@@ -405,47 +434,42 @@ export default function AdminDashboard() {
                     {/* KPI Cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         {[
-                            { label: 'Total Revenue', value: fmt(num(totals?.total_revenue)), sub: `${fmt(num(totals?.confirmed_revenue))} earned`, icon: TrendingUp, color: 'text-[#38bdf8]', bg: 'bg-[#0d2a4a]', dark: true, to: '/admin/orders' },
-                            { label: 'Total Orders', value: num(totals?.total_orders), sub: `${num(totals?.delivered)} delivered`, icon: ShoppingBag, color: 'text-blue-700', bg: 'bg-blue-200', dark: false, to: '/admin/orders' },
-                            { label: 'Cancelled', value: num(totals?.cancelled), sub: 'orders cancelled', icon: XCircle, color: 'text-red-600', bg: 'bg-red-200', dark: false, to: '/admin/orders?status=cancelled' },
-                            { label: 'Returned', value: num(totals?.returned), sub: 'return requests', icon: RotateCcw, color: 'text-gray-600', bg: 'bg-gray-300', dark: false, to: '/admin/orders?status=returned' },
-                        ].map(({ label, value, sub, icon: Icon, color, bg, dark, to }, i) => (
-                            <div key={label} onClick={() => navigate(to)} className={`animate-fade-in-up cursor-pointer ${bg} rounded-2xl p-4 flex flex-col gap-2 ${dark ? 'border border-[#1a4a7a]' : ''} shadow-sm hover:opacity-90 transition-opacity`} style={{ animationDelay: `${i * 60}ms` }}>
+                            { label: 'Total Revenue', value: fmt(num(totals?.total_revenue)), sub: `${fmt(num(totals?.confirmed_revenue))} earned`, icon: TrendingUp, color: 'text-[#38bdf8]', gradient: 'bg-[#0d2a4a]', style: { backgroundImage: 'radial-gradient(ellipse at top right, #1a4a7a 0%, #0d2a4a 60%)' }, dark: true, to: '/admin/orders' },
+                            { label: 'Total Orders', value: num(totals?.total_orders), sub: `${num(totals?.delivered)} delivered`, icon: ShoppingBag, color: 'text-blue-600', gradient: 'bg-white', style: { backgroundImage: 'radial-gradient(ellipse at bottom left, #bfdbfe 0%, #ffffff 60%)' }, dark: false, to: '/admin/orders' },
+                            { label: 'Cancelled', value: num(totals?.cancelled), sub: 'orders cancelled', icon: XCircle, color: 'text-red-500', gradient: 'bg-white', style: { backgroundImage: 'radial-gradient(ellipse at bottom left, #fecaca 0%, #ffffff 60%)' }, dark: false, to: '/admin/orders?status=cancelled' },
+                            { label: 'Returned', value: num(totals?.returned), sub: 'return requests', icon: RotateCcw, color: 'text-gray-500', gradient: 'bg-white', style: { backgroundImage: 'radial-gradient(ellipse at bottom left, #d1d5db 0%, #ffffff 60%)' }, dark: false, to: '/admin/orders?status=returned' },
+                        ].map(({ label, value, sub, icon: Icon, color, gradient, style, dark, to }, i) => (
+                            <div key={label} onClick={() => navigate(to)} className={`animate-fade-in-up cursor-pointer ${gradient} rounded-2xl p-4 flex flex-col gap-2 border ${dark ? 'border-[#1a4a7a]' : 'border-gray-100'} shadow-sm hover:shadow-md transition-all`} style={{ ...style, animationDelay: `${i * 60}ms` }}>
                                 <div className="flex items-center justify-between">
-                                    <p className={`text-[10px] font-semibold uppercase tracking-wider ${dark ? 'text-white/50' : 'text-gray-500'}`}>{label}</p>
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${dark ? 'bg-white/10' : ''}`}>
-                                        <Icon size={16} className={color} />
-                                    </div>
+                                    <p className={`text-[10px] font-semibold uppercase tracking-wider ${dark ? 'text-white/50' : 'text-gray-400'}`}>{label}</p>
+                                    <Icon size={16} className={color} />
                                 </div>
                                 <p className={`text-2xl font-black ${dark ? 'text-white' : 'text-gray-800'}`}>{value}</p>
-                                <p className={`text-[10px] ${dark ? 'text-[#38bdf8]' : 'text-gray-500'}`}>{sub}</p>
+                                <p className={`text-[10px] ${dark ? 'text-[#38bdf8]' : 'text-gray-400'}`}>{sub}</p>
                             </div>
                         ))}
                     </div>
 
 
-                    {/* Chart */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <p className="text-sm font-bold text-gray-800">Revenue & Orders</p>
-                                <p className="text-[10px] text-gray-400">{period === 'daily' ? 'Click a bar to see day details' : 'Overview by period'}</p>
+                    {/* Charts — line left, bar right; stacked on mobile and laptop, side by side on xl+ */}
+                    <div className="flex flex-col xl:flex-row gap-4">
+                        {/* Revenue Line Chart */}
+                        <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                            <div className="mb-4">
+                                <p className="text-sm font-bold text-gray-800">Revenue Trend</p>
+                                <p className="text-[10px] text-gray-400">Total revenue over time</p>
                             </div>
-                            <div className="flex bg-gray-100 rounded-lg p-0.5">
-                                <button onClick={() => setChartType('bar')}
-                                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${chartType === 'bar' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-400'}`}>
-                                    Bar
-                                </button>
-                                <button onClick={() => setChartType('line')}
-                                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${chartType === 'line' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-400'}`}>
-                                    Line
-                                </button>
-                            </div>
+                            <LineChartCustom data={chartData} />
                         </div>
-                        {chartType === 'bar'
-                            ? <BarChartCustom data={chartData} onBarClick={period === 'daily' ? setSelectedDay : undefined} />
-                            : <LineChartCustom data={chartData} />
-                        }
+
+                        {/* Orders & Revenue Bar Chart */}
+                        <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                            <div className="mb-4">
+                                <p className="text-sm font-bold text-gray-800">Orders & Revenue</p>
+                                <p className="text-[10px] text-gray-400">{period === 'daily' ? 'Click a bar to see day details' : 'Comparison by period'}</p>
+                            </div>
+                            <BarChartCustom data={chartData} onBarClick={period === 'daily' ? setSelectedDay : undefined} />
+                        </div>
                     </div>
 
                     {/* Bottom row */}
@@ -530,53 +554,163 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    {/* Daily table */}
-                    {period === 'daily' && rows.length > 0 && (
-                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                            <div className="px-5 py-4 border-b border-gray-100">
-                                <p className="text-sm font-bold text-gray-800">Daily Breakdown</p>
-                                <p className="text-[10px] text-gray-400">Click a row to see full day details</p>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-50 border-b-2 border-gray-200">
-                                            {['Date', 'Orders', 'Revenue', 'Delivered', 'Cancelled', 'Returned', ''].map((h, i) => (
-                                                <th key={i} className={`px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-left whitespace-nowrap ${i < 6 ? 'border-r border-gray-100' : ''}`}>
-                                                    {h}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {[...rows].reverse().map(r => (
-                                            <tr key={r.period_label}
-                                                className="border-b border-gray-100 hover:bg-blue-50/30 cursor-pointer transition-colors"
-                                                onClick={() => setSelectedDay(r.period_label)}>
-                                                <td className="px-4 py-3 border-r border-gray-100 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">{r.period_label}</td>
-                                                <td className="px-4 py-3 border-r border-gray-100 text-xs font-bold text-gray-800">{num(r.total_orders)}</td>
-                                                <td className="px-4 py-3 border-r border-gray-100 text-xs font-black text-[#0d2a4a] whitespace-nowrap">{fmt(num(r.total_revenue))}</td>
-                                                <td className="px-4 py-3 border-r border-gray-100 text-xs font-semibold text-emerald-600">{num(r.delivered)}</td>
-                                                <td className="px-4 py-3 border-r border-gray-100 text-xs font-semibold text-red-500">{num(r.cancelled)}</td>
-                                                <td className="px-4 py-3 border-r border-gray-100 text-xs font-semibold text-gray-500">{num(r.returned)}</td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <div className="inline-flex p-1.5 rounded-lg bg-[#e8f4fd] hover:bg-[#d0e8f7] text-[#0d2a4a] transition-all">
-                                                        <ReceiptText size={13} />
-                                                    </div>
-                                                </td>
+                    {/* Daily Breakdown + Current Inventory side by side */}
+                    <div className="flex flex-col lg:flex-row gap-4 lg:items-stretch">
+                        {/* Daily table */}
+                        {period === 'daily' && rows.length > 0 && (
+                            <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div className="px-5 py-4 border-b border-gray-100">
+                                    <p className="text-sm font-bold text-gray-800">Daily Breakdown</p>
+                                    <p className="text-[10px] text-gray-400">Click a row to see full day details</p>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-50 border-b-2 border-gray-200">
+                                                {['Date', 'Orders', 'Revenue', 'Delivered', 'Cancelled', 'Returned', ''].map((h, i) => (
+                                                    <th key={i} className={`px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-left whitespace-nowrap ${i < 6 ? 'border-r border-gray-100' : ''}`}>
+                                                        {h}
+                                                    </th>
+                                                ))}
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {[...rows].reverse().map(r => (
+                                                <tr key={r.period_label}
+                                                    className="border-b border-gray-100 hover:bg-blue-50/30 cursor-pointer transition-colors"
+                                                    onClick={() => setSelectedDay(r.period_label)}>
+                                                    <td className="px-4 py-3 border-r border-gray-100 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">{r.period_label}</td>
+                                                    <td className="px-4 py-3 border-r border-gray-100 text-xs font-bold text-gray-800">{num(r.total_orders)}</td>
+                                                    <td className="px-4 py-3 border-r border-gray-100 text-xs font-black text-[#0d2a4a] whitespace-nowrap">{fmt(num(r.total_revenue))}</td>
+                                                    <td className="px-4 py-3 border-r border-gray-100 text-xs font-semibold text-emerald-600">{num(r.delivered)}</td>
+                                                    <td className="px-4 py-3 border-r border-gray-100 text-xs font-semibold text-red-500">{num(r.cancelled)}</td>
+                                                    <td className="px-4 py-3 border-r border-gray-100 text-xs font-semibold text-gray-500">{num(r.returned)}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <ReceiptText size={13} className="text-[#0d2a4a] mx-auto" />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
+                        )}
+
+                        {/* Current Inventory Levels */}
+                        <div className={`flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden ${period === 'daily' && rows.length > 0 ? 'w-full lg:w-64 shrink-0' : 'w-full'}`}>
+                            {/* Header */}
+                            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-bold text-gray-800">Current Inventory</p>
+                                    <p className="text-[10px] text-gray-400">
+                                        {inventory.filter(i => i.is_active && i.quantity <= i.min_stock_level).length} item(s) low on stock
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {selectedInventoryItem && (
+                                        <button onClick={() => setSelectedInventoryItem(null)} className="text-[10px] text-[#0d2a4a] font-semibold hover:underline">
+                                            ← Back
+                                        </button>
+                                    )}
+                                    <button onClick={fetchInventory} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                        <RefreshCw size={14} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {inventoryLoading ? (
+                                <div className="flex items-center justify-center py-8 gap-2 text-gray-400 text-xs">
+                                    <Loader2 size={14} className="animate-spin" /> Loading...
+                                </div>
+                            ) : inventory.filter(i => i.is_active).length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-8 text-gray-300 gap-1">
+                                    <Package size={22} /><p className="text-xs">No products</p>
+                                </div>
+                            ) : selectedInventoryItem ? (
+                                /* Detail view */
+                                <div className="flex flex-col flex-1 p-5 gap-4">
+                                    <div>
+                                        <p className="text-base font-bold text-gray-800">{selectedInventoryItem.product_name}</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5">{selectedInventoryItem.unit}</p>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                            <span className="text-xs text-gray-500">Current Stock</span>
+                                            <span className={`text-xl font-black ${selectedInventoryItem.quantity === 0 ? 'text-red-600' : selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'text-amber-600' : 'text-gray-800'}`}>
+                                                {selectedInventoryItem.quantity}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                            <span className="text-xs text-gray-500">Min Stock Level</span>
+                                            <span className="text-sm font-semibold text-gray-700">{selectedInventoryItem.min_stock_level}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                            <span className="text-xs text-gray-500">Status</span>
+                                            <span className={`text-xs font-bold ${
+                                                selectedInventoryItem.quantity === 0 ? 'text-red-600' :
+                                                selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'text-amber-600' : 'text-emerald-600'
+                                            }`}>
+                                                {selectedInventoryItem.quantity === 0 ? 'Out of Stock' : selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'Low Stock' : 'In Stock'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2">
+                                            <span className="text-xs text-gray-500">Unit</span>
+                                            <span className="text-xs font-semibold text-gray-700 capitalize">{selectedInventoryItem.unit}</span>
+                                        </div>
+                                    </div>
+                                    {/* Stock bar */}
+                                    <div>
+                                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all ${
+                                                    selectedInventoryItem.quantity === 0 ? 'bg-red-500' :
+                                                    selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'bg-amber-400' : 'bg-emerald-500'
+                                                }`}
+                                                style={{ width: `${Math.min(100, (selectedInventoryItem.quantity / Math.max(selectedInventoryItem.min_stock_level * 2, 1)) * 100)}%` }}
+                                            />
+                                        </div>
+                                        <p className="text-[9px] text-gray-400 mt-1 text-right">{Math.min(100, Math.round((selectedInventoryItem.quantity / Math.max(selectedInventoryItem.min_stock_level * 2, 1)) * 100))}% of target</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* List view */
+                                <>
+                                    {/* Column headers */}
+                                    <div className="flex items-center px-4 py-2 bg-gray-50 border-b border-gray-100">
+                                        <p className="flex-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Name</p>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Stock Level</p>
+                                    </div>
+                                    <div className="divide-y divide-gray-100 flex-1 overflow-y-auto">
+                                        {[...inventory]
+                                            .filter(i => i.is_active)
+                                            .sort((a, b) => a.quantity - b.quantity)
+                                            .map(item => {
+                                                const isLow = item.quantity <= item.min_stock_level
+                                                return (
+                                                    <div
+                                                        key={item.inventory_id}
+                                                        onClick={() => setSelectedInventoryItem(item)}
+                                                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer transition-colors"
+                                                    >
+                                                        <p className="flex-1 text-xs font-medium text-gray-700 truncate">{item.product_name}</p>
+                                                        <p className={`text-sm font-black shrink-0 ${item.quantity === 0 ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-gray-800'}`}>
+                                                            {item.quantity}
+                                                        </p>
+                                                    </div>
+                                                )
+                                            })}
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </>
             )}
 
             {selectedDay && (
                 <DayModal date={selectedDay} onClose={() => setSelectedDay(null)} API={API} />
             )}
+
         </div>
     )
 }

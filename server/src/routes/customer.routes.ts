@@ -7,6 +7,20 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
+import {
+    ORDER_STATUS, PAYMENT_STATUS, PAYMENT_MODE, NOTIFICATION_TYPE, RETURN_STATUS,
+} from '../constants/dbEnums.js'
+
+const ROLE_NAMES: Record<number, string> = {
+    1: 'customer', 2: 'admin', 3: 'super_admin', 4: 'sys_admin',
+}
+
+const PAYMENT_MODE_MAP: Record<string, number> = {
+    gcash: PAYMENT_MODE.GCASH,
+    cash: PAYMENT_MODE.CASH,
+    cash_on_delivery: PAYMENT_MODE.CASH_ON_DELIVERY,
+    cash_on_pickup: PAYMENT_MODE.CASH_ON_PICKUP,
+}
 
 const router = express.Router()
 router.use(verifyToken)
@@ -103,11 +117,25 @@ router.put('/profile', async (req, res) => {
     try {
         const pool = await connectToDatabase()
         await pool.query(
-            `UPDATE users SET full_name=?, phone_number=?, address=?, latitude=?, longitude=?, complete_address=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?`,
-            [full_name.trim(), phone_number ?? null, address?.trim() || null, latitude ?? null, longitude ?? null, complete_address?.trim() || null, userId]
+            `UPDATE users SET full_name=?, phone_number=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?`,
+            [full_name.trim(), phone_number ?? null, userId]
+        )
+        await pool.query(
+            `INSERT INTO customers (user_id, address, latitude, longitude, complete_address)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               address=VALUES(address), latitude=VALUES(latitude),
+               longitude=VALUES(longitude), complete_address=VALUES(complete_address)`,
+            [userId, address?.trim() || null, latitude ?? null, longitude ?? null, complete_address?.trim() || null]
         )
         const [rows]: any = await pool.query(
-            `SELECT user_id, full_name, email, role, station_id, address, latitude, longitude, complete_address FROM users WHERE user_id=?`,
+            `SELECT u.user_id, u.full_name, u.email, u.role, u.phone_number, u.profile_picture,
+                    sp.station_id,
+                    cp.address, cp.latitude, cp.longitude, cp.complete_address
+             FROM users u
+             LEFT JOIN admins sp ON sp.user_id = u.user_id
+             LEFT JOIN customers cp ON cp.user_id = u.user_id
+             WHERE u.user_id = ?`,
             [userId]
         )
         const u = rows[0]
@@ -115,7 +143,10 @@ router.put('/profile', async (req, res) => {
             message: 'Profile updated',
             user: {
                 user_id: u.user_id, full_name: u.full_name, email: u.email,
-                role: u.role, station_id: u.station_id,
+                role: ROLE_NAMES[u.role] ?? 'customer',
+                station_id: u.station_id ?? null,
+                phone_number: u.phone_number ?? null,
+                profile_picture: u.profile_picture ?? null,
                 address: u.address ?? null,
                 latitude: u.latitude != null ? parseFloat(u.latitude) : null,
                 longitude: u.longitude != null ? parseFloat(u.longitude) : null,
@@ -197,6 +228,10 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
     if (payment_mode === 'gcash' && !req.file)
         return res.status(400).json({ message: 'GCash receipt is required' })
 
+    const paymentModeNum = PAYMENT_MODE_MAP[payment_mode as string]
+    if (paymentModeNum == null)
+        return res.status(400).json({ message: 'Invalid payment mode' })
+
     const pool = await connectToDatabase()
     const conn = await (pool as any).getConnection()
 
@@ -210,7 +245,10 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
 
         // Fetch customer name and address to snapshot on the order
         const [userRows]: any = await conn.query(
-            `SELECT full_name, address, complete_address FROM users WHERE user_id = ?`, [userId]
+            `SELECT u.full_name, cp.address, cp.complete_address
+             FROM users u
+             LEFT JOIN customers cp ON cp.user_id = u.user_id
+             WHERE u.user_id = ?`, [userId]
         )
         const snapName = userRows[0]?.full_name ?? null
         const snapAddress = userRows[0]?.address ?? null
@@ -219,8 +257,8 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
         // Insert order — snapshot customer fields so they never change if profile updates
         const [orderResult]: any = await conn.query(
             `INSERT INTO orders (user_id, station_id, order_reference, customer_name, customer_address, customer_complete_address, total_amount, payment_mode, order_status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())`,
-            [userId, station_id, order_reference, snapName, snapAddress, snapCompleteAddress, total_amount, payment_mode]
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            [userId, station_id, order_reference, snapName, snapAddress, snapCompleteAddress, total_amount, paymentModeNum, ORDER_STATUS.CONFIRMED]
         )
         const order_id = orderResult.insertId
 
@@ -254,19 +292,20 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
                         u.user_id AS admin_id
                  FROM inventory i
                  JOIN products p ON p.product_id = i.product_id
-                 JOIN users u ON u.station_id = i.station_id AND u.role IN ('admin','super_admin')
+                 JOIN admins sp ON sp.station_id = i.station_id
+                 JOIN users u ON u.user_id = sp.user_id AND u.role IN (2, 3)
                  WHERE i.product_id = ? AND i.station_id = ?`,
                 [item.product_id, station_id]
             )
             for (const row of afterStock) {
                 if (row.quantity <= row.min_stock_level) {
                     const stockMsg = row.quantity === 0
-                        ? `"${row.product_name}" is now OUT OF STOCK.`
-                        : `"${row.product_name}" is running low — only ${row.quantity} left.`
+                        ? `${row.product_name} is now out of stock.`
+                        : `${row.product_name} is running low, only ${row.quantity} left.`
                     await conn.query(
                         `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
-                         VALUES (?, ?, ?, 'low_stock', 0, NOW())`,
-                        [row.admin_id, station_id, stockMsg]
+                         VALUES (?, ?, ?, ?, 0, NOW())`,
+                        [row.admin_id, station_id, stockMsg, NOTIFICATION_TYPE.INVENTORY_ALERT]
                     ).catch(() => { }) // non-fatal
                 }
             }
@@ -286,14 +325,14 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
         await conn.query(
             `INSERT INTO payments (order_id, payment_type, payment_status, proof_image_path, created_at)
              VALUES (?, ?, ?, ?, NOW())`,
-            [order_id, payment_mode, 'pending', proof_image_path]
+            [order_id, paymentModeNum, PAYMENT_STATUS.PENDING, proof_image_path]
         )
 
         // Notify the customer that their order was received
         await conn.query(
             `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
-             VALUES (?, ?, ?, 'order_update', 0, NOW())`,
-            [userId, station_id, `Your order ${order_reference} has been received and is pending confirmation.`]
+             VALUES (?, ?, ?, ?, 0, NOW())`,
+            [userId, station_id, `Your order ${order_reference} has been received and is pending confirmation.`, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
 
         await conn.commit()
@@ -320,14 +359,31 @@ router.get('/orders', async (req, res) => {
         const pool = await connectToDatabase()
         const [orders]: any = await pool.query(`
             SELECT
-                o.order_id, o.order_reference, o.total_amount,
-                o.payment_mode, o.order_status, o.created_at,
+                o.order_id, o.order_reference, o.total_amount, o.created_at,
+                CASE o.order_status
+                    WHEN 1 THEN 'confirmed' WHEN 2 THEN 'preparing'
+                    WHEN 3 THEN 'out_for_delivery' WHEN 4 THEN 'delivered'
+                    WHEN 5 THEN 'cancelled' WHEN 6 THEN 'returned' ELSE 'confirmed'
+                END AS order_status,
+                CASE o.payment_mode
+                    WHEN 1 THEN 'gcash' WHEN 2 THEN 'cash'
+                    WHEN 3 THEN 'cash_on_delivery' WHEN 4 THEN 'cash_on_pickup' ELSE 'cash'
+                END AS payment_mode,
                 s.station_name, s.address AS station_address,
-                p.payment_type, p.payment_status, p.proof_image_path,
+                p.payment_type,
+                CASE p.payment_status
+                    WHEN 1 THEN 'pending' WHEN 2 THEN 'verified' WHEN 3 THEN 'rejected' ELSE 'pending'
+                END AS payment_status,
+                p.proof_image_path,
+                CASE r.return_status
+                    WHEN 1 THEN 'pending' WHEN 2 THEN 'approved' WHEN 3 THEN 'rejected' ELSE NULL
+                END AS return_status,
+                r.reason AS return_reason,
                 (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count
             FROM orders o
             LEFT JOIN stations s  ON s.station_id = o.station_id
             LEFT JOIN payments p  ON p.order_id   = o.order_id
+            LEFT JOIN order_returns r ON r.order_id = o.order_id
             WHERE o.user_id = ? AND o.hidden_at IS NULL
             ORDER BY o.created_at DESC
         `, [userId])
@@ -345,17 +401,44 @@ router.get('/orders/:id', async (req, res) => {
     try {
         const pool = await connectToDatabase()
         const [orders]: any = await pool.query(`
-            SELECT o.*, s.station_name, s.address AS station_address,
-                   p.payment_type, p.payment_status, p.proof_image_path
+            SELECT
+                o.order_id, o.order_reference, o.total_amount,
+                o.customer_name, o.customer_address, o.customer_complete_address,
+                o.created_at, o.updated_at,
+                CASE o.order_status
+                    WHEN 1 THEN 'confirmed' WHEN 2 THEN 'preparing'
+                    WHEN 3 THEN 'out_for_delivery' WHEN 4 THEN 'delivered'
+                    WHEN 5 THEN 'cancelled' WHEN 6 THEN 'returned' ELSE 'confirmed'
+                END AS order_status,
+                CASE o.payment_mode
+                    WHEN 1 THEN 'gcash' WHEN 2 THEN 'cash'
+                    WHEN 3 THEN 'cash_on_delivery' WHEN 4 THEN 'cash_on_pickup' ELSE 'cash'
+                END AS payment_mode,
+                s.station_name, s.address AS station_address,
+                p.payment_type,
+                CASE p.payment_status
+                    WHEN 1 THEN 'pending' WHEN 2 THEN 'verified' WHEN 3 THEN 'rejected' ELSE 'pending'
+                END AS payment_status,
+                p.proof_image_path,
+                vbu.full_name AS verified_by_name,
+                r.reason AS return_reason,
+                CASE r.return_status
+                    WHEN 1 THEN 'pending' WHEN 2 THEN 'approved' WHEN 3 THEN 'rejected' ELSE NULL
+                END AS return_status,
+                r.processed_by AS return_processed_by,
+                rbu.full_name AS return_processed_by_name
             FROM orders o
-            LEFT JOIN stations s ON s.station_id = o.station_id
-            LEFT JOIN payments p ON p.order_id   = o.order_id
+            LEFT JOIN stations s   ON s.station_id  = o.station_id
+            LEFT JOIN payments p   ON p.order_id    = o.order_id
+            LEFT JOIN users vbu    ON vbu.user_id   = p.verified_by
+            LEFT JOIN order_returns r  ON r.order_id = o.order_id
+            LEFT JOIN users rbu    ON rbu.user_id   = r.processed_by
             WHERE o.order_id = ? AND o.user_id = ?
         `, [id, userId])
         if (!orders.length) return res.status(404).json({ message: 'Order not found' })
 
         const [items]: any = await pool.query(`
-            SELECT oi.*, p.product_name, p.image_url
+            SELECT oi.*, p.product_name, p.image_url, p.unit
             FROM order_items oi
             LEFT JOIN products p ON p.product_id = oi.product_id
             WHERE oi.order_id = ?
@@ -368,7 +451,7 @@ router.get('/orders/:id', async (req, res) => {
     }
 })
 
-// GET /customer/notifications
+// GET /customer/notifications — customers only see order and payment updates
 router.get('/notifications', async (req, res) => {
     const userId = (req as any).user.id
     try {
@@ -376,10 +459,10 @@ router.get('/notifications', async (req, res) => {
         const [rows]: any = await pool.query(`
             SELECT notification_id, message, notification_type, is_read, created_at
             FROM notifications
-            WHERE user_id = ?
+            WHERE user_id = ? AND notification_type IN (?, ?)
             ORDER BY created_at DESC
             LIMIT 50
-        `, [userId])
+        `, [userId, NOTIFICATION_TYPE.ORDER_UPDATE, NOTIFICATION_TYPE.PAYMENT_UPDATE])
         return res.json(rows)
     } catch (err) {
         console.error('GET /customer/notifications error:', err)
@@ -470,6 +553,7 @@ router.put('/orders/:id/cancel', async (req, res) => {
              VALUES (?, ?, ?, 'order_update', 0, NOW())`,
             [userId, rows[0].station_id, cancelMsg]
         )
+
         return res.json({ message: 'Order cancelled' })
     } catch (err) {
         console.error('PUT /customer/orders/:id/cancel error:', err)
@@ -491,7 +575,7 @@ router.post('/orders/:id/return', async (req, res) => {
             [id, userId]
         )
         if (!rows.length) return res.status(404).json({ message: 'Order not found' })
-        if (rows[0].order_status !== 'delivered')
+        if (rows[0].order_status !== ORDER_STATUS.DELIVERED)
             return res.status(400).json({ message: 'Return can only be requested for delivered orders' })
 
         const [existing]: any = await pool.query(
@@ -500,17 +584,19 @@ router.post('/orders/:id/return', async (req, res) => {
         if (existing.length) return res.status(409).json({ message: 'Return already requested' })
 
         await pool.query(
-            `INSERT INTO order_returns (order_id, reason, return_status, created_at) VALUES (?, ?, 'pending', NOW())`,
-            [id, reason.trim()]
+            `INSERT INTO order_returns (order_id, reason, return_status, created_at) VALUES (?, ?, ?, NOW())`,
+            [id, reason.trim(), RETURN_STATUS.PENDING]
         )
         await pool.query(
-            `UPDATE orders SET order_status = 'returned', updated_at = NOW() WHERE order_id = ?`, [id]
+            `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
+            [ORDER_STATUS.RETURNED, id]
         )
         await pool.query(
             `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
-             VALUES (?, ?, 'Your return request has been submitted and is under review.', 'order_update', 0, NOW())`,
-            [userId, rows[0].station_id]
+             VALUES (?, ?, 'Your return request has been submitted and is under review.', ?, 0, NOW())`,
+            [userId, rows[0].station_id, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
+
         return res.status(201).json({ message: 'Return request submitted' })
     } catch (err) {
         console.error('POST /customer/orders/:id/return error:', err)

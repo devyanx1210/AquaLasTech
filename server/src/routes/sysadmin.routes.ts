@@ -26,8 +26,9 @@ router.get('/stations', async (_req, res) => {
                     u.user_id AS admin_id, u.full_name AS admin_name, u.email AS admin_email
              FROM stations s
              LEFT JOIN users u ON u.user_id = (
-                 SELECT user_id FROM users
-                 WHERE station_id = s.station_id AND role = 'super_admin'
+                 SELECT sp.user_id FROM admins sp
+                 INNER JOIN users su ON su.user_id = sp.user_id AND su.role = 3
+                 WHERE sp.station_id = s.station_id
                  LIMIT 1
              )
              ORDER BY s.created_at DESC`
@@ -87,14 +88,19 @@ router.post('/stations', async (req: any, res) => {
             const station_id = stationResult.insertId
 
             const hash = await bcrypt.hash(admin_password.trim(), 10)
+            const [adminResult]: any = await conn.query(
+                `INSERT INTO users (full_name, email, password_hash, role, created_at, updated_at)
+                 VALUES (?, ?, ?, 3, NOW(), NOW())`,
+                [admin_name.trim(), admin_email.trim(), hash]
+            )
+            const admin_user_id = adminResult.insertId
             await conn.query(
-                `INSERT INTO users (full_name, email, password_hash, role, station_id, address, complete_address, created_at, updated_at)
-                 VALUES (?, ?, ?, 'super_admin', ?, ?, ?, NOW(), NOW())`,
-                [
-                    admin_name.trim(), admin_email.trim(), hash, station_id,
-                    admin_address.trim(),
-                    admin_complete_address?.trim() || null,
-                ]
+                `INSERT INTO admins (user_id, station_id) VALUES (?, ?)`,
+                [admin_user_id, station_id]
+            )
+            await conn.query(
+                `INSERT INTO customers (user_id, address, complete_address) VALUES (?, ?, ?)`,
+                [admin_user_id, admin_address.trim(), admin_complete_address?.trim() || null]
             )
 
             await conn.query(
@@ -149,8 +155,8 @@ router.delete('/stations/:id', async (req: any, res) => {
         try {
             await conn.beginTransaction()
 
-            // Unassign all users from this station
-            await conn.query(`UPDATE users SET station_id = NULL WHERE station_id = ?`, [station_id])
+            // Unassign all staff from this station (CASCADE on FK handles deletion via stations delete)
+            await conn.query(`UPDATE admins SET station_id = NULL WHERE station_id = ?`, [station_id])
 
             // Delete inventory chain
             await conn.query(

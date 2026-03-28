@@ -1,12 +1,11 @@
 ﻿// AdminInventory - track and update water container stock levels
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
 import {
     Plus, Search, Edit2, RefreshCw,
     CheckCircle2, AlertCircle,
     Loader2, X, ChevronDown, ImageIcon,
-    Droplets, Package, Trash2,
+    Droplets, Package, Trash2, SlidersHorizontal,
 } from 'lucide-react'
 
 interface Product {
@@ -74,7 +73,6 @@ const FL = ({ label, error, hint, children }: { label: string; error?: string; h
 )
 
 export default function AdminInventory() {
-    const { user } = useAuth()
     const API = import.meta.env.VITE_API_URL
 
     const [products, setProducts] = useState<Product[]>([])
@@ -94,6 +92,8 @@ export default function AdminInventory() {
     const [restockError, setRestockError] = useState('')
     const [tab, setTab] = useState<'products' | 'stock'>('products')
     const [uploadingImage, setUploadingImage] = useState(false)
+    const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
+    const [filterOpen, setFilterOpen] = useState(false)
 
     // Upload image to server
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,11 +131,13 @@ export default function AdminInventory() {
     useEffect(() => {
         if (products.length === 0) return
         axios.post(`${API}/inventory/check-low-stock`, {}, { withCredentials: true }).catch(() => { })
-    }, [products])
+    }, [products, API])
 
-    const filtered = products.filter(p =>
-        p.product_name.toLowerCase().includes(search.toLowerCase())
-    )
+    const filtered = products.filter(p => {
+        const matchSearch = p.product_name.toLowerCase().includes(search.toLowerCase())
+        const matchFilter = activeFilter === 'all' || (activeFilter === 'active' ? p.is_active : !p.is_active)
+        return matchSearch && matchFilter
+    })
 
     const openAdd = () => { setForm(emptyForm); setFormErrors({}); setSelected(null); setModal('add') }
     const openEdit = (p: Product) => {
@@ -218,15 +220,45 @@ export default function AdminInventory() {
                 </button>
             </div>
 
-            {/* Search — only on products tab (mobile) or always (desktop) */}
-            <div className={`relative max-w-xs ${tab === 'stock' ? 'hidden lg:block' : ''}`}>
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                    placeholder="Search"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-[#38bdf8] focus:ring-2 focus:ring-[#38bdf8]/15 transition-all shadow-sm"
-                />
+            {/* Search + Filter — only on products tab (mobile) or always (desktop) */}
+            <div className={`flex items-center gap-2 ${tab === 'stock' ? 'hidden lg:flex' : ''}`}>
+                <div className="relative max-w-xs flex-1">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        placeholder="Search"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-[#38bdf8] focus:ring-2 focus:ring-[#38bdf8]/15 transition-all shadow-sm"
+                    />
+                </div>
+                {/* Filter dropdown */}
+                <div className="relative">
+                    <button
+                        onClick={() => setFilterOpen(o => !o)}
+                        className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium shadow-sm transition-all
+                            ${activeFilter !== 'all' ? 'bg-[#0d2a4a] text-white border-[#0d2a4a]' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                    >
+                        <SlidersHorizontal size={14} />
+                        <span className="text-xs capitalize">{activeFilter === 'all' ? 'Filter' : activeFilter}</span>
+                    </button>
+                    {filterOpen && (
+                        <>
+                            <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                            <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden min-w-[120px]">
+                                {(['all', 'active', 'inactive'] as const).map(opt => (
+                                    <button
+                                        key={opt}
+                                        onClick={() => { setActiveFilter(opt); setFilterOpen(false) }}
+                                        className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors capitalize
+                                            ${activeFilter === opt ? 'bg-[#0d2a4a] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                                    >
+                                        {opt === 'all' ? 'All Items' : opt === 'active' ? 'Active' : 'Inactive'}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* Main layout: card grid LEFT + stock panel RIGHT */}
@@ -250,8 +282,8 @@ export default function AdminInventory() {
                                     >
                                         {/* Stock badge — top right */}
                                         <div className={`absolute top-2 right-2 z-20 px-1.5 py-0.5 rounded-md text-[9px] font-bold
-                                            ${p.quantity === 0 ? 'bg-red-500 text-white' : p.quantity <= p.min_stock_level ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
-                                            {p.quantity === 0 ? 'OUT' : p.quantity}
+                                            ${Number(p.quantity) === 0 ? 'bg-red-500 text-white' : Number(p.quantity) <= Number(p.min_stock_level) ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
+                                            {Number(p.quantity) === 0 ? 'OUT' : p.quantity}
                                         </div>
 
                                         {/* Edit button — top left */}
@@ -275,10 +307,15 @@ export default function AdminInventory() {
                                         </div>
 
                                         {/* Info strip below */}
-                                        <div className="px-2.5 py-2 flex flex-col gap-0.5">
-                                            <p className="text-xs font-bold text-gray-800 truncate leading-tight">{p.product_name}</p>
+                                        <div className="relative px-2.5 py-2 flex flex-col gap-0.5">
+                                            <p className="text-xs font-bold text-gray-800 truncate leading-tight pr-10">{p.product_name}</p>
                                             <p className="text-xs font-black text-[#0d2a4a]">{fmt(p.price)}</p>
                                             <p className="text-[10px] text-gray-400">{p.unit}</p>
+                                            {/* Active / Inactive indicator */}
+                                            <span className={`absolute top-2 right-2 text-[8px] font-bold px-1.5 py-0.5 rounded-full
+                                                ${p.is_active ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                {p.is_active ? 'Active' : 'Inactive'}
+                                            </span>
                                         </div>
                                     </div>
                                 )
@@ -434,24 +471,29 @@ export default function AdminInventory() {
                             </div>
                         </FL>
 
-                        {modal === 'edit' && (
-                            <label className="flex items-center gap-3 cursor-pointer select-none">
-                                <div onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
-                                    className={`w-10 h-5 rounded-full transition-all relative ${form.is_active ? 'bg-[#0d2a4a]' : 'bg-gray-200'}`}>
-                                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.is_active ? 'left-5' : 'left-0.5'}`} />
-                                </div>
-                                <span className="text-sm text-gray-600 font-medium">{form.is_active ? 'Active' : 'Inactive'}</span>
-                            </label>
-                        )}
+                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                            <div onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
+                                className={`w-10 h-5 rounded-full transition-all relative shrink-0 ${form.is_active ? 'bg-[#0d2a4a]' : 'bg-gray-200'}`}>
+                                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.is_active ? 'left-5' : 'left-0.5'}`} />
+                            </div>
+                            <div className="flex flex-col gap-0">
+                                <span className={`text-xs font-semibold ${form.is_active ? 'text-emerald-600' : 'text-gray-500'}`}>
+                                    {form.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                                <span className="text-[10px] text-gray-400">
+                                    {form.is_active ? 'Visible to customers' : 'Station only'}
+                                </span>
+                            </div>
+                        </label>
 
                         <div className="flex gap-3 pt-1">
                             {modal === 'edit' && (
                                 <button onClick={() => { closeModal(); handleDeleteProduct(selected!) }}
-                                    className="px-3 py-2.5 rounded-xl border border-red-200 hover:bg-red-50 text-red-500 transition-all flex items-center justify-center">
+                                    className="px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-500 transition-all flex items-center justify-center">
                                     <Trash2 size={15} />
                                 </button>
                             )}
-                            <button onClick={closeModal} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-all">Cancel</button>
+                            <button onClick={closeModal} className="flex-1 py-2.5 rounded-xl bg-red-50 text-red-400 text-sm font-medium hover:bg-red-100 transition-all">Cancel</button>
                             <button onClick={handleSaveProduct} disabled={saving}
                                 className="flex-1 py-2.5 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
                                 {saving ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : modal === 'add' ? 'Add Product' : 'Save Changes'}
@@ -514,7 +556,7 @@ export default function AdminInventory() {
                         </FL>
 
                         <div className="flex gap-3 pt-1">
-                            <button onClick={closeModal} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-all">Cancel</button>
+                            <button onClick={closeModal} className="flex-1 py-2.5 rounded-xl bg-red-50 text-red-400 text-sm font-medium hover:bg-red-100 transition-all">Cancel</button>
                             <button onClick={handleRestock} disabled={saving}
                                 className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
                                 {saving ? <><Loader2 size={14} className="animate-spin" /> Restocking…</> : <><RefreshCw size={14} /> Confirm Restock</>}

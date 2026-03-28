@@ -21,15 +21,6 @@ interface Notification {
     created_at: string
 }
 
-function statusDot(msg: string) {
-    if (msg.includes('delivered')) return 'bg-emerald-500'
-    if (msg.includes('out for delivery')) return 'bg-blue-500'
-    if (msg.includes('preparing')) return 'bg-amber-400'
-    if (msg.includes('confirmed')) return 'bg-[#38bdf8]'
-    if (msg.includes('cancelled')) return 'bg-red-500'
-    if (msg.includes('returned')) return 'bg-gray-400'
-    return 'bg-[#38bdf8]'
-}
 
 function timeAgo(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime()
@@ -134,7 +125,7 @@ function NotifPanel({ notifications, unreadCount, onClose, onMarkAllRead, onMark
             <div className="fixed inset-0 z-[199] bg-black/30" onClick={onClose} />
             <div
                 ref={panelRef}
-                className="fixed right-4 top-[56px] w-80 bg-white rounded-2xl border border-gray-200 shadow-2xl z-[200] overflow-hidden animate-slide-down"
+                className="fixed top-[56px] inset-x-4 sm:inset-x-auto sm:right-4 sm:w-80 bg-white rounded-2xl border border-gray-200 shadow-2xl z-[200] overflow-hidden animate-slide-down"
                 onMouseMove={onMouseMove}
                 onScroll={onMouseMove}
             >
@@ -167,14 +158,12 @@ function NotifPanel({ notifications, unreadCount, onClose, onMarkAllRead, onMark
                                 onClick={() => onMarkOne(n.notification_id)}
                                 className={`relative flex items-start gap-3 px-4 pt-3 pb-7 border-b border-gray-50 cursor-pointer transition-colors
                                     ${n.is_read ? 'hover:bg-gray-50' : 'bg-blue-50/60 hover:bg-blue-50'}`}>
-                                <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${statusDot(n.message)}`} />
                                 <div className="flex-1 min-w-0">
                                     <p className={`text-xs leading-relaxed ${n.is_read ? 'text-gray-500' : 'text-gray-800 font-medium'}`}>
                                         {n.message}
                                     </p>
                                     <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
                                 </div>
-                                {!n.is_read && <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shrink-0 mt-1.5" />}
                                 <button
                                     onClick={e => onDelete(e, n.notification_id)}
                                     className="absolute bottom-2 right-3 p-1 rounded-lg text-red-400 hover:bg-red-50 transition-colors">
@@ -382,7 +371,7 @@ export default function CustomerLayout() {
                             <X size={16} className="text-blue-200" />
                         </button>
                     </div>
-                    <div className="mx-3 mt-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                    <div className="mx-3 mt-3 px-3 py-2.5 rounded-xl bg-white/5 flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold shrink-0">
                             {avatarSrc
                                 ? <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
@@ -456,7 +445,7 @@ export default function CustomerLayout() {
                         )}
                     </div>
                     {!sidebarIconOnly && (
-                        <div className="mx-2 mb-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2">
+                        <div className="mx-2 mb-3 px-3 py-2 rounded-xl bg-white/5 flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-[10px] font-bold shrink-0">
                                 {avatarSrc
                                     ? <img src={avatarSrc} alt="" className="w-full h-full object-cover" />

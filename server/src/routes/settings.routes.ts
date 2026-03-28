@@ -143,10 +143,11 @@ router.get('/admins', async (req: any, res) => {
     try {
         const db = await connectToDatabase()
         const [rows]: any = await db.query(
-            `SELECT user_id, full_name, email, created_at, profile_picture
-             FROM users
-             WHERE station_id = ? AND role = 'admin'
-             ORDER BY created_at DESC`,
+            `SELECT u.user_id, u.full_name, u.email, u.created_at, u.profile_picture
+             FROM users u
+             INNER JOIN admins sp ON sp.user_id = u.user_id
+             WHERE sp.station_id = ? AND u.role = 2
+             ORDER BY u.created_at DESC`,
             [req.user.station_id]
         )
         return res.json(rows)
@@ -176,7 +177,9 @@ router.delete('/admins/:id', async (req: any, res) => {
 
         // Confirm target is an admin belonging to this station
         const [target]: any = await db.query(
-            `SELECT user_id, full_name FROM users WHERE user_id = ? AND role = 'admin' AND station_id = ?`,
+            `SELECT u.user_id, u.full_name FROM users u
+             INNER JOIN admins sp ON sp.user_id = u.user_id
+             WHERE u.user_id = ? AND u.role = 2 AND sp.station_id = ?`,
             [targetId, req.user.station_id]
         )
         if (!target.length) return res.status(404).json({ message: 'Admin not found' })
@@ -206,10 +209,14 @@ router.post('/create-admin', async (req, res) => {
             return res.status(404).json({ message: 'Station not found' })
 
         const password_hash = await bcrypt.hash(password, 10)
+        const [adminResult]: any = await db.query(
+            `INSERT INTO users (full_name, email, password_hash, role, created_at, updated_at)
+             VALUES (?, ?, ?, 2, NOW(), NOW())`,
+            [full_name, email, password_hash]
+        )
         await db.query(
-            `INSERT INTO users (full_name, email, password_hash, role, station_id, created_at, updated_at)
-             VALUES (?, ?, ?, 'admin', ?, NOW(), NOW())`,
-            [full_name, email, password_hash, station_id]
+            `INSERT INTO admins (user_id, station_id) VALUES (?, ?)`,
+            [adminResult.insertId, station_id]
         )
         return res.status(201).json({ message: `Admin account for ${full_name} created successfully` })
     } catch (err) {

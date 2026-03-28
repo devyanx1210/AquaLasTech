@@ -352,7 +352,7 @@ export default function CustomerSettings() {
                 longitude,
                 complete_address: completeAddress.trim() || null,
             }, { withCredentials: true })
-            setUser(res.data.user)
+            setUser(prev => prev ? { ...prev, ...res.data.user } : res.data.user)
             showToast('Profile updated successfully!', 'success')
         } catch (err: any) {
             showToast(err.response?.data?.message ?? 'Failed to save', 'error')

@@ -190,6 +190,16 @@ export default function AdminSettings() {
     const [toast, setToast] = useState<ToastData | null>(null)
     const showToast = useCallback((message: string, type: ToastType) => setToast({ message, type }), [])
 
+    // My Profile form
+    const [profileForm, setProfileForm] = useState({ full_name: user?.full_name ?? '', email: user?.email ?? '' })
+    const [profileErrors, setProfileErrors] = useState<{ full_name?: string; email?: string }>({})
+    const [savingProfile, setSavingProfile] = useState(false)
+    const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
+    const [pwErrors, setPwErrors] = useState<{ current?: string; next?: string; confirm?: string }>({})
+    const [savingPw, setSavingPw] = useState(false)
+    const [showPwCurrent, setShowPwCurrent] = useState(false)
+    const [showPwNext, setShowPwNext] = useState(false)
+
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
     const handleAvatarUpload = async (file: File) => {
@@ -228,6 +238,41 @@ export default function AdminSettings() {
             console.error('[AvatarRemove] error:', err)
             showToast(err instanceof Error ? err.message : 'Failed to remove photo', 'error')
         }
+    }
+
+    const handleSaveProfile = async () => {
+        const errs: typeof profileErrors = {}
+        if (!profileForm.full_name.trim()) errs.full_name = 'Name is required'
+        if (!profileForm.email.trim()) errs.email = 'Email is required'
+        setProfileErrors(errs)
+        if (Object.keys(errs).length) return
+        setSavingProfile(true)
+        try {
+            const API = import.meta.env.VITE_API_URL
+            await axios.put(`${API}/auth/profile`, profileForm, { withCredentials: true })
+            if (user) setUser({ ...user, full_name: profileForm.full_name.trim(), email: profileForm.email.trim() })
+            showToast('Profile updated', 'success')
+        } catch (err: any) {
+            showToast(err.response?.data?.message ?? 'Failed to update profile', 'error')
+        } finally { setSavingProfile(false) }
+    }
+
+    const handleChangePassword = async () => {
+        const errs: typeof pwErrors = {}
+        if (!pwForm.current) errs.current = 'Current password required'
+        if (!pwForm.next || pwForm.next.length < 6) errs.next = 'Min 6 characters'
+        if (pwForm.next !== pwForm.confirm) errs.confirm = 'Passwords do not match'
+        setPwErrors(errs)
+        if (Object.keys(errs).length) return
+        setSavingPw(true)
+        try {
+            const API = import.meta.env.VITE_API_URL
+            await axios.put(`${API}/auth/change-password`, { current_password: pwForm.current, new_password: pwForm.next }, { withCredentials: true })
+            setPwForm({ current: '', next: '', confirm: '' })
+            showToast('Password changed', 'success')
+        } catch (err: any) {
+            showToast(err.response?.data?.message ?? 'Failed to change password', 'error')
+        } finally { setSavingPw(false) }
     }
 
     const fetchAdmins = useCallback(async () => {
@@ -527,6 +572,85 @@ export default function AdminSettings() {
                 <p className="text-xs text-gray-400 mt-0.5">Manage your station details and admin accounts</p>
             </div>
 
+            {/* My Profile */}
+            <Section title="My Profile" subtitle="Update your personal information and password" icon={<User size={16} />} delay={0}>
+                <div className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Field
+                            label="Full Name" icon={<User size={14} />}
+                            placeholder="Your full name"
+                            value={profileForm.full_name}
+                            onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))}
+                            error={profileErrors.full_name}
+                        />
+                        <Field
+                            label="Email Address" icon={<Mail size={14} />}
+                            type="email"
+                            placeholder="your@email.com"
+                            value={profileForm.email}
+                            onChange={e => setProfileForm(f => ({ ...f, email: e.target.value }))}
+                            error={profileErrors.email}
+                        />
+                    </div>
+                    <button
+                        onClick={handleSaveProfile}
+                        disabled={savingProfile}
+                        className="self-end flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white text-sm font-bold transition-all disabled:opacity-60">
+                        {savingProfile ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                        Save Profile
+                    </button>
+
+                    <div className="border-t border-gray-100 pt-4 flex flex-col gap-3">
+                        <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Change Password</p>
+                        <div className="relative">
+                            <Field
+                                label="Current Password" icon={<Lock size={14} />}
+                                type={showPwCurrent ? 'text' : 'password'}
+                                placeholder="Enter current password"
+                                value={pwForm.current}
+                                onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
+                                error={pwErrors.current}
+                            />
+                            <button type="button" onClick={() => setShowPwCurrent(p => !p)}
+                                className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
+                                {showPwCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="relative">
+                                <Field
+                                    label="New Password" icon={<Lock size={14} />}
+                                    type={showPwNext ? 'text' : 'password'}
+                                    placeholder="Min 6 characters"
+                                    value={pwForm.next}
+                                    onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))}
+                                    error={pwErrors.next}
+                                />
+                                <button type="button" onClick={() => setShowPwNext(p => !p)}
+                                    className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
+                                    {showPwNext ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
+                            </div>
+                            <Field
+                                label="Confirm New Password" icon={<Lock size={14} />}
+                                type="password"
+                                placeholder="Repeat new password"
+                                value={pwForm.confirm}
+                                onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
+                                error={pwErrors.confirm}
+                            />
+                        </div>
+                        <button
+                            onClick={handleChangePassword}
+                            disabled={savingPw}
+                            className="self-end flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white text-sm font-bold transition-all disabled:opacity-60">
+                            {savingPw ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+                            Change Password
+                        </button>
+                    </div>
+                </div>
+            </Section>
+
             {/* Station Details */}
             <Section title="Station Details" subtitle="Update your water refilling station information" icon={<Building2 size={16} />} delay={0}>
                 <div className="flex flex-col gap-4">
@@ -743,7 +867,7 @@ export default function AdminSettings() {
             </Section>
 
             {/* Admin Accounts — tabbed: Create / List */}
-            <Section title="Admin Accounts" subtitle="Create or manage admins for this station" icon={<Users size={16} />} delay={210}>
+            <Section title="Admin Accounts" subtitle="Create or manage admin accounts for this station" icon={<Users size={16} />} delay={210}>
                 {/* Tab switcher */}
                 <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
                     <button

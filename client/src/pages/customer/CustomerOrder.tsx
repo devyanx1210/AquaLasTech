@@ -47,6 +47,8 @@ interface CustomerOrder {
     created_at: string
     return_status?: string | null
     return_reason?: string | null
+    verified_by_name?: string | null
+    return_processed_by_name?: string | null
     items?: OrderItem[]
 }
 interface OrderItem {
@@ -66,7 +68,6 @@ type PanelTab = 'active' | 'history'
 // Status config
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any; btnBg: string }> = {
     confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2, btnBg: 'bg-blue-600' },
-    preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock, btnBg: 'bg-amber-500' },
     out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck, btnBg: 'bg-purple-600' },
     delivered: { label: 'Delivered', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2, btnBg: 'bg-emerald-600' },
     cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle, btnBg: 'bg-red-500' },
@@ -107,7 +108,7 @@ function Toast({ msg, type, onDone }: { msg: string; type: ToastType; onDone: ()
 
 // Status Timeline (horizontal steps)
 function StatusTimeline({ status }: { status: string }) {
-    const steps = ['confirmed', 'preparing', 'out_for_delivery', 'delivered']
+    const steps = ['confirmed', 'out_for_delivery', 'delivered']
     if (status === 'cancelled' || status === 'returned') {
         const cfg = STATUS_CFG[status]
         return (
@@ -235,7 +236,7 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
                                     <div key={item.order_item_id} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 bg-white">
                                         <div className="w-10 h-10 rounded-xl bg-[#e8f4fd] flex items-center justify-center shrink-0 overflow-hidden">
                                             {imgSrc
-                                                ? <img src={imgSrc} alt={item.product_name} className="w-full h-full object-contain p-1" />
+                                                ? <img src={imgSrc} alt={item.product_name} className="w-full h-full object-cover" />
                                                 : <Droplets size={14} className="text-[#38bdf8]" />}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -253,6 +254,22 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
                                 <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Total</p>
                                 <p className="text-sm font-black text-white">{fmt(order.total_amount)}</p>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Payment verified by */}
+                    {order.verified_by_name && order.payment_status === 'verified' && (
+                        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-emerald-50 text-xs">
+                            <span className="text-gray-400">GCash verified by</span>
+                            <span className="font-semibold text-emerald-700">{order.verified_by_name}</span>
+                        </div>
+                    )}
+
+                    {/* Return reviewed by */}
+                    {order.return_processed_by_name && order.return_status && order.return_status !== 'pending' && (
+                        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                            <span className="text-gray-400">Return {order.return_status === 'approved' ? 'approved' : 'rejected'} by</span>
+                            <span className="font-semibold text-gray-700">{order.return_processed_by_name}</span>
                         </div>
                     )}
 
@@ -280,15 +297,15 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
                         {canCancel && (
                             <button
                                 onClick={() => { onCancel(order); onClose() }}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 text-sm font-bold border border-red-200 transition-all active:scale-95">
-                                <XCircle size={15} /> Cancel Order
+                                className="flex-1 flex items-center justify-center py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-all active:scale-95">
+                                Cancel Order
                             </button>
                         )}
                         {canReturn && (
                             <button
                                 onClick={() => { onReturn(order); onClose() }}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-orange-50 hover:bg-orange-100 text-orange-500 text-sm font-bold border border-orange-200 transition-all active:scale-95">
-                                <RotateCcw size={15} /> Request Return
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-orange-50 hover:bg-orange-100 text-orange-500 text-sm font-bold transition-all active:scale-95">
+                                Request Return
                             </button>
                         )}
                     </div>
@@ -652,7 +669,7 @@ export default function CustomerOrder() {
                 withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' },
             })
-            showToast('Order placed! 🎉', 'success')
+            showToast('Order placed!', 'success')
             setCart([])
             setReceipt(null)
             setReceiptPreview(null)
@@ -796,7 +813,7 @@ export default function CustomerOrder() {
                                     </button>
                                     {/* Cart button */}
                                     <button onClick={() => setView('cart')}
-                                        className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white text-xs font-bold transition-all active:scale-95">
+                                        className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white text-xs font-bold border border-transparent transition-all active:scale-95">
                                         <ShoppingCart size={13} />
                                         <span className="hidden sm:inline">Cart</span>
                                         {cartItemCount > 0 && (
@@ -844,7 +861,7 @@ export default function CustomerOrder() {
                                                 <div className="relative aspect-square bg-gradient-to-br from-[#e8f4fd] to-[#dbeeff] overflow-hidden">
                                                     {imgSrc ? (
                                                         <img src={imgSrc} alt={product.product_name}
-                                                            className="w-full h-full object-contain p-3"
+                                                            className="w-full h-full object-cover"
                                                             onError={e => { e.currentTarget.style.display = 'none' }} />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center">
@@ -922,7 +939,7 @@ export default function CustomerOrder() {
                                                 className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
                                                 <div className="w-14 h-14 rounded-xl bg-[#e8f4fd] flex items-center justify-center shrink-0 overflow-hidden">
                                                     {imgSrc
-                                                        ? <img src={imgSrc} alt={item.product_name} className="w-full h-full object-contain p-1" />
+                                                        ? <img src={imgSrc} alt={item.product_name} className="w-full h-full object-cover" />
                                                         : <Droplets size={18} className="text-[#38bdf8]/50" />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">

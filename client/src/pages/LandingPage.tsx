@@ -11,10 +11,10 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
-// CONFIG
-const FB_PAGE_URL = "https://www.facebook.com/marklevi.roldan.5";
-const CONTACT_EMAIL = "aqualastech@gmail.com";
-const CONTACT_PHONE = "09672534800";
+// CONFIG — values from environment variables
+const FB_PAGE_URL = import.meta.env.VITE_FB_PAGE_URL as string;
+const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL as string;
+const CONTACT_PHONE = import.meta.env.VITE_CONTACT_PHONE as string;
 
 // Scroll reveal hook
 function useVisible(threshold = 0.12) {
@@ -97,22 +97,22 @@ const LandingPage = () => {
 
                 {/* Navbar */}
                 <nav className="hero-nav relative z-20 mx-3 mt-3 sm:mx-5 sm:mt-4
-                    flex items-center justify-between px-4 sm:px-6 md:px-8
-                    h-12 sm:h-14 md:h-16 rounded-2xl border border-white/20 shadow-xl shrink-0"
+                    flex items-center justify-between px-3 sm:px-6 md:px-8
+                    h-11 sm:h-14 md:h-16 rounded-2xl border border-white/20 shadow-xl shrink-0"
                     style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <img src={logo} alt="logo" className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 object-contain drop-shadow-lg" />
-                        <span className="font-bold text-white text-sm sm:text-base md:text-lg tracking-tight"
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
+                        <img src={logo} alt="logo" className="h-6 w-6 sm:h-8 sm:w-8 md:h-9 md:w-9 object-contain drop-shadow-lg shrink-0" />
+                        <span className="font-bold text-white text-xs sm:text-base md:text-lg tracking-tight truncate"
                             style={{ textShadow: "0 1px 8px rgba(0,30,80,0.4)" }}>AquaLasTech</span>
                     </div>
-                    <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         <button onClick={() => navigate("/login")}
-                            className="px-4 py-2 rounded-xl border border-white/30 whitespace-nowrap
-                            text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
+                            className="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-white/30 whitespace-nowrap
+                            text-[11px] sm:text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
                             style={{ color: "rgba(220,240,255,0.95)" }}>Log in</button>
                         <button onClick={() => navigate("/signup")}
-                            className="px-4 py-2 rounded-xl border border-white/30 whitespace-nowrap
-                            text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
+                            className="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-white/30 whitespace-nowrap
+                            text-[11px] sm:text-sm font-semibold bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
                             style={{ color: "rgba(220,240,255,0.95)" }}>Sign up</button>
                     </div>
                 </nav>

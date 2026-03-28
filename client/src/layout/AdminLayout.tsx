@@ -11,11 +11,110 @@ import {
     ChevronRight,
     Menu,
     X,
+    Bell,
+    CheckCheck,
+    Trash2,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import axios from 'axios'
 import logo from "../assets/aqualastech-logo-noBG.png"
 import { useStation } from '../hooks/useStation'
+
+// ── Admin Notification Types ──
+interface AdminNotif {
+    notification_id: number
+    message: string
+    notification_type: string
+    is_read: boolean | number
+    created_at: string
+}
+
+function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const m = Math.floor(diff / 60000)
+    if (m < 1) return 'just now'
+    if (m < 60) return `${m}m ago`
+    const h = Math.floor(m / 60)
+    if (h < 24) return `${h}h ago`
+    return `${Math.floor(h / 24)}d ago`
+}
+
+// Which page to navigate to when clicking a notification
+function notifLink(type: string) {
+    if (type === 'low_stock') return '/admin/inventory'
+    return '/admin/orders'
+}
+
+function AdminNotifPanel({ notifications, unreadCount, onClose, onMarkAllRead, onMarkOne, onDelete, onMouseMove, panelRef, onNavigate }: {
+    notifications: AdminNotif[]
+    unreadCount: number
+    onClose: () => void
+    onMarkAllRead: () => void
+    onMarkOne: (id: number) => void
+    onDelete: (e: React.MouseEvent, id: number) => void
+    onMouseMove: () => void
+    panelRef?: React.RefObject<HTMLDivElement | null>
+    onNavigate: (type: string) => void
+}) {
+    return createPortal(
+        <>
+            <div className="fixed inset-0 z-[199] bg-black/30" onClick={onClose} />
+            <div
+                ref={panelRef}
+                className="fixed top-[56px] inset-x-4 sm:inset-x-auto sm:right-4 sm:w-80 bg-white rounded-2xl border border-gray-200 shadow-2xl z-[200] overflow-hidden animate-slide-down"
+                onMouseMove={onMouseMove}
+                onScroll={onMouseMove}
+            >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                        <Bell size={14} className="text-[#0d2a4a]" />
+                        <span className="text-sm font-black text-gray-800">Notifications</span>
+                        {unreadCount > 0 && (
+                            <span className="text-[10px] font-black bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
+                                {unreadCount} new
+                            </span>
+                        )}
+                    </div>
+                    {unreadCount > 0 && (
+                        <button onClick={onMarkAllRead}
+                            className="flex items-center gap-1 text-[11px] font-bold text-[#38bdf8] hover:text-[#0ea5e9] transition-colors">
+                            <CheckCheck size={12} /> Mark all read
+                        </button>
+                    )}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2 py-10 text-gray-400">
+                            <Bell size={24} className="opacity-30" />
+                            <p className="text-xs">No notifications yet</p>
+                        </div>
+                    ) : (
+                        notifications.map(n => (
+                            <div key={n.notification_id}
+                                onClick={() => { onMarkOne(n.notification_id); onNavigate(n.notification_type); onClose() }}
+                                className={`relative flex items-start gap-3 px-4 pt-3 pb-7 border-b border-gray-50 cursor-pointer transition-colors
+                                    ${n.is_read ? 'hover:bg-gray-50' : 'bg-blue-50/60 hover:bg-blue-50'}`}>
+                                <div className="flex-1 min-w-0">
+                                    <p className={`text-xs leading-relaxed ${n.is_read ? 'text-gray-500' : 'text-gray-800 font-medium'}`}>
+                                        {n.message}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+                                </div>
+                                <button
+                                    onClick={e => onDelete(e, n.notification_id)}
+                                    className="absolute bottom-2 right-3 p-1 rounded-lg text-red-400 hover:bg-red-50 transition-colors">
+                                    <Trash2 size={11} />
+                                </button>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        </>,
+        document.body
+    )
+}
 
 const API = import.meta.env.VITE_API_URL
 
@@ -27,7 +126,6 @@ const baseNavItems = [
     { label: 'Point of Sale', to: '/admin/pos', icon: CircleDollarSign },
 ]
 
-// Settings only for super_admin
 const settingsNavItem = { label: 'Settings', to: '/admin/settings', icon: Settings }
 
 function useWindowSize() {
@@ -60,6 +158,60 @@ export default function AdminLayout() {
     const [loggingOut, setLoggingOut] = useState(false)
     const [showLogoutModal, setShowLogoutModal] = useState(false)
 
+    // Notifications
+    const [notifOpen, setNotifOpen] = useState(false)
+    const [notifications, setNotifications] = useState<AdminNotif[]>([])
+    const notifPanelRef = useRef<HTMLDivElement>(null)
+    const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const resetNotifTimer = useCallback(() => {
+        if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
+        notifTimerRef.current = setTimeout(() => setNotifOpen(false), 10000)
+    }, [])
+
+    const unreadCount = notifications.filter(n => !n.is_read).length
+
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API}/orders/notifications`, { withCredentials: true })
+            setNotifications(res.data)
+        } catch { /* ignore */ }
+    }, [])
+
+    useEffect(() => {
+        fetchNotifications()
+        const t = setInterval(fetchNotifications, 30000)
+        return () => clearInterval(t)
+    }, [fetchNotifications])
+
+    useEffect(() => {
+        if (notifOpen) resetNotifTimer()
+        else if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
+        return () => { if (notifTimerRef.current) clearTimeout(notifTimerRef.current) }
+    }, [notifOpen, resetNotifTimer])
+
+    const markAllRead = async () => {
+        try {
+            await axios.put(`${API}/orders/notifications/read-all`, {}, { withCredentials: true })
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+        } catch { /* ignore */ }
+    }
+
+    const markOneRead = async (id: number) => {
+        try {
+            await axios.put(`${API}/orders/notifications/${id}/read`, {}, { withCredentials: true })
+            setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, is_read: true } : n))
+        } catch { /* ignore */ }
+    }
+
+    const deleteNotif = async (e: React.MouseEvent, id: number) => {
+        e.stopPropagation()
+        try {
+            await axios.delete(`${API}/orders/notifications/${id}`, { withCredentials: true })
+            setNotifications(prev => prev.filter(n => n.notification_id !== id))
+        } catch { /* ignore */ }
+    }
+
     useEffect(() => { setDrawerOpen(false) }, [location.pathname])
 
     const sidebarIconOnly = isTablet || (isDesktop && collapsed)
@@ -67,9 +219,7 @@ export default function AdminLayout() {
 
     // Build nav items based on role
     const isSuperAdmin = user?.role === 'super_admin'
-    const navItems = isSuperAdmin
-        ? [...baseNavItems, settingsNavItem]
-        : baseNavItems
+    const navItems = [...baseNavItems, settingsNavItem]
 
     const handleLogout = async () => {
         setLoggingOut(true)
@@ -79,7 +229,7 @@ export default function AdminLayout() {
                 {},
                 { withCredentials: true }
             )
-        } catch (_) { /* proceed regardless */ } finally {
+        } catch { /* proceed regardless */ } finally {
             setUser(null)
             navigate('/login')
         }
@@ -200,6 +350,33 @@ export default function AdminLayout() {
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+                {/* Notification Bell */}
+                <div className="relative">
+                    <button
+                        onClick={() => { setNotifOpen(o => !o); fetchNotifications() }}
+                        className="relative p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-all"
+                    >
+                        <Bell size={18} />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center leading-none">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </button>
+                    {notifOpen && (
+                        <AdminNotifPanel
+                            notifications={notifications}
+                            unreadCount={unreadCount}
+                            onClose={() => setNotifOpen(false)}
+                            onMarkAllRead={markAllRead}
+                            onMarkOne={markOneRead}
+                            onDelete={deleteNotif}
+                            onMouseMove={resetNotifTimer}
+                            panelRef={notifPanelRef}
+                            onNavigate={type => navigate(notifLink(type))}
+                        />
+                    )}
+                </div>
                 <button
                     onClick={() => navigate('/admin/settings')}
                     title="Go to Settings"
@@ -245,7 +422,7 @@ export default function AdminLayout() {
 
                     {/* Station badge */}
                     {user?.station_id && (
-                        <div className="mx-3 mt-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-blue-200">
+                        <div className="mx-3 mt-3 px-3 py-2 rounded-lg bg-white/5 text-xs text-blue-200">
                             {stationLoading ? (
                                 <div className="flex flex-col gap-1.5">
                                     <div className="h-3 w-28 bg-white/10 rounded animate-pulse" />
@@ -264,7 +441,7 @@ export default function AdminLayout() {
 
                     {/* Role badge — shows super_admin label */}
                     {isSuperAdmin && (
-                        <div className="mx-3 mt-2 px-3 py-1 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
+                        <div className="mx-3 mt-2 px-3 py-1 rounded-lg bg-[#38bdf8]/10 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
                             SUPER ADMIN
                         </div>
                     )}
@@ -281,7 +458,7 @@ export default function AdminLayout() {
                             <LogOut size={18} className="shrink-0" />
                             <span>Logout</span>
                         </button>
-                        <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+                        <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5">
                             <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-[10px] font-bold shrink-0">
                                 {avatarSrc
                                     ? <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
@@ -352,7 +529,7 @@ export default function AdminLayout() {
 
                     {/* Station badge */}
                     {!sidebarIconOnly && user?.station_id && (
-                        <div className="mx-2 mb-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-blue-200">
+                        <div className="mx-2 mb-2 px-3 py-2 rounded-lg bg-white/5 text-xs text-blue-200">
                             {stationLoading ? (
                                 <div className="flex flex-col gap-1.5">
                                     <div className="h-3 w-28 bg-white/10 rounded animate-pulse" />
@@ -371,7 +548,7 @@ export default function AdminLayout() {
 
                     {/* Super admin badge */}
                     {!sidebarIconOnly && isSuperAdmin && (
-                        <div className="mx-2 mb-3 px-3 py-1 rounded-lg bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
+                        <div className="mx-2 mb-3 px-3 py-1 rounded-lg bg-[#38bdf8]/10 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
                             SUPER ADMIN
                         </div>
                     )}

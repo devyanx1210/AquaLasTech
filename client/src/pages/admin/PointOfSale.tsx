@@ -1,5 +1,5 @@
 ﻿// PointOfSale - walk-in customer transactions and payment processing
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
 import {
@@ -20,6 +20,7 @@ interface Product {
     quantity: number
     min_stock_level: number
     inventory_id: number
+    is_active: number
 }
 interface CartItem extends Product { qty: number }
 type PaymentMethod = 'cash' | 'gcash'
@@ -81,6 +82,25 @@ const InlineCalculator = () => {
         setDisplay(d => fresh ? val : (d === '0' && val !== '.' ? val : d + val))
         setFresh(false)
     }
+
+    const pressRef = useRef(press)
+    useEffect(() => { pressRef.current = press })
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const keyMap: Record<string, string> = {
+                '0':'0','1':'1','2':'2','3':'3','4':'4',
+                '5':'5','6':'6','7':'7','8':'8','9':'9',
+                '.':'.', ',':'.', '+':'+', '-':'-',
+                '*':'×', '/':'÷', '%':'%',
+                'Enter':'=', 'Backspace':'⌫', 'Escape':'AC',
+            }
+            const mapped = keyMap[e.key]
+            if (mapped) { e.preventDefault(); pressRef.current(mapped) }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [])
 
     const rows = [
         ['AC', '+/-', '%', '÷'],
@@ -294,7 +314,7 @@ export default function PointOfSale() {
         setLoading(true)
         try {
             const res = await axios.get(`${API}/inventory`, { withCredentials: true })
-            setProducts(res.data.filter((p: Product) => p.quantity > 0))
+            setProducts(res.data.filter((p: Product) => p.quantity > 0 && p.is_active))
         } catch { showToast('Failed to load products', 'error') }
         finally { setLoading(false) }
     }, [API])
@@ -448,11 +468,17 @@ export default function PointOfSale() {
                                             ? 'border-[#38bdf8] ring-2 ring-[#38bdf8]/25 scale-[0.97]'
                                             : 'border-gray-200 hover:border-[#38bdf8]/40'}`}>
 
-                                    {/* Stock badge */}
-                                    <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded-md text-[9px] font-bold z-10
-                                        ${p.quantity <= p.min_stock_level ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
-                                        {p.quantity}
-                                    </div>
+                                    {/* Stock badge — shows remaining stock after cart deduction */}
+                                    {(() => {
+                                        const inCart = cart.find(c => c.product_id === p.product_id)?.qty ?? 0
+                                        const available = p.quantity - inCart
+                                        return (
+                                            <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded-md text-[9px] font-bold z-10
+                                                ${available <= 0 ? 'bg-red-500 text-white' : available <= Number(p.min_stock_level) ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                {available}
+                                            </div>
+                                        )
+                                    })()}
 
                                     {/* Square image */}
                                     <div className="w-full aspect-square bg-gradient-to-br from-[#e8f4fd] to-[#d0e8f7] flex items-center justify-center overflow-hidden shrink-0">
@@ -690,7 +716,7 @@ export default function PointOfSale() {
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={clearCart}
-                                    className="px-4 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-red-100">
+                                    className="px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5">
                                     <X size={15} /> Clear
                                 </button>
                                 <button onClick={handlePlaceOrder}

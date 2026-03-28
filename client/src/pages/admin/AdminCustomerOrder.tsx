@@ -1,13 +1,14 @@
 ﻿// AdminCustomerOrder - view and manage incoming customer orders
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
 import {
     Search, Eye, CheckCircle2, XCircle,
-    Clock, Truck, RefreshCw, Loader2, ChevronDown,
+    Truck, RefreshCw, Loader2, ChevronDown,
     X, Droplets, ImageIcon, ExternalLink, RotateCcw,
     History, ShoppingBag, ChevronRight, Printer, Trash2,
+    Filter, CreditCard,
 } from 'lucide-react'
 import { FaMoneyBillWave, FaMobileAlt } from 'react-icons/fa'
 
@@ -33,6 +34,11 @@ interface Order {
     return_id: number | null
     item_count: number
     created_at: string
+    profile_picture: string | null
+    // Audit fields
+    pos_by_name: string | null
+    verified_by_name: string | null
+    return_processed_by_name: string | null
 }
 
 interface OrderDetail extends Order {
@@ -60,7 +66,6 @@ const formatDateParts = (d: string) => {
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any; btnBg: string }> = {
     confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2, btnBg: 'bg-blue-600' },
-    preparing: { label: 'Preparing', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock, btnBg: 'bg-amber-500' },
     out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck, btnBg: 'bg-purple-600' },
     cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle, btnBg: 'bg-red-500' },
     delivered: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2, btnBg: 'bg-emerald-600' },
@@ -68,10 +73,61 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
 }
 
 const PAY_CFG: Record<string, { label: string; color: string; bg: string; border: string; solidBg: string }> = {
-    pending: { label: 'Pending', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', solidBg: 'bg-amber-500' },
+    pending: { label: 'Unpaid', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', solidBg: 'bg-amber-500' },
     verified: { label: 'Paid', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', solidBg: 'bg-emerald-600' },
-    rejected: { label: 'Rejected', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', solidBg: 'bg-red-500' },
-    not_required: { label: 'COD', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200', solidBg: 'bg-gray-500' },
+    rejected: { label: 'Unpaid', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', solidBg: 'bg-red-500' },
+    not_required: { label: 'N/A', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200', solidBg: 'bg-gray-500' },
+}
+
+// Returns status display config — shows "Awaiting Payment" for unverified GCash orders
+const getStatusDisplay = (order: Pick<Order, 'payment_mode' | 'payment_status' | 'order_status'>) => {
+    if (order.payment_mode === 'gcash' && order.payment_status === 'pending') {
+        return { label: 'Awaiting Payment', btnBg: 'bg-amber-500', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: FaMobileAlt }
+    }
+    return STATUS_CFG[order.order_status] ?? STATUS_CFG.confirmed
+}
+
+// Compact icon-only dropdown for small screens, full label on desktop
+const CompactSelect = ({ value, onChange, options, icon: Icon, darkBg = false }: {
+    value: string; onChange: (v: string) => void
+    options: { value: string; label: string }[]
+    icon: any; darkBg?: boolean
+}) => {
+    const [open, setOpen] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
+    const isActive = value !== 'all'
+    const current = options.find(o => o.value === value)
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [])
+    return (
+        <div className="relative" ref={ref}>
+            <button onClick={() => setOpen(v => !v)}
+                className={`relative flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all
+                    ${darkBg ? 'bg-[#0d2a4a] text-white' : 'bg-white border border-gray-200 text-gray-700 shadow-sm'}`}>
+                <Icon size={13} />
+                <span className="hidden sm:inline whitespace-nowrap">{current?.label}</span>
+                <ChevronDown size={11} className="hidden sm:inline" />
+                {isActive && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-sky-400 sm:hidden" />}
+            </button>
+            {open && (
+                <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                    {options.map(o => (
+                        <button key={o.value}
+                            onClick={() => { onChange(o.value); setOpen(false) }}
+                            className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-gray-50
+                                ${o.value === value ? 'font-bold text-[#0d2a4a] bg-blue-50' : 'text-gray-700'}`}>
+                            {o.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
 }
 
 // buildDeliveryHtml - pure function, no side effects
@@ -181,13 +237,13 @@ const GCashModal = ({ order, onClose, onVerify, API }: {
                     {order.payment_status === 'pending' && order.proof_image_path && (
                         <div className="flex gap-2">
                             <button onClick={() => handle('rejected')} disabled={busy}
-                                className="flex-1 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold border border-red-100 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60">
-                                <XCircle size={13} /> Reject
+                                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all flex items-center justify-center disabled:opacity-60">
+                                Reject
                             </button>
                             <button onClick={() => handle('verified')} disabled={busy}
                                 className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-60">
-                                {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-                                Verify & Confirm
+                                {busy && <Loader2 size={13} className="animate-spin" />}
+                                Verify
                             </button>
                         </div>
                     )}
@@ -269,23 +325,23 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
     onStatusChange: (id: number, status: string) => Promise<void>
     onOpenGCash: () => void; onOpenReturn: () => void; API: string
 }) => {
-    const status = STATUS_CFG[order.order_status] ?? STATUS_CFG.confirmed
+    const status = getStatusDisplay(order)
     const payment = PAY_CFG[order.payment_status] ?? PAY_CFG.pending
     const [busy, setBusy] = useState(false)
     const { datePart, timePart } = formatDateParts(order.created_at)
 
     const nextStatuses: Record<string, string[]> = {
-        pending: ['confirmed', 'cancelled'],
-        confirmed: ['preparing', 'cancelled'],
+        confirmed: ['out_for_delivery', 'cancelled'],
         preparing: ['out_for_delivery', 'cancelled'],
         out_for_delivery: ['delivered', 'cancelled'],
         delivered: [],
         cancelled: [],
         returned: [],
     }
-    const available = nextStatuses[order.order_status] ?? []
     const isOnline = order.payment_mode === 'gcash'
     const needsGcashVerify = isOnline && order.payment_status === 'pending'
+    // Don't allow status changes until GCash is verified
+    const available = needsGcashVerify ? [] : nextStatuses[order.order_status] ?? []
     const hasReturn = !!order.return_id
 
     return (
@@ -318,10 +374,10 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
                         )}
                         {hasReturn && (
                             <button onClick={onOpenReturn}
-                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold border transition-all hover:opacity-80
-                                    ${order.return_status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                        order.return_status === 'rejected' ? 'bg-red-50 text-red-500 border-red-200' :
-                                            'bg-orange-50 text-orange-500 border-orange-200 animate-pulse'}`}>
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-all hover:opacity-80
+                                    ${order.return_status === 'approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                                        order.return_status === 'rejected' ? 'bg-red-50 text-red-500 border border-red-200' :
+                                            'bg-orange-50 text-orange-500 animate-pulse'}`}>
                                 <RotateCcw size={10} />
                                 Return · {order.return_status === 'pending' ? 'Review Required' :
                                     order.return_status === 'approved' ? 'Approved' :
@@ -332,9 +388,9 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
                     </div>
                     {needsGcashVerify && (
                         <button onClick={onOpenGCash}
-                            className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-semibold hover:bg-amber-100 transition-all">
+                            className="flex items-center gap-3 px-4 py-3 bg-amber-50 rounded-xl text-xs text-amber-700 font-semibold hover:bg-amber-100 transition-all">
                             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                            GCash payment pending verification — tap to review receipt
+                            GCash payment pending verification. Click here to review receipt.
                             <ChevronRight size={13} className="ml-auto shrink-0" />
                         </button>
                     )}
@@ -365,6 +421,35 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
                             <p className="text-sm font-black text-white">{fmt(order.total_amount)}</p>
                         </div>
                     </div>
+                    {/* Audit trail */}
+                    {(order.pos_by_name || order.verified_by_name || order.return_processed_by_name) && (
+                        <div className="rounded-xl border border-gray-100 overflow-hidden">
+                            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Processed By</p>
+                            </div>
+                            <div className="flex flex-col divide-y divide-gray-50">
+                                {order.pos_by_name && (
+                                    <div className="flex items-center justify-between px-4 py-2.5 text-xs">
+                                        <span className="text-gray-400">POS Transaction</span>
+                                        <span className="font-semibold text-gray-700">{order.pos_by_name}</span>
+                                    </div>
+                                )}
+                                {order.verified_by_name && (
+                                    <div className="flex items-center justify-between px-4 py-2.5 text-xs">
+                                        <span className="text-gray-400">GCash Verified by</span>
+                                        <span className="font-semibold text-gray-700">{order.verified_by_name}</span>
+                                    </div>
+                                )}
+                                {order.return_processed_by_name && (
+                                    <div className="flex items-center justify-between px-4 py-2.5 text-xs">
+                                        <span className="text-gray-400">Return {order.return_status === 'approved' ? 'Approved' : 'Rejected'} by</span>
+                                        <span className="font-semibold text-gray-700">{order.return_processed_by_name}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {available.length > 0 && (
                         <div className="flex flex-col gap-2">
                             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Update Status</p>
@@ -391,14 +476,17 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
 }
 
 // Order Row
-const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0 }: {
-    order: Order; onOpen: () => void; delay?: number
+const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0, API }: {
+    order: Order; onOpen: () => void; delay?: number; API: string
     showCheckbox?: boolean; isSelected?: boolean; onToggle?: () => void
 }) => {
-    const status = STATUS_CFG[order.order_status] ?? STATUS_CFG.confirmed
+    const status = getStatusDisplay(order)
     const payment = PAY_CFG[order.payment_status] ?? PAY_CFG.pending
     const isGcashPending = order.payment_mode === 'gcash' && order.payment_status === 'pending'
     const { datePart, timePart } = formatDateParts(order.created_at)
+    const avatarSrc = order.profile_picture
+        ? (order.profile_picture.startsWith('http') ? order.profile_picture : `${API}${order.profile_picture}`)
+        : null
 
     return (
         <tr className={`animate-fade-in-up transition-colors cursor-pointer border-b border-gray-100 last:border-0 ${isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/30'}`} style={{ animationDelay: `${delay}ms` }} onClick={onOpen}>
@@ -409,26 +497,27 @@ const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0
                         className="w-4 h-4 rounded accent-[#0d2a4a] cursor-pointer" />
                 </td>
             )}
-            {/* Order ref */}
+            {/* Customer — first column */}
             <td className="px-4 py-3.5 border-r border-gray-100">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-[#e8f4fd] flex items-center justify-center shrink-0">
-                        <Droplets size={14} className="text-[#38bdf8]" />
+                    <div className="w-8 h-8 rounded-full bg-[#e8f4fd] flex items-center justify-center shrink-0 overflow-hidden border border-gray-100">
+                        {avatarSrc
+                            ? <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
+                            : <Droplets size={13} className="text-[#38bdf8]" />}
                     </div>
-                    <div>
-                        <p className="font-bold text-gray-800 text-xs font-mono leading-tight">{order.order_reference}</p>
-                        <p className="text-[10px] text-gray-400">{order.item_count} item(s)</p>
+                    <div className="min-w-0">
+                        <p className="font-semibold text-gray-800 text-xs leading-tight truncate">{order.customer_name || 'Walk-in'}</p>
+                        {order.customer_address
+                            ? <p className="text-[10px] text-gray-500 leading-tight mt-0.5 max-w-[120px] truncate">{order.customer_address}</p>
+                            : <p className="text-[10px] text-gray-400 truncate max-w-[110px]">{order.customer_email || '—'}</p>}
                     </div>
                 </div>
             </td>
 
-            {/* Customer */}
+            {/* Order ref */}
             <td className="px-4 py-3.5 border-r border-gray-100">
-                <p className="font-semibold text-gray-800 text-xs leading-tight">{order.customer_name || 'Walk-in'}</p>
-                {order.customer_address
-                    ? <p className="text-[10px] text-gray-500 leading-tight mt-0.5 max-w-[140px] break-words">{order.customer_address}</p>
-                    : <p className="text-[10px] text-gray-400 truncate max-w-[110px]">{order.customer_email || '—'}</p>
-                }
+                <p className="font-bold text-gray-800 text-xs font-mono leading-tight">{order.order_reference}</p>
+                <p className="text-[10px] text-gray-400">{order.item_count} item(s)</p>
             </td>
 
             {/* Date — two lines so it never squishes */}
@@ -643,10 +732,6 @@ export default function AdminCustomerOrder() {
             return s
         })
 
-    const statuses = ['all', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled', 'returned', 'returned_cancelled']
-    const pendingGcash = orders.filter(o => o.payment_mode === 'gcash' && o.payment_status === 'pending').length
-    const pendingReturns = orders.filter(o => o.return_status === 'pending').length
-
     // Client-side filter for 'returned_cancelled' pseudo-status
     const displayed = filterStatus === 'returned_cancelled'
         ? orders.filter(o => o.order_status === 'returned' || o.order_status === 'cancelled')
@@ -655,79 +740,32 @@ export default function AdminCustomerOrder() {
     const allSelected = displayed.length > 0 && displayed.every(o => selectedIds.has(o.order_id))
     const someSelected = selectedIds.size > 0
 
-    // Select mode is only available when filtered to a specific status (not "all active")
-    const canSelect = view === 'history' || (view === 'active' && ['preparing', 'out_for_delivery'].includes(filterStatus))
-
-    // Auto-exit select mode if current filter no longer supports it
-    useEffect(() => {
-        if (!canSelect) { setSelectMode(false); setSelectedIds(new Set()) }
-    }, [canSelect])
-
     return (
         <div className="flex flex-col gap-4 pb-10">
 
             {/* Header */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
+            <div className="flex items-center gap-3">
+                <div className="min-w-0">
                     <h1 className="text-xl font-bold text-gray-800">Orders</h1>
                     <p className="text-xs text-gray-400 mt-0.5">Customer orders for your station</p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {pendingGcash > 0 && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-xl whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                            {pendingGcash} GCash pending
-                        </span>
-                    )}
-                    {pendingReturns > 0 && (
-                        <button
-                            onClick={() => { setView('history'); setFilterStatus('returned_cancelled') }}
-                            className="flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-1.5 rounded-xl whitespace-nowrap hover:bg-orange-100 transition-colors"
-                        >
-                            <RotateCcw size={10} /> {pendingReturns} return(s)
-                        </button>
-                    )}
+                <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
                     <span className="text-sm font-bold text-[#0d2a4a] bg-white border border-gray-100 px-3 py-1.5 rounded-xl shadow-sm whitespace-nowrap">
                         {displayed.length} orders
                     </span>
-                    {canSelect && (selectMode ? (
-                        <>
-                            {filterStatus === 'preparing' && someSelected && (
-                                <button
-                                    onClick={() => handleBulkStatusChange('out_for_delivery')}
-                                    disabled={bulkUpdating}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap disabled:opacity-60">
-                                    {bulkUpdating ? <Loader2 size={13} className="animate-spin" /> : <Truck size={13} />} Out for Delivery ({selectedIds.size})
-                                </button>
-                            )}
-                            {filterStatus === 'out_for_delivery' && someSelected && (
-                                <button
-                                    onClick={() => handleBulkStatusChange('delivered')}
-                                    disabled={bulkUpdating}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap disabled:opacity-60">
-                                    {bulkUpdating ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Mark Delivered ({selectedIds.size})
-                                </button>
-                            )}
-                            {view === 'history' && someSelected && (
-                                <button
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap">
-                                    <Trash2 size={13} /> Delete ({selectedIds.size})
-                                </button>
-                            )}
-                            <button
-                                onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold transition-all shadow-sm whitespace-nowrap">
-                                <X size={13} /> Cancel
-                            </button>
-                        </>
+                    {selectMode ? (
+                        <button
+                            onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-bold transition-all shadow-sm whitespace-nowrap">
+                            <X size={13} /> Cancel Select
+                        </button>
                     ) : (
                         <button
                             onClick={() => setSelectMode(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold transition-all shadow-sm whitespace-nowrap">
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-bold transition-all shadow-sm whitespace-nowrap">
                             Select
                         </button>
-                    ))}
+                    )}
                     <button
                         onClick={handlePrint}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap">
@@ -740,47 +778,83 @@ export default function AdminCustomerOrder() {
             </div>
 
             {/* View toggle + filters */}
-            <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
-                    <button onClick={() => { setView('active'); setFilterStatus('all'); setSelectedIds(new Set()); setSelectMode(false) }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all
-                            ${view === 'active' ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                        <ShoppingBag size={12} /> Active
-                    </button>
-                    <button onClick={() => { setView('history'); setFilterStatus('all'); setSelectedIds(new Set()); setSelectMode(false) }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all
-                            ${view === 'history' ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                        <History size={12} /> History
-                    </button>
+            <div className="flex flex-col gap-2">
+                {/* Mobile: Active/History on top, search+filters below. Desktop: single row */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm shrink-0 self-start sm:self-auto">
+                        <button onClick={() => { setView('active'); setFilterStatus('all'); setSelectedIds(new Set()); setSelectMode(false) }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all
+                                ${view === 'active' ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                            <ShoppingBag size={12} /> Active
+                        </button>
+                        <button onClick={() => { setView('history'); setFilterStatus('all'); setSelectedIds(new Set()); setSelectMode(false) }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all
+                                ${view === 'history' ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                            <History size={12} /> History
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="relative flex-1 min-w-0">
+                            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input placeholder="Search order or customer..."
+                                value={search} onChange={e => setSearch(e.target.value)}
+                                className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:border-[#38bdf8] focus:ring-2 focus:ring-[#38bdf8]/15 transition-all shadow-sm" />
+                        </div>
+                        <CompactSelect
+                            value={filterStatus}
+                            onChange={setFilterStatus}
+                            icon={Filter}
+                            darkBg
+                            options={[
+                                { value: 'all', label: 'All Status' },
+                                { value: 'confirmed', label: 'Confirmed' },
+                                { value: 'out_for_delivery', label: 'Out for Delivery' },
+                                { value: 'delivered', label: 'Delivered' },
+                                { value: 'cancelled', label: 'Cancelled' },
+                                { value: 'returned', label: 'Returned' },
+                                { value: 'returned_cancelled', label: 'Returns & Cancelled' },
+                            ]}
+                        />
+                        <CompactSelect
+                            value={filterPayment}
+                            onChange={setFilterPayment}
+                            icon={CreditCard}
+                            options={[
+                                { value: 'all', label: 'All Types' },
+                                { value: 'gcash', label: 'GCash' },
+                                { value: 'cash_on_delivery', label: 'Cash on Delivery' },
+                                { value: 'cash_on_pickup', label: 'Cash on Pickup' },
+                                { value: 'cash', label: 'Cash' },
+                            ]}
+                        />
+                    </div>
                 </div>
-                <div className="relative flex-1 min-w-[180px]">
-                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input placeholder="Search order or customer..."
-                        value={search} onChange={e => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-[#38bdf8] focus:ring-2 focus:ring-[#38bdf8]/15 transition-all shadow-sm" />
-                </div>
-                <div className="relative">
-                    <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                        className="appearance-none pl-4 pr-9 py-2.5 bg-[#0d2a4a] text-white text-xs font-semibold rounded-xl border-0 outline-none cursor-pointer">
-                        {statuses.map(s => (
-                            <option key={s} value={s}>
-                                {s === 'all' ? 'All Status' : s === 'returned_cancelled' ? 'Returns & Cancelled' : STATUS_CFG[s]?.label}
-                            </option>
-                        ))}
-                    </select>
-                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" />
-                </div>
-                <div className="relative">
-                    <select value={filterPayment} onChange={e => setFilterPayment(e.target.value)}
-                        className="appearance-none pl-4 pr-9 py-2.5 bg-white border border-gray-200 text-gray-700 text-xs font-semibold rounded-xl outline-none cursor-pointer shadow-sm">
-                        <option value="all">All Types</option>
-                        <option value="gcash">GCash</option>
-                        <option value="cash_on_delivery">Cash on Delivery</option>
-                        <option value="cash_on_pickup">Cash on Pickup</option>
-                        <option value="cash">Cash</option>
-                    </select>
-                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                </div>
+
+                {/* Bulk action buttons — own row below filters */}
+                {selectMode && someSelected && (
+                    <div className="flex gap-2 flex-wrap">
+                        {filterStatus === 'confirmed' && (
+                            <button onClick={() => handleBulkStatusChange('out_for_delivery')} disabled={bulkUpdating}
+                                className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all whitespace-nowrap disabled:opacity-60">
+                                {bulkUpdating ? <Loader2 size={13} className="animate-spin inline mr-1" /> : null}
+                                Mark as Out for Delivery ({selectedIds.size})
+                            </button>
+                        )}
+                        {filterStatus === 'out_for_delivery' && (
+                            <button onClick={() => handleBulkStatusChange('delivered')} disabled={bulkUpdating}
+                                className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all whitespace-nowrap disabled:opacity-60">
+                                {bulkUpdating ? <Loader2 size={13} className="animate-spin inline mr-1" /> : null}
+                                Mark as Delivered ({selectedIds.size})
+                            </button>
+                        )}
+                        {view === 'history' && (
+                            <button onClick={() => setShowDeleteConfirm(true)}
+                                className="px-3 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all whitespace-nowrap">
+                                Delete ({selectedIds.size})
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Orders Table */}
@@ -813,7 +887,7 @@ export default function AdminCustomerOrder() {
                                                 className="w-4 h-4 rounded accent-[#0d2a4a] cursor-pointer" />
                                         </th>
                                     )}
-                                    {['Order', 'Customer', 'Date', 'Type', 'Total', 'Payment', 'Status', ''].map((h, i) => (
+                                    {['Customer', 'Order', 'Date', 'Type', 'Total', 'Payment', 'Status', ''].map((h, i) => (
                                         <th key={i} className={`px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-left whitespace-nowrap
                                             ${i < 7 ? 'border-r border-gray-200' : ''}`}>
                                             {h}
@@ -831,6 +905,7 @@ export default function AdminCustomerOrder() {
                                         showCheckbox={selectMode}
                                         isSelected={selectedIds.has(order.order_id)}
                                         onToggle={() => toggleSelect(order.order_id)}
+                                        API={API}
                                     />
                                 ))}
                             </tbody>

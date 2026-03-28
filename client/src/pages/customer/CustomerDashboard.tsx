@@ -66,7 +66,7 @@ function StationCard({ station, selected, onSelect, onNavigate, API }: {
         <div
             onClick={handleTap}
             className={`
-                rounded-2xl border overflow-hidden shadow-sm transition-all duration-200
+                rounded-2xl border overflow-hidden shadow-sm transition-all duration-200 flex flex-col h-full
                 ${hasStock
                     ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]'
                     : 'opacity-60 cursor-not-allowed'}
@@ -112,7 +112,7 @@ function StationCard({ station, selected, onSelect, onNavigate, API }: {
             </div>
 
             {/* Info */}
-            <div className={`px-4 py-3 ${selected ? 'bg-[#0d2a4a]' : 'bg-white'}`}>
+            <div className={`px-4 py-3 flex flex-col flex-1 ${selected ? 'bg-[#0d2a4a]' : 'bg-white'}`}>
                 <p className={`text-sm font-bold leading-tight mb-1 ${selected ? 'text-white' : 'text-gray-800'}`}>
                     {station.station_name}
                 </p>
@@ -126,7 +126,7 @@ function StationCard({ station, selected, onSelect, onNavigate, API }: {
                     </p>
                 )}
                 {!station.complete_address && <div className="mb-3" />}
-                <div className={`w-full py-2 rounded-xl text-xs font-bold text-center transition-all
+                <div className={`mt-auto w-full py-2 rounded-xl text-xs font-bold text-center transition-all
                     ${selected
                         ? 'bg-[#38bdf8] text-[#0d2a4a]'
                         : hasStock
@@ -235,7 +235,7 @@ export default function CustomerDashboard() {
 
             {/* No address banner — soft suggestion, not a blocker */}
             {!hasAddress && (
-                <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-blue-50 border border-blue-100">
+                <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-blue-50">
                     <AlertTriangle size={15} className="text-blue-400 shrink-0" />
                     <p className="text-xs text-blue-700 flex-1">
                         Set your address in <strong>Settings</strong> to see the nearest station to you.

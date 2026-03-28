@@ -5,6 +5,7 @@ import path from 'path'
 import fs from 'fs'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
+import { TRANSACTION_TYPE, NOTIFICATION_TYPE } from '../constants/dbEnums.js'
 
 const router = express.Router()
 router.use(verifyToken)
@@ -121,6 +122,8 @@ router.delete('/products/:id', async (req, res) => {
 // PUT /inventory/products/:id — Edit product details
 router.put('/products/:id', async (req, res) => {
     const { id } = req.params
+    const user = (req as any).user
+    const station_id = user.station_id
     const { product_name, description, price, unit, image_url, is_active, min_stock_level } = req.body
 
     try {
@@ -133,9 +136,12 @@ router.put('/products/:id', async (req, res) => {
         )
 
         if (min_stock_level !== undefined) {
+            // Upsert so it works even if no inventory row exists yet for this product
             await db.query(
-                `UPDATE inventory SET min_stock_level=? WHERE product_id=?`,
-                [min_stock_level, id]
+                `INSERT INTO inventory (station_id, product_id, quantity, min_stock_level, last_updated)
+                 VALUES (?, ?, 0, ?, NOW())
+                 ON DUPLICATE KEY UPDATE min_stock_level = VALUES(min_stock_level), last_updated = NOW()`,
+                [station_id, id, min_stock_level]
             )
         }
 
@@ -166,8 +172,8 @@ router.post('/restock', async (req, res) => {
 
         await db.query(
             `INSERT INTO inventory_transactions (inventory_id, station_id, product_id, transaction_type, quantity, notes, created_at)
-             VALUES (?, ?, ?, 'restock', ?, ?, NOW())`,
-            [inventory_id, station_id, product_id, quantity, notes ?? null]
+             VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+            [inventory_id, station_id, product_id, TRANSACTION_TYPE.RESTOCK, quantity, notes ?? null]
         )
 
         const [inv]: any = await db.query(
@@ -182,9 +188,63 @@ router.post('/restock', async (req, res) => {
     }
 })
 
-// POST /inventory/check-low-stock
-router.post('/check-low-stock', async (_req, res) => {
-    return res.json({ low_stock_count: 0 })
+// POST /inventory/check-low-stock — scan inventory and notify admins of low stock items
+router.post('/check-low-stock', async (req, res) => {
+    const user = (req as any).user
+    const station_id = user.station_id
+    if (!station_id) return res.json({ low_stock_count: 0 })
+
+    try {
+        const db = await connectToDatabase()
+
+        // Get all low/out-of-stock items for this station
+        const [lowItems]: any = await db.query(
+            `SELECT i.inventory_id, i.quantity, i.min_stock_level, p.product_name
+             FROM inventory i
+             JOIN products p ON p.product_id = i.product_id
+             WHERE i.station_id = ? AND i.quantity <= i.min_stock_level AND p.is_active = 1`,
+            [station_id]
+        )
+
+        if (lowItems.length === 0) return res.json({ low_stock_count: 0 })
+
+        // Get all admins for this station
+        const [stationAdmins]: any = await db.query(
+            `SELECT u.user_id FROM admins sp
+             JOIN users u ON u.user_id = sp.user_id AND u.role IN (2, 3)
+             WHERE sp.station_id = ?`,
+            [station_id]
+        )
+
+        for (const item of lowItems) {
+            const msg = item.quantity === 0
+                ? `${item.product_name} is out of stock.`
+                : `${item.product_name} is running low — only ${item.quantity} left.`
+
+            for (const admin of stationAdmins) {
+                // Only insert if no unread notification for this item exists today
+                const [existing]: any = await db.query(
+                    `SELECT notification_id FROM notifications
+                     WHERE user_id = ? AND message = ? AND is_read = 0
+                       AND created_at >= CURDATE()
+                     LIMIT 1`,
+                    [admin.user_id, msg]
+                )
+                if (existing.length === 0) {
+                    await db.query(
+                        `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+                         VALUES (?, ?, ?, ?, 0, NOW())`,
+                        [admin.user_id, station_id, msg, NOTIFICATION_TYPE.INVENTORY_ALERT]
+                    )
+                }
+            }
+        }
+
+        return res.json({ low_stock_count: lowItems.length })
+    } catch (err) {
+        console.error('POST /inventory/check-low-stock error:', err)
+        return res.json({ low_stock_count: 0 })
+    }
 })
 
 export default router

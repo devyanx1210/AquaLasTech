@@ -17,11 +17,11 @@ interface LogEntry {
 }
 
 const EVENT_CFG: Record<string, { label: string; icon: any; color: string; bg: string; badge: string }> = {
-    login:           { label: 'Login',           icon: LogIn,      color: 'text-blue-600',    bg: 'bg-blue-50',    badge: 'bg-blue-500' },
-    station_created: { label: 'Station',         icon: Building2,  color: 'text-emerald-600', bg: 'bg-emerald-50', badge: 'bg-emerald-500' },
-    station_deleted: { label: 'Station Deleted', icon: Building2,  color: 'text-red-600',     bg: 'bg-red-50',     badge: 'bg-red-500' },
-    admin_created:   { label: 'Admin Created',   icon: UserPlus,   color: 'text-purple-600',  bg: 'bg-purple-50',  badge: 'bg-purple-500' },
-    logs_cleared:    { label: 'Logs Cleared',    icon: Trash2,     color: 'text-orange-600',  bg: 'bg-orange-50',  badge: 'bg-orange-500' },
+    login: { label: 'Login', icon: LogIn, color: 'text-blue-600', bg: 'bg-blue-50', badge: 'bg-blue-500' },
+    station_created: { label: 'Station', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50', badge: 'bg-emerald-500' },
+    station_deleted: { label: 'Station Deleted', icon: Building2, color: 'text-red-600', bg: 'bg-red-50', badge: 'bg-red-500' },
+    admin_created: { label: 'Admin Created', icon: UserPlus, color: 'text-purple-600', bg: 'bg-purple-50', badge: 'bg-purple-500' },
+    logs_cleared: { label: 'Logs Cleared', icon: Trash2, color: 'text-orange-600', bg: 'bg-orange-50', badge: 'bg-orange-500' },
 }
 
 const getCfg = (type: string) =>

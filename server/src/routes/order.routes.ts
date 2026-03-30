@@ -3,17 +3,17 @@ import express from 'express'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
 import {
-  ORDER_STATUS,
-  PAYMENT_STATUS,
-  PAYMENT_MODE,
-  NOTIFICATION_TYPE,
-  RETURN_STATUS,
-  PAYMENT_MODE_NAMES,
-  VALID_ORDER_STATUSES,
-  VALID_PAYMENT_STATUSES,
-  VALID_RETURN_STATUSES,
-  isFinalOrderStatus,
-  getEnumName,
+    ORDER_STATUS,
+    PAYMENT_STATUS,
+    PAYMENT_MODE,
+    NOTIFICATION_TYPE,
+    RETURN_STATUS,
+    PAYMENT_MODE_NAMES,
+    VALID_ORDER_STATUSES,
+    VALID_PAYMENT_STATUSES,
+    VALID_RETURN_STATUSES,
+    isFinalOrderStatus,
+    getEnumName,
 } from '../constants/dbEnums.js'
 
 // Maps string names sent by the frontend to DB TINYINT values
@@ -40,17 +40,17 @@ const PAYMENT_MODE_MAP: Record<string, number> = {
 const router = express.Router()
 router.use(verifyToken)
 
-// Ensure required columns exist
-;(async () => {
-    const db = await connectToDatabase()
-    for (const sql of [
-        `ALTER TABLE orders ADD COLUMN customer_name VARCHAR(100) NULL`,
-        `ALTER TABLE orders ADD COLUMN customer_address VARCHAR(500) NULL`,
-        `ALTER TABLE orders ADD COLUMN customer_complete_address VARCHAR(500) NULL`,
-        `ALTER TABLE orders ADD COLUMN hidden_at DATETIME NULL`,
-        `ALTER TABLE order_returns ADD COLUMN processed_by INT NULL`,
-    ]) { try { await db.query(sql) } catch { /* already exists */ } }
-})()
+    // Ensure required columns exist
+    ; (async () => {
+        const db = await connectToDatabase()
+        for (const sql of [
+            `ALTER TABLE orders ADD COLUMN customer_name VARCHAR(100) NULL`,
+            `ALTER TABLE orders ADD COLUMN customer_address VARCHAR(500) NULL`,
+            `ALTER TABLE orders ADD COLUMN full_address VARCHAR(500) NULL`,
+            `ALTER TABLE orders ADD COLUMN hidden_at DATETIME NULL`,
+            `ALTER TABLE order_returns ADD COLUMN processed_by INT NULL`,
+        ]) { try { await db.query(sql) } catch { /* already exists */ } }
+    })()
 
 // DELETE /orders/history — clear all history orders for the station (must be before /:id)
 router.delete('/history', async (req, res) => {
@@ -104,7 +104,7 @@ router.get('/', async (req, res) => {
                 u.phone_number AS customer_contact,
                 u.profile_picture,
                 COALESCE(o.customer_address, cp.address) AS customer_address,
-                COALESCE(o.customer_complete_address, cp.complete_address) AS customer_complete_address,
+                COALESCE(o.full_address, cp.complete_address) AS full_address,
                 p.payment_type,
                 CASE p.payment_status
                     WHEN 1 THEN 'pending' WHEN 2 THEN 'verified' WHEN 3 THEN 'rejected' ELSE 'pending'
@@ -146,12 +146,12 @@ router.get('/', async (req, res) => {
                 OR (DATE(o.created_at) < CURDATE() AND o.order_status IN (?, ?, ?))
             )`
             params.push(
-              ORDER_STATUS.CANCELLED,
-              ORDER_STATUS.DELIVERED,
-              ORDER_STATUS.RETURNED,
-              ORDER_STATUS.CONFIRMED,
-              ORDER_STATUS.PREPARING,
-              ORDER_STATUS.OUT_FOR_DELIVERY,
+                ORDER_STATUS.CANCELLED,
+                ORDER_STATUS.DELIVERED,
+                ORDER_STATUS.RETURNED,
+                ORDER_STATUS.CONFIRMED,
+                ORDER_STATUS.PREPARING,
+                ORDER_STATUS.OUT_FOR_DELIVERY,
             )
         }
 
@@ -239,7 +239,6 @@ router.delete('/notifications/:nid', async (req, res) => {
     }
 })
 
-// ─────────────────────────────────────────────────────────
 
 // GET /orders/:id — single order with items
 router.get('/:id', async (req, res) => {
@@ -250,7 +249,7 @@ router.get('/:id', async (req, res) => {
         const [orders]: any = await db.query(
             `SELECT
                 o.order_id, o.order_reference, o.total_amount, o.created_at, o.updated_at,
-                o.customer_name, o.customer_address, o.customer_complete_address,
+                o.customer_name, o.customer_address, o.full_address,
                 o.station_id, o.user_id,
                 CASE o.order_status
                     WHEN 1 THEN 'confirmed' WHEN 2 THEN 'preparing'

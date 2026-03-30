@@ -50,7 +50,7 @@ async function searchGeocode(query: string): Promise<GeoResult[]> {
     } catch { return [] }
 }
 
-// Reverse geocode via OpenStreetMap Nominatim
+// Turns geocode into humnan readable address
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
         const res = await fetch(
@@ -94,7 +94,7 @@ const Field = ({ label, icon, error, className = '', ...props }: {
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</label>
         <div className="relative">
             {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>}
-            <input {...props} className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${icon ? 'pl-10 pr-4 py-2.5' : 'px-4 py-2.5'} ${error ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'} disabled:opacity-40 disabled:cursor-not-allowed`} />
+            <input {...props} className={`w-full bg-white border rounded-xl text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all duration-200 ${icon ? 'pl-10 pr-4 py-2.5' : 'px-4 py-2.5'} ${error ? 'border-red-400 bg-red-50' : 'border-[#0d2a4a]/40 hover:border-[#0d2a4a]'} disabled:opacity-40 disabled:cursor-not-allowed`} />
         </div>
         {error && <p className="text-[10px] text-red-500 font-medium">{error}</p>}
     </div>
@@ -680,7 +680,7 @@ export default function AdminSettings() {
                                 onChange={e => handleAddressChange(e.target.value)}
                                 disabled={geocoding}
                                 autoComplete="off"
-                                className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-8 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${stationErrors.address ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'} ${geocoding ? 'opacity-60' : ''}`}
+                                className={`w-full bg-white border rounded-xl text-sm text-gray-800 placeholder:text-gray-400 outline-none pl-10 pr-8 py-2.5 focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all duration-200 ${stationErrors.address ? 'border-red-400 bg-red-50' : 'border-[#0d2a4a]/40 hover:border-[#0d2a4a]'} ${geocoding ? 'opacity-60' : ''}`}
                             />
                             {geoSearching && (
                                 <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#38bdf8] animate-spin" />
@@ -773,7 +773,7 @@ export default function AdminSettings() {
                             value={stationForm.complete_address}
                             onChange={e => setStationForm(f => ({ ...f, complete_address: e.target.value }))}
                             autoComplete="off"
-                            className="w-full bg-gray-50 border border-gray-200 hover:border-gray-300 rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none px-4 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200"
+                            className="w-full bg-white border border-[#0d2a4a]/40 hover:border-[#0d2a4a] rounded-xl text-sm text-gray-800 placeholder:text-gray-400 outline-none px-4 py-2.5 focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all duration-200"
                         />
                         <p className="text-[10px] text-gray-400">Specific address details shown to customers on the station card.</p>
                     </div>
@@ -902,7 +902,7 @@ export default function AdminSettings() {
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Lock size={14} /></span>
-                                    <input type={showPw ? 'text' : 'password'} placeholder="Min. 6 characters" value={adminForm.password} onChange={e => setAdminForm(f => ({ ...f, password: e.target.value }))} className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-10 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${adminErrors.password ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`} />
+                                    <input type={showPw ? 'text' : 'password'} placeholder="Min. 6 characters" value={adminForm.password} onChange={e => setAdminForm(f => ({ ...f, password: e.target.value }))} className={`w-full bg-white border rounded-xl text-sm text-gray-800 placeholder:text-gray-400 outline-none pl-10 pr-10 py-2.5 focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all duration-200 ${adminErrors.password ? 'border-red-400 bg-red-50' : 'border-[#0d2a4a]/40 hover:border-[#0d2a4a]'}`} />
                                     <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showPw ? <EyeOff size={14} /> : <Eye size={14} />}</button>
                                 </div>
                                 {adminErrors.password && <p className="text-[10px] text-red-500 font-medium">{adminErrors.password}</p>}
@@ -912,7 +912,7 @@ export default function AdminSettings() {
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Confirm Password</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Lock size={14} /></span>
-                                    <input type={showCpw ? 'text' : 'password'} placeholder="Re-enter password" value={adminForm.confirm} onChange={e => setAdminForm(f => ({ ...f, confirm: e.target.value }))} className={`w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none pl-10 pr-10 py-2.5 focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all duration-200 ${adminErrors.confirm ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`} />
+                                    <input type={showCpw ? 'text' : 'password'} placeholder="Re-enter password" value={adminForm.confirm} onChange={e => setAdminForm(f => ({ ...f, confirm: e.target.value }))} className={`w-full bg-white border rounded-xl text-sm text-gray-800 placeholder:text-gray-400 outline-none pl-10 pr-10 py-2.5 focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all duration-200 ${adminErrors.confirm ? 'border-red-400 bg-red-50' : 'border-[#0d2a4a]/40 hover:border-[#0d2a4a]'}`} />
                                     <button type="button" onClick={() => setShowCpw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showCpw ? <EyeOff size={14} /> : <Eye size={14} />}</button>
                                 </div>
                                 {adminErrors.confirm && <p className="text-[10px] text-red-500 font-medium">{adminErrors.confirm}</p>}

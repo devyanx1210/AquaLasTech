@@ -1,7 +1,7 @@
 ﻿import { connectToDatabase } from '../config/db.js'
 
 /**
- * 🌱 AquaLasTech — Seed Sample Orders
+ * AquaLasTech — Seed Sample Orders
  * Run: npm run seed:orders
  *
  * Creates sample orders + order_items + payments + pos_transactions
@@ -9,7 +9,7 @@
  */
 
 async function seedOrders() {
-    console.log('\n🌱 Seeding sample orders...\n')
+    console.log('\nSeeding sample orders...\n')
     const db = await connectToDatabase()
 
     // Config — change these to match your DB

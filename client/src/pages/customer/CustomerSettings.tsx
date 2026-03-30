@@ -83,10 +83,10 @@ const Section = ({ title, subtitle, icon, children, delay = 0 }: {
     </div>
 )
 
-const inputCls = `w-full bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800
-    placeholder:text-gray-300 outline-none px-4 py-2.5
-    focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15
-    hover:border-gray-300 transition-all duration-200`
+const inputCls = `w-full bg-white border border-[#0d2a4a]/40 rounded-xl text-sm text-gray-800
+    placeholder:text-gray-400 outline-none px-4 py-2.5
+    focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#0d2a4a]/10
+    hover:border-[#0d2a4a] transition-all duration-200`
 
 export default function CustomerSettings() {
     const { user, setUser } = useAuth()
@@ -584,7 +584,7 @@ export default function CustomerSettings() {
                             <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input type={showPw ? 'text' : 'password'}
                                 value={currentPw} onChange={e => setCurrentPw(e.target.value)}
-                                className={`${inputCls} pl-9 pr-10`} placeholder="••••••••" />
+                                className={`${inputCls} pl-9 pr-10`} placeholder="Current password" />
                             <button onClick={() => setShowPw(s => !s)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                 {showPw ? <EyeOff size={14} /> : <Eye size={14} />}

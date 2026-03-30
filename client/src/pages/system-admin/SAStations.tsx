@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
 import axios from 'axios'
 import {
     Building2, Plus, Loader2, X, CheckCircle2, AlertCircle,
-    MapPin, Phone, User, Mail, Lock, Navigation, Trash2, Search,
+    MapPin, Phone, User, Mail, Lock, Navigation, Trash2, Search, Wrench,
 } from 'lucide-react'
 
 const LocationMap = lazy(() => import('../../components/LocationMap'))
@@ -28,8 +28,8 @@ interface ToastData { message: string; type: 'success' | 'error' }
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
     return (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-sm font-medium
-            ${toast.type === 'success' ? 'bg-white border-emerald-200 text-emerald-700' : 'bg-white border-red-200 text-red-600'}`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium
+            ${toast.type === 'success' ? 'bg-white text-emerald-700' : 'bg-white border border-red-200 text-red-600'}`}>
             {toast.type === 'success'
                 ? <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                 : <AlertCircle size={16} className="text-red-500 shrink-0" />}
@@ -112,6 +112,11 @@ export default function SAStations() {
     const [deletePassword, setDeletePassword] = useState('')
     const [deleteError, setDeleteError] = useState('')
     const [deleting, setDeleting] = useState(false)
+
+    const [togglingMaintenance, setTogglingMaintenance] = useState(false)
+    const [maintenanceConfirm, setMaintenanceConfirm] = useState<{ enable: boolean } | null>(null)
+    const [maintenancePassword, setMaintenancePassword] = useState('')
+    const [maintenanceError, setMaintenanceError] = useState('')
 
     const [suggestions, setSuggestions] = useState<NominatimResult[]>([])
     const [searching, setSearching] = useState(false)
@@ -223,6 +228,22 @@ export default function SAStations() {
         } finally { setDeleting(false) }
     }
 
+    const handleToggleMaintenance = async () => {
+        if (!maintenanceConfirm) return
+        if (!maintenancePassword) { setMaintenanceError('Password is required'); return }
+        setTogglingMaintenance(true); setMaintenanceError('')
+        try {
+            await axios.put(`${API}/sysadmin/maintenance`,
+                { maintenance: maintenanceConfirm.enable, password: maintenancePassword },
+                { withCredentials: true })
+            showToast(maintenanceConfirm.enable ? 'System set to maintenance mode' : 'System is back online', 'success')
+            setMaintenanceConfirm(null); setMaintenancePassword('')
+            fetchStations()
+        } catch (err: any) {
+            setMaintenanceError(err.response?.data?.message || 'Failed to update maintenance status')
+        } finally { setTogglingMaintenance(false) }
+    }
+
     const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-PH', {
         month: 'short', day: 'numeric', year: 'numeric'
     })
@@ -234,6 +255,8 @@ export default function SAStations() {
     const mapLat = form.latitude ? parseFloat(form.latitude) : null
     const mapLng = form.longitude ? parseFloat(form.longitude) : null
 
+    const systemInMaintenance = stations.length > 0 && stations.every(s => Number(s.status) === 3)
+
     return (
         <div className="flex flex-col gap-5">
             {toast && <Toast toast={toast} onDone={() => setToast(null)} />}
@@ -244,11 +267,42 @@ export default function SAStations() {
                     <h1 className="text-lg sm:text-xl font-bold text-gray-800">Stations</h1>
                     <p className="text-xs text-gray-400 mt-0.5">All registered water refilling stations</p>
                 </div>
-                <button onClick={() => { setShowCreate(true); setFormError('') }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0d2a4a] text-white text-xs font-bold hover:bg-[#1a3f6f] transition-all shadow-sm">
-                    <Plus size={14} /> New Station
-                </button>
+                <div className="flex items-center gap-3">
+                    {/* System-wide maintenance toggle */}
+                    <div className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all
+                        ${systemInMaintenance ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <Wrench size={13} className={systemInMaintenance ? 'text-amber-500' : 'text-gray-400'} />
+                        <span className="text-xs font-semibold text-gray-600 hidden sm:inline">Maintenance</span>
+                        <button
+                            onClick={() => { setMaintenanceConfirm({ enable: !systemInMaintenance }); setMaintenancePassword(''); setMaintenanceError('') }}
+                            disabled={togglingMaintenance || loading}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50
+                                ${systemInMaintenance ? 'bg-amber-400' : 'bg-gray-300'}`}
+                            title={systemInMaintenance ? 'Turn off maintenance mode' : 'Turn on maintenance mode'}
+                        >
+                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200
+                                ${systemInMaintenance ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                            {togglingMaintenance && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                    <Loader2 size={10} className="animate-spin text-white" />
+                                </span>
+                            )}
+                        </button>
+                    </div>
+                    <button onClick={() => { setShowCreate(true); setFormError('') }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0d2a4a] text-white text-xs font-bold hover:bg-[#1a3f6f] transition-all shadow-sm">
+                        <Plus size={14} /> New Station
+                    </button>
+                </div>
             </div>
+
+            {/* Maintenance banner */}
+            {systemInMaintenance && (
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
+                    <Wrench size={14} className="text-amber-500 shrink-0" />
+                    System-wide maintenance is active — all customers are seeing the maintenance page.
+                </div>
+            )}
 
             {/* Station Cards */}
             {loading ? (
@@ -264,6 +318,9 @@ export default function SAStations() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {stations.map(s => {
                         const coords = fmtCoords(s.latitude, s.longitude)
+                        const statusNum = Number(s.status)
+                        const isMaintenance = statusNum === 3
+                        const isClosed = statusNum === 2
                         return (
                             <div key={s.station_id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col gap-3">
                                 <div className="flex items-start justify-between gap-2">
@@ -274,8 +331,10 @@ export default function SAStations() {
                                         <div className="min-w-0">
                                             <p className="text-sm font-bold text-gray-800 truncate">{s.station_name}</p>
                                             <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold
-                                                ${s.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                {s.status}
+                                                ${isMaintenance ? 'bg-amber-100 text-amber-600'
+                                                : isClosed ? 'bg-gray-100 text-gray-400'
+                                                : 'bg-emerald-50 text-emerald-600'}`}>
+                                                {isMaintenance ? 'maintenance' : isClosed ? 'closed' : 'open'}
                                             </span>
                                         </div>
                                     </div>
@@ -321,6 +380,7 @@ export default function SAStations() {
                                         <p className="text-xs text-gray-300 italic">No super admin assigned</p>
                                     )}
                                 </div>
+
                             </div>
                         )
                     })}
@@ -454,6 +514,56 @@ export default function SAStations() {
                                     ? <><Loader2 size={13} className="animate-spin" /> Creating…</>
                                     : 'Create Station & Super Admin'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Maintenance Confirm Modal ── */}
+            {maintenanceConfirm && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMaintenanceConfirm(null)} />
+                    <div className="relative z-10 w-full sm:max-w-sm mx-0 sm:mx-4 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+                        <div className={`px-5 py-4 flex items-center justify-between ${maintenanceConfirm.enable ? 'bg-amber-500' : 'bg-[#0d2a4a]'}`}>
+                            <div className="flex items-center gap-2">
+                                <Wrench size={15} className="text-white" />
+                                <p className="text-white font-bold text-sm">
+                                    {maintenanceConfirm.enable ? 'Enable Maintenance Mode?' : 'Disable Maintenance Mode?'}
+                                </p>
+                            </div>
+                            <button onClick={() => setMaintenanceConfirm(null)} className="text-white/70 hover:text-white">
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="px-5 py-4 flex flex-col gap-3">
+                            <p className="text-sm text-gray-700">
+                                {maintenanceConfirm.enable
+                                    ? 'This will put all stations into maintenance mode. All customers will see the maintenance page.'
+                                    : 'This will bring all stations back online. Customers will regain access.'}
+                            </p>
+                            <p className="text-xs text-gray-500">Enter your system admin password to confirm.</p>
+                            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-amber-400 transition-colors">
+                                <span className="px-3 text-gray-300"><Lock size={13} /></span>
+                                <input type="password" placeholder="Your password"
+                                    value={maintenancePassword}
+                                    onChange={e => setMaintenancePassword(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleToggleMaintenance()}
+                                    className="flex-1 py-2.5 pr-3 text-xs text-gray-800 bg-transparent focus:outline-none" />
+                            </div>
+                            {maintenanceError && <p className="text-xs text-red-500 text-center">{maintenanceError}</p>}
+                            <div className="flex gap-2 pt-1">
+                                <button onClick={() => setMaintenanceConfirm(null)}
+                                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-all">
+                                    Cancel
+                                </button>
+                                <button onClick={handleToggleMaintenance} disabled={togglingMaintenance}
+                                    className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5
+                                        ${maintenanceConfirm.enable ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#0d2a4a] hover:bg-[#1a3f6f]'}`}>
+                                    {togglingMaintenance
+                                        ? <><Loader2 size={12} className="animate-spin" /> Applying…</>
+                                        : maintenanceConfirm.enable ? 'Enable Maintenance' : 'Bring Back Online'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

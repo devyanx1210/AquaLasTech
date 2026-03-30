@@ -2,6 +2,8 @@
 import express from "express"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+import crypto from "crypto"
+import nodemailer from "nodemailer"
 import { connectToDatabase } from "../config/db.js"
 import dotenv from "dotenv"
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
@@ -200,6 +202,122 @@ router.put('/change-password', verifyToken, async (req, res) => {
     } catch (err) {
         console.error('PUT /auth/change-password error:', err)
         return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// POST /auth/forgot-password
+router.post("/forgot-password", async (req, res) => {
+    const { email } = req.body
+    if (!email?.trim())
+        return res.status(400).json({ message: "Email is required" })
+
+    // Always return same response to prevent email enumeration
+    const generic = { message: "If that email exists, a reset link has been sent." }
+
+    try {
+        const db = await connectToDatabase()
+        const [rows]: any = await db.query(
+            "SELECT user_id, full_name FROM users WHERE email = ? AND deleted_at IS NULL", [email.trim()]
+        )
+        if (!rows.length) return res.json(generic)
+
+        const user = rows[0]
+
+        // Invalidate any previous unused tokens for this user
+        await db.query(
+            "UPDATE password_reset_tokens SET used = 1 WHERE user_id = ? AND used = 0", [user.user_id]
+        )
+
+        // Generate secure random token, store only the hash
+        const rawToken = crypto.randomBytes(32).toString("hex")
+        const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex")
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+
+        await db.query(
+            "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
+            [user.user_id, tokenHash, expiresAt]
+        )
+
+        const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${rawToken}`
+
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS },
+        })
+
+        await transporter.sendMail({
+            from: process.env.MAIL_FROM,
+            to: email.trim(),
+            subject: "AquaLasTech — Password Reset",
+            html: `
+                <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:12px">
+                    <h2 style="color:#2355b0;margin-bottom:8px">Password Reset</h2>
+                    <p>Hi <strong>${user.full_name}</strong>,</p>
+                    <p>We received a request to reset your AquaLasTech password. Click the button below to set a new password.</p>
+                    <a href="${resetUrl}" style="display:inline-block;margin:20px 0;padding:12px 28px;background:#3b5de7;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">
+                        Reset Password
+                    </a>
+                    <p style="color:#6b7280;font-size:13px">This link expires in <strong>15 minutes</strong>. If you didn't request this, you can safely ignore this email.</p>
+                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0"/>
+                    <p style="color:#9ca3af;font-size:12px">AquaLasTech — Smart Water Ordering & Inventory Management</p>
+                </div>
+            `,
+        })
+
+        return res.json(generic)
+    } catch (err) {
+        console.error("POST /auth/forgot-password error:", err)
+        return res.status(500).json({ message: "Server error" })
+    }
+})
+
+// POST /auth/reset-password
+router.post("/reset-password", async (req, res) => {
+    const { token, new_password } = req.body
+    if (!token || !new_password)
+        return res.status(400).json({ message: "Token and new password are required" })
+    if (new_password.length < 6)
+        return res.status(400).json({ message: "Password must be at least 6 characters" })
+
+    try {
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex")
+        const db = await connectToDatabase()
+
+        const [rows]: any = await db.query(
+            `SELECT id, user_id, expires_at, used
+             FROM password_reset_tokens
+             WHERE token_hash = ?`,
+            [tokenHash]
+        )
+
+        if (!rows.length)
+            return res.status(400).json({ message: "Invalid or expired reset link" })
+
+        const record = rows[0]
+
+        if (record.used)
+            return res.status(400).json({ message: "This reset link has already been used" })
+
+        if (new Date() > new Date(record.expires_at))
+            return res.status(400).json({ message: "Reset link has expired. Please request a new one." })
+
+        const hash = await bcrypt.hash(new_password, 10)
+
+        await db.query(
+            "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE user_id = ?",
+            [hash, record.user_id]
+        )
+
+        // Mark token as used (one-time use)
+        await db.query(
+            "UPDATE password_reset_tokens SET used = 1 WHERE id = ?",
+            [record.id]
+        )
+
+        return res.json({ message: "Password reset successfully. You can now log in." })
+    } catch (err) {
+        console.error("POST /auth/reset-password error:", err)
+        return res.status(500).json({ message: "Server error" })
     }
 })
 

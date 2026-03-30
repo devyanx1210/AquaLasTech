@@ -14,14 +14,14 @@ This migration converts your AquaLasTech database from the current schema to an 
 
 ## Pre-Migration Checklist
 
-✅ **BACKUP YOUR DATABASE FIRST!**
+ **BACKUP YOUR DATABASE FIRST!**
 ```bash
 mysqldump -u your_user -p aqualastech > aqualastech_backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-✅ Test on a copy of your database first
-✅ Notify users that database maintenance is happening
-✅ Have a rollback plan ready
+ Test on a copy of your database first
+ Notify users that database maintenance is happening
+ Have a rollback plan ready
 
 ---
 

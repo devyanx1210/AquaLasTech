@@ -15,6 +15,7 @@ type User = {
     profile_picture: string | null;
 } | null;
 
+
 type AuthContextType = {
     user: User;
     loading: boolean;

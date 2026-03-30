@@ -11,9 +11,7 @@
  *   NEW: WHERE order_status = ORDER_STATUS.DELIVERED
  */
 
-// ====================================================
 // USER ROLES (users.role) - TINYINT(1)
-// ====================================================
 export const ROLE = {
   CUSTOMER: 1,
   ADMIN: 2,
@@ -28,9 +26,7 @@ export const ROLE_NAMES: Record<number, string> = {
   4: 'sys_admin',
 };
 
-// ====================================================
 // USER ACCOUNT STATUS (users.account_status) - TINYINT(1)
-// ====================================================
 export const ACCOUNT_STATUS = {
   ACTIVE: 1,
   SUSPENDED: 2,
@@ -43,9 +39,7 @@ export const ACCOUNT_STATUS_NAMES: Record<number, string> = {
   3: 'deleted',
 };
 
-// ====================================================
 // STATION STATUS (stations.status) - TINYINT(1)
-// ====================================================
 export const STATION_STATUS = {
   OPEN: 1,
   CLOSED: 2,
@@ -58,9 +52,7 @@ export const STATION_STATUS_NAMES: Record<number, string> = {
   3: 'maintenance',
 };
 
-// ====================================================
 // PRODUCT UNIT TYPE (products.unit_type) - TINYINT(1)
-// ====================================================
 export const UNIT_TYPE = {
   LITER: 1,
   GALLON: 2,
@@ -73,9 +65,7 @@ export const UNIT_TYPE_NAMES: Record<number, string> = {
   3: 'piece',
 };
 
-// ====================================================
 // PAYMENT MODE (orders.payment_mode) - TINYINT(1)
-// ====================================================
 export const PAYMENT_MODE = {
   GCASH: 1,
   CASH: 2,
@@ -90,9 +80,7 @@ export const PAYMENT_MODE_NAMES: Record<number, string> = {
   4: 'cash_on_pickup',
 };
 
-// ====================================================
 // ORDER STATUS (orders.order_status) - TINYINT(1)
-// ====================================================
 export const ORDER_STATUS = {
   CONFIRMED: 1,
   PREPARING: 2,
@@ -111,9 +99,7 @@ export const ORDER_STATUS_NAMES: Record<number, string> = {
   6: 'returned',
 };
 
-// ====================================================
 // PAYMENT STATUS (payments.payment_status) - TINYINT(1)
-// ====================================================
 export const PAYMENT_STATUS = {
   PENDING: 1,
   VERIFIED: 2,
@@ -126,9 +112,7 @@ export const PAYMENT_STATUS_NAMES: Record<number, string> = {
   3: 'rejected',
 };
 
-// ====================================================
 // RETURN STATUS (order_returns.return_status) - TINYINT(1)
-// ====================================================
 export const RETURN_STATUS = {
   PENDING: 1,
   APPROVED: 2,
@@ -141,9 +125,7 @@ export const RETURN_STATUS_NAMES: Record<number, string> = {
   3: 'rejected',
 };
 
-// ====================================================
 // INVENTORY TRANSACTION TYPE (inventory_transactions.transaction_type) - TINYINT(1)
-// ====================================================
 export const TRANSACTION_TYPE = {
   RESTOCK: 1,
   DEDUCTION: 2,
@@ -156,9 +138,7 @@ export const TRANSACTION_TYPE_NAMES: Record<number, string> = {
   3: 'adjustment',
 };
 
-// ====================================================
 // POS PAYMENT METHOD (pos_transactions.payment_method) - TINYINT(1)
-// ====================================================
 export const POS_PAYMENT_METHOD = {
   CASH: 1,
   GCASH: 2,
@@ -169,9 +149,7 @@ export const POS_PAYMENT_METHOD_NAMES: Record<number, string> = {
   2: 'gcash',
 };
 
-// ====================================================
 // POS TRANSACTION STATUS (pos_transactions.transaction_status) - TINYINT(1)
-// ====================================================
 export const POS_TRANSACTION_STATUS = {
   COMPLETED: 1,
   CANCELLED: 2,
@@ -182,9 +160,7 @@ export const POS_TRANSACTION_STATUS_NAMES: Record<number, string> = {
   2: 'cancelled',
 };
 
-// ====================================================
 // NOTIFICATION TYPE (notifications.notification_type) - TINYINT(1)
-// ====================================================
 export const NOTIFICATION_TYPE = {
   ORDER_UPDATE: 1,
   PAYMENT_UPDATE: 2,
@@ -199,9 +175,7 @@ export const NOTIFICATION_TYPE_NAMES: Record<number, string> = {
   4: 'system_message',
 };
 
-// ====================================================
 // REPORT TYPE (reports.report_type) - TINYINT(1)
-// ====================================================
 export const REPORT_TYPE = {
   DAILY: 1,
   WEEKLY: 2,
@@ -216,10 +190,8 @@ export const REPORT_TYPE_NAMES: Record<number, string> = {
   4: 'yearly',
 };
 
-// ====================================================
 // SYSTEM LOG EVENT TYPE (system_logs.event_type) - VARCHAR(50)
 // Keep as strings since event_type is VARCHAR, not TINYINT
-// ====================================================
 export const SYSTEM_LOG_TYPE = {
   LOGIN: 'login',
   LOGOUT: 'logout',
@@ -237,9 +209,7 @@ export const SYSTEM_LOG_TYPE = {
   PRODUCT_DELETED: 'product_deleted',
 } as const;
 
-// ====================================================
 // VALID ARRAYS (for validation)
-// ====================================================
 export const VALID_ORDER_STATUSES = Object.values(ORDER_STATUS);
 export const VALID_PAYMENT_MODES = Object.values(PAYMENT_MODE);
 export const VALID_PAYMENT_STATUSES = Object.values(PAYMENT_STATUS);
@@ -247,9 +217,7 @@ export const VALID_RETURN_STATUSES = Object.values(RETURN_STATUS);
 export const VALID_ROLES = Object.values(ROLE);
 export const VALID_NOTIFICATION_TYPES = Object.values(NOTIFICATION_TYPE);
 
-// ====================================================
 // HELPER FUNCTIONS
-// ====================================================
 
 /**
  * Convert numeric enum value to readable string name

@@ -1,10 +1,10 @@
 ﻿// AdminInventory - track and update water container stock levels
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import {
     Plus, Search, Edit2, RefreshCw,
     CheckCircle2, AlertCircle,
-    Loader2, X, ChevronDown, ImageIcon,
+    Loader2, X, ImageIcon,
     Droplets, Package, Trash2, SlidersHorizontal,
 } from 'lucide-react'
 
@@ -21,7 +21,7 @@ interface Product {
     inventory_id: number
 }
 
-type ModalMode = 'add' | 'edit' | 'restock' | null
+type ModalMode = 'add' | 'edit' | 'restock' | 'delete' | null
 type ToastType = 'success' | 'error'
 interface ToastData { message: string; type: ToastType }
 
@@ -58,10 +58,11 @@ const Modal = ({ title, onClose, children }: { title: string; onClose: () => voi
     </div>
 )
 
+// Logic error handling
 const inputCls = (err?: string) =>
-    `w-full bg-gray-50 border rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none px-4 py-2.5
-     focus:border-[#38bdf8] focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all
-     ${err ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`
+    `w-full bg-white border rounded-xl text-sm text-gray-800 placeholder:text-gray-400 outline-none px-4 py-2.5
+     focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all
+     ${err ? 'border-red-400 bg-red-50' : 'border-[#0d2a4a]/40 hover:border-[#0d2a4a]'}`
 
 const FL = ({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) => (
     <div className="flex flex-col gap-1.5">
@@ -71,6 +72,68 @@ const FL = ({ label, error, hint, children }: { label: string; error?: string; h
         {error && <p className="text-[10px] text-red-500 font-medium">{error}</p>}
     </div>
 )
+
+function UnitDropdown({ value, onChange, units, error }: {
+    value: string
+    onChange: (unit: string) => void
+    units: string[]
+    error?: string
+}) {
+    const [open, setOpen] = useState(false)
+    const btnRef = React.useRef<HTMLButtonElement>(null)
+    const [dropStyle, setDropStyle] = useState<React.CSSProperties>({})
+    const isCustom = !units.includes(value) || value === ''
+
+    const handleOpen = () => {
+        if (btnRef.current) {
+            const r = btnRef.current.getBoundingClientRect()
+            setDropStyle({ position: 'fixed', top: r.bottom + 4, left: r.left, width: r.width, zIndex: 9999 })
+        }
+        setOpen(o => !o)
+    }
+
+    return (
+        <div className="flex flex-col gap-2">
+            <div className="relative">
+                <button ref={btnRef} type="button" onClick={handleOpen}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm border transition-all outline-none bg-white
+                        ${error ? 'border-red-400' : 'border-[#0d2a4a]/40 hover:border-[#0d2a4a]'}
+                        focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#0d2a4a]/10`}>
+                    <span className="text-gray-800 capitalize">{isCustom ? (value || 'Other (specify)') : value}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9" /></svg>
+                </button>
+                {open && (
+                    <>
+                        <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+                        <div style={dropStyle} className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                            {units.map(u => (
+                                <button key={u} type="button"
+                                    onClick={() => { onChange(u); setOpen(false) }}
+                                    className={`w-full px-4 py-2.5 text-sm text-left capitalize transition-colors
+                                        ${value === u ? 'bg-[#0d2a4a] text-white' : 'text-gray-700 hover:bg-gray-50'}`}>
+                                    {u}
+                                </button>
+                            ))}
+                            <button type="button"
+                                onClick={() => { onChange(''); setOpen(false) }}
+                                className={`w-full px-4 py-2.5 text-sm text-left border-t border-gray-100 transition-colors
+                                    ${isCustom ? 'bg-[#0d2a4a] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                                Other (specify)
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+            {isCustom && (
+                <input type="text" placeholder="e.g. sachet, capsule, strip"
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    className={inputCls(error)}
+                    autoFocus />
+            )}
+        </div>
+    )
+}
 
 export default function AdminInventory() {
     const API = import.meta.env.VITE_API_URL
@@ -150,7 +213,7 @@ export default function AdminInventory() {
     const validateForm = () => {
         const e: Record<string, string> = {}
         if (!form.product_name.trim()) e.product_name = 'Required'
-        if (!form.price || isNaN(Number(form.price)) || Number(form.price) <= 0) e.price = 'Enter valid price'
+        if (form.is_active && (!form.price || isNaN(Number(form.price)) || Number(form.price) <= 0)) e.price = 'Enter valid price'
         if (!form.unit.trim()) e.unit = 'Required'
         setFormErrors(e); return Object.keys(e).length === 0
     }
@@ -159,7 +222,7 @@ export default function AdminInventory() {
         if (!validateForm()) return
         setSaving(true)
         try {
-            const payload = { product_name: form.product_name.trim(), description: form.description.trim() || null, price: Number(form.price), unit: form.unit, image_url: form.image_url.trim() || null, min_stock_level: Number(form.min_stock_level), is_active: form.is_active ? 1 : 0 }
+            const payload = { product_name: form.product_name.trim(), description: form.description.trim() || null, price: form.is_active ? Number(form.price) : (Number(form.price) || 0), unit: form.unit, image_url: form.image_url.trim() || null, min_stock_level: Number(form.min_stock_level), is_active: form.is_active ? 1 : 0 }
             if (modal === 'add') await axios.post(`${API}/inventory/products`, payload, { withCredentials: true })
             else await axios.put(`${API}/inventory/products/${selected!.product_id}`, payload, { withCredentials: true })
             showToast(modal === 'add' ? 'Product added!' : 'Product updated!', 'success')
@@ -179,20 +242,21 @@ export default function AdminInventory() {
         finally { setSaving(false) }
     }
 
-    const handleDeleteProduct = async (p: Product) => {
-        if (!window.confirm(`Delete "${p.product_name}"? This cannot be undone.`)) return
+    const confirmDelete = async () => {
+        if (!selected) return
+        setSaving(true)
         try {
-            await axios.delete(`${API}/inventory/products/${p.product_id}`, { withCredentials: true })
-            showToast(`"${p.product_name}" deleted`, 'success')
-            fetchProducts()
+            await axios.delete(`${API}/inventory/products/${selected.product_id}`, { withCredentials: true })
+            showToast(`"${selected.product_name}" deleted`, 'success')
+            closeModal(); fetchProducts()
         } catch (err: any) {
             showToast(err.response?.data?.message ?? 'Failed to delete', 'error')
-        }
+        } finally { setSaving(false) }
     }
 
-    const units = ['gallon', 'liter', 'bottle', 'jug', 'container', 'pack', 'piece']
+    const units = ['gallon', 'liter', 'bottle', 'jug', 'container', 'pack', 'piece', 'other']
 
-    
+
     return (
         <div className="flex flex-col gap-4 pb-10">
 
@@ -283,7 +347,7 @@ export default function AdminInventory() {
                                         {/* Stock badge — top right */}
                                         <div className={`absolute top-2 right-2 z-20 px-1.5 py-0.5 rounded-md text-[9px] font-bold
                                             ${Number(p.quantity) === 0 ? 'bg-red-500 text-white' : Number(p.quantity) <= Number(p.min_stock_level) ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
-                                            {Number(p.quantity) === 0 ? 'OUT' : p.quantity}
+                                            {Number(p.quantity) === 0 ? 'Out of Stock' : p.quantity}
                                         </div>
 
                                         {/* Edit button — top left */}
@@ -419,19 +483,19 @@ export default function AdminInventory() {
                         </FL>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <FL label="Price (₱)" error={formErrors.price}>
+                            <FL label={`Price (₱)${!form.is_active ? ' (inactive)' : ''}`} error={formErrors.price}>
                                 <input type="number" min="0" step="0.01" placeholder="0.00" value={form.price}
                                     onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                                    className={inputCls(formErrors.price)} />
+                                    disabled={!form.is_active}
+                                    className={`${inputCls(formErrors.price)} disabled:opacity-50 disabled:cursor-not-allowed`} />
                             </FL>
                             <FL label="Unit" error={formErrors.unit}>
-                                <div className="relative">
-                                    <select value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                                        className={`${inputCls(formErrors.unit)} appearance-none pr-8`}>
-                                        {units.map(u => <option key={u} value={u}>{u}</option>)}
-                                    </select>
-                                    <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                </div>
+                                <UnitDropdown
+                                    value={form.unit}
+                                    onChange={unit => setForm(f => ({ ...f, unit }))}
+                                    units={units.filter(u => u !== 'other')}
+                                    error={formErrors.unit}
+                                />
                             </FL>
                         </div>
 
@@ -488,7 +552,7 @@ export default function AdminInventory() {
 
                         <div className="flex gap-3 pt-1">
                             {modal === 'edit' && (
-                                <button onClick={() => { closeModal(); handleDeleteProduct(selected!) }}
+                                <button onClick={() => setModal('delete')}
                                     className="px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-500 transition-all flex items-center justify-center">
                                     <Trash2 size={15} />
                                 </button>
@@ -564,6 +628,30 @@ export default function AdminInventory() {
                         </div>
                     </div>
                 </Modal>
+            )}
+
+            {/* DELETE CONFIRM MODAL */}
+            {modal === 'delete' && selected && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-5">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-base font-bold text-gray-800">Delete Product</p>
+                            <p className="text-sm text-gray-500">
+                                Are you sure you want to delete <span className="font-semibold text-gray-800">"{selected.product_name}"</span>? This cannot be undone.
+                            </p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={closeModal}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all">
+                                Cancel
+                            </button>
+                            <button onClick={confirmDelete} disabled={saving}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                                {saving ? <><Loader2 size={14} className="animate-spin" /> Deleting…</> : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {toast && <Toast toast={toast} onDone={() => setToast(null)} />}

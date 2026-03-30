@@ -3,6 +3,29 @@
     width: 100%;
     font-family: Arial, Helvetica, sans-serif;
     background: #dff4ff;
+    overflow-x: hidden;
+}
+
+/* ══ CUSTOM SCROLLBAR ══════════════════════════════════════════ */
+.lp-root::-webkit-scrollbar,
+html:has(.lp-root)::-webkit-scrollbar {
+    width: 5px;
+}
+
+.lp-root::-webkit-scrollbar-track,
+html:has(.lp-root)::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.lp-root::-webkit-scrollbar-thumb,
+html:has(.lp-root)::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.35);
+    border-radius: 999px;
+}
+
+.lp-root::-webkit-scrollbar-thumb:hover,
+html:has(.lp-root)::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.65);
 }
 
 /* ══ HERO ══════════════════════════════════════════════════════ */
@@ -30,25 +53,24 @@
     z-index: 6;
     background: linear-gradient(to bottom,
             transparent 0%,
-            rgba(58, 143, 194, 0.15) 30%,
-            rgba(58, 143, 194, 0.55) 60%,
-            #3a8fc2 100%);
+            rgba(20, 90, 160, 0.20) 30%,
+            rgba(20, 90, 160, 0.60) 65%,
+            #1a6faf 100%);
 }
 
-/* ══ FEATURES SECTION ══════════════════════════════════════════ */
+/* Feature Section */
 .features-section {
-    /* starts at exactly #3a8fc2, melts to a lighter blue-white */
     background: linear-gradient(180deg,
-            #3a8fc2 0%,
-            #5aaed8 12%,
-            #8dcbec 28%,
-            #c2e5f5 50%,
-            #dff4ff 75%,
+            #1a6faf 0%,
+            #3a8fc2 12%,
+            #5aaed8 28%,
+            #8dcbec 50%,
+            #dff4ff 78%,
             #eef9ff 100%);
     padding-bottom: 0;
 }
 
-/* ══ FEATURE CARD ══════════════════════════════════════════════ */
+/* Feature Card */
 .feature-card {
     position: relative;
     overflow: hidden;
@@ -258,7 +280,7 @@
     z-index: 3;
 }
 
-/* ══ WAVE DIVIDER ══════════════════════════════════════════════ */
+/*  WAVE DIVIDER  */
 .wave-divider {
     display: block;
     width: 100%;
@@ -266,17 +288,43 @@
     line-height: 0;
 }
 
-/* ══ CTA SECTION ═══════════════════════════════════════════════ */
+/* CTA SECTION  */
 .cta-section {
     background: linear-gradient(180deg, #eef9ff 0%, #dff4ff 60%, #d0eefa 100%);
 }
 
-/* ══ FOOTER ════════════════════════════════════════════════════ */
+/*  FOOTER  */
 .footer-section {
     background: #0d2a4a;
 }
 
-/* ══ KEYFRAMES ═════════════════════════════════════════════════ */
+/* ALT FONT IMAGE — mobile fix  */
+@media (max-width: 480px) {
+    .alt-font-img {
+        width: 95vw !important;
+        max-height: 320px !important;
+        margin-top: -40px !important;
+        margin-bottom: -100px !important;
+    }
+
+    .hero-body {
+        padding-bottom: 1.5rem !important;
+    }
+
+    .hero-right {
+        margin-top: 0.75rem !important;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 900px) {
+    .alt-font-img {
+        max-height: 420px !important;
+        margin-top: -60px !important;
+        margin-bottom: -140px !important;
+    }
+}
+
+/* Keyframes */
 @keyframes heroIn {
     from {
         opacity: 0;
@@ -335,10 +383,10 @@
 
 @media (max-width: 639px) {
     .cta-btn-hero {
-        padding: 10px 22px;
-        font-size: 14px;
-        gap: 8px;
-        border-radius: 14px;
+        padding: 8px 16px;
+        font-size: 12px;
+        gap: 6px;
+        border-radius: 12px;
     }
 }
 

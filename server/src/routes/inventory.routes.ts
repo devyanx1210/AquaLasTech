@@ -75,8 +75,8 @@ router.post('/products', async (req, res) => {
     const station_id = user.station_id
     const { product_name, description, price, unit, image_url, min_stock_level } = req.body
 
-    if (!product_name || !price || !unit) {
-        return res.status(400).json({ message: 'Product name, price and unit are required' })
+    if (!product_name || !unit) {
+        return res.status(400).json({ message: 'Product name and unit are required' })
     }
 
     try {
@@ -129,10 +129,18 @@ router.put('/products/:id', async (req, res) => {
     try {
         const db = await connectToDatabase()
 
+        const priceValue = (price !== undefined && price !== null && price !== '' && Number(price) > 0)
+            ? Number(price)
+            : null
+
         await db.query(
-            `UPDATE products SET product_name=?, description=?, price=?, unit=?, image_url=?, is_active=?, updated_at=NOW()
+            `UPDATE products SET product_name=?, description=?,
+             ${priceValue !== null ? 'price=?,' : ''}
+             unit=?, image_url=?, is_active=?, updated_at=NOW()
              WHERE product_id=?`,
-            [product_name, description ?? null, price, unit, image_url ?? null, is_active ?? 1, id]
+            priceValue !== null
+                ? [product_name, description ?? null, priceValue, unit, image_url ?? null, is_active ?? 1, id]
+                : [product_name, description ?? null, unit, image_url ?? null, is_active ?? 1, id]
         )
 
         if (min_stock_level !== undefined) {

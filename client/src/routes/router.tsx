@@ -23,8 +23,11 @@ import CustomerOrder from '../pages/customer/CustomerOrder'
 import CustomerSettings from '../pages/customer/CustomerSettings'
 
 import SuperAdminRoute from '../components/SuperAdminRoute'
+import MaintenanceGuard from '../components/MaintenanceGuard'
 import SignupPage from '../pages/SignupPage'
 import LoginPage from '../pages/LoginPage'
+import ForgotPasswordPage from '../pages/ForgotPasswordPage'
+import ResetPasswordPage from '../pages/ResetPasswordPage'
 
 // System Admin
 import SystemAdminLayout from '../layout/SystemAdminLayout'
@@ -39,7 +42,9 @@ const router = createBrowserRouter([
         children: [
             { index: true, element: <LandingPage /> },
             { path: "signup", element: <SignupPage /> },
-            { path: "login", element: <LoginPage /> }
+            { path: "login", element: <LoginPage /> },
+            { path: "forgot-password", element: <ForgotPasswordPage /> },
+            { path: "reset-password", element: <ResetPasswordPage /> }
         ]
     },
     {
@@ -69,7 +74,9 @@ const router = createBrowserRouter([
         path: "/customer",
         element: (
             <ProtectedRoute role="customer">
-                <CustomerLayout />
+                <MaintenanceGuard>
+                    <CustomerLayout />
+                </MaintenanceGuard>
             </ProtectedRoute>
         ),
         children: [

@@ -89,11 +89,11 @@ const InlineCalculator = () => {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             const keyMap: Record<string, string> = {
-                '0':'0','1':'1','2':'2','3':'3','4':'4',
-                '5':'5','6':'6','7':'7','8':'8','9':'9',
-                '.':'.', ',':'.', '+':'+', '-':'-',
-                '*':'×', '/':'÷', '%':'%',
-                'Enter':'=', 'Backspace':'⌫', 'Escape':'AC',
+                '0': '0', '1': '1', '2': '2', '3': '3', '4': '4',
+                '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
+                '.': '.', ',': '.', '+': '+', '-': '-',
+                '*': '×', '/': '÷', '%': '%',
+                'Enter': '=', 'Backspace': '⌫', 'Escape': 'AC',
             }
             const mapped = keyMap[e.key]
             if (mapped) { e.preventDefault(); pressRef.current(mapped) }
@@ -147,6 +147,7 @@ const InlineCalculator = () => {
     )
 }
 
+// TODO Fix HTML Structure
 // Receipt Modal
 const ReceiptModal = ({ orderRef, total, items, customerName, customerPhone, customerAddress, paymentMethod, deliveryType, stationName, onClose }: {
     orderRef: string; total: number; items: CartItem[]
@@ -434,7 +435,7 @@ export default function PointOfSale() {
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input placeholder="Search products..."
                             value={search} onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-[#38bdf8] focus:ring-2 focus:ring-[#38bdf8]/15 transition-all shadow-sm" />
+                            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-[#0d2a4a] focus:ring-2 focus:ring-[#38bdf8]/15 transition-all shadow-sm" />
                     </div>
                 </div>
 
@@ -557,23 +558,23 @@ export default function PointOfSale() {
                                     <input
                                         placeholder={deliveryType === 'delivery' ? 'Customer Name *' : 'Customer Name (optional)'}
                                         value={customerName} onChange={e => setCustomerName(e.target.value)}
-                                        className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 rounded-xl text-xs text-gray-700 placeholder:text-gray-300 outline-none focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all border
-                                            ${deliveryType === 'delivery' && !customerName.trim() ? 'border-amber-300 focus:border-amber-400' : 'border-gray-200 focus:border-[#38bdf8]'}`} />
+                                        className={`w-full pl-9 pr-3 py-2.5 bg-white rounded-xl text-xs text-gray-700 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all border
+                                            ${deliveryType === 'delivery' && !customerName.trim() ? 'border-amber-300 focus:border-amber-400' : 'border-gray-200 focus:border-[#0d2a4a]'}`} />
                                 </div>
                                 <div className="relative">
                                     <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                     <input
                                         placeholder={deliveryType === 'delivery' ? 'Complete Address *' : 'Complete Address (optional)'}
                                         value={customerAddress} onChange={e => setCustomerAddress(e.target.value)}
-                                        className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 rounded-xl text-xs text-gray-700 placeholder:text-gray-300 outline-none focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all border
-                                            ${deliveryType === 'delivery' && !customerAddress.trim() ? 'border-amber-300 focus:border-amber-400' : 'border-gray-200 focus:border-[#38bdf8]'}`} />
+                                        className={`w-full pl-9 pr-3 py-2.5 bg-white rounded-xl text-xs text-gray-700 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all border
+                                            ${deliveryType === 'delivery' && !customerAddress.trim() ? 'border-amber-300 focus:border-amber-400' : 'border-gray-200 focus:border-[#0d2a4a]'}`} />
                                 </div>
                                 <div className="relative">
                                     <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                     <input
                                         placeholder="Phone Number (optional)"
                                         value={customerPhone} onChange={e => setCustomerPhone(e.target.value)}
-                                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 rounded-xl text-xs text-gray-700 placeholder:text-gray-300 outline-none focus:bg-white focus:ring-2 focus:ring-[#38bdf8]/15 transition-all border border-gray-200 focus:border-[#38bdf8]" />
+                                        className="w-full pl-9 pr-3 py-2.5 bg-white rounded-xl text-xs text-gray-700 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#0d2a4a]/10 transition-all border border-gray-200 focus:border-[#0d2a4a]" />
                                 </div>
                                 {deliveryType === 'delivery' && (!customerName.trim() || !customerAddress.trim()) && (
                                     <p className="text-[10px] text-amber-500 font-medium flex items-center gap-1">

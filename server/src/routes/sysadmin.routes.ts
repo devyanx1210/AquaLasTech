@@ -15,7 +15,39 @@ const requireSysAdmin = (req: any, res: any, next: any) => {
 
 router.use(verifyToken, requireSysAdmin)
 
-// ── GET /sysadmin/stations ───────────────────────────────────────────────────
+// ── PUT /sysadmin/maintenance — toggle system-wide maintenance mode ──────────
+router.put('/maintenance', async (req: any, res) => {
+    const { maintenance, password } = req.body
+    if (!password) return res.status(400).json({ message: 'Password is required' })
+    try {
+        const db = await connectToDatabase()
+
+        const [rows]: any = await db.query(
+            `SELECT password_hash FROM users WHERE user_id = ?`, [req.user.id]
+        )
+        if (!rows.length) return res.status(401).json({ message: 'Unauthorized' })
+        const match = await bcrypt.compare(password, rows[0].password_hash)
+        if (!match) return res.status(401).json({ message: 'Incorrect password' })
+
+        try { await db.query(`ALTER TABLE stations ADD COLUMN status TINYINT DEFAULT 1 COMMENT '1=open,2=closed,3=maintenance'`) } catch { }
+        const status = maintenance ? 3 : 1
+        await db.query('UPDATE stations SET status = ?, updated_at = NOW()', [status])
+        await db.query(
+            `INSERT INTO system_logs (event_type, description, user_id) VALUES (?, ?, ?)`,
+            [
+                maintenance ? 'maintenance_on' : 'maintenance_off',
+                maintenance ? 'System-wide maintenance mode enabled' : 'System-wide maintenance mode disabled',
+                req.user?.id,
+            ]
+        )
+        return res.json({ message: maintenance ? 'System set to maintenance' : 'System back online', status })
+    } catch (err) {
+        console.error('[SysAdmin] PUT /maintenance error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── GET /sysadmin/stations 
 // Subquery ensures one row per station even if multiple super_admins exist
 router.get('/stations', async (_req, res) => {
     try {
@@ -40,7 +72,7 @@ router.get('/stations', async (_req, res) => {
     }
 })
 
-// ── POST /sysadmin/stations ──────────────────────────────────────────────────
+// ── POST /sysadmin/stations 
 router.post('/stations', async (req: any, res) => {
     const {
         station_name, address, contact_number, latitude, longitude,
@@ -188,7 +220,7 @@ router.delete('/stations/:id', async (req: any, res) => {
     }
 })
 
-// ── GET /sysadmin/logs ───────────────────────────────────────────────────────
+// ── GET /sysadmin/logs ─────
 router.get('/logs', async (_req, res) => {
     try {
         const db = await connectToDatabase()
@@ -207,7 +239,7 @@ router.get('/logs', async (_req, res) => {
     }
 })
 
-// ── DELETE /sysadmin/logs ────────────────────────────────────────────────────
+// ── DELETE /sysadmin/logs ──
 router.delete('/logs', async (req: any, res) => {
     const { password } = req.body
     if (!password) return res.status(400).json({ message: 'Password is required' })

@@ -6,6 +6,8 @@ import {
     TrendingUp, ShoppingBag, PackageCheck, XCircle,
     RotateCcw, Loader2, X, RefreshCw,
     ReceiptText, Clock, Truck, CheckCircle2, Package,
+    LineChart, BarChart2, CalendarDays, Boxes,
+    Award, PieChart,
 } from 'lucide-react'
 
 // Types
@@ -242,7 +244,7 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
     const [data, setData] = useState<{ orders: DayOrder[]; summary: DaySummary } | null>(null)
 
     useEffect(() => {
-        ;(async () => {
+        ; (async () => {
             setLoading(true)
             try {
                 const r = await axios.get(`${API}/reports/day/${date}`, { withCredentials: true })
@@ -439,7 +441,7 @@ export default function AdminDashboard() {
                             { label: 'Cancelled', value: num(totals?.cancelled), sub: 'orders cancelled', icon: XCircle, color: 'text-red-500', gradient: 'bg-white', style: { backgroundImage: 'radial-gradient(ellipse at bottom left, #fecaca 0%, #ffffff 60%)' }, dark: false, to: '/admin/orders?status=cancelled' },
                             { label: 'Returned', value: num(totals?.returned), sub: 'return requests', icon: RotateCcw, color: 'text-gray-500', gradient: 'bg-white', style: { backgroundImage: 'radial-gradient(ellipse at bottom left, #d1d5db 0%, #ffffff 60%)' }, dark: false, to: '/admin/orders?status=returned' },
                         ].map(({ label, value, sub, icon: Icon, color, gradient, style, dark, to }, i) => (
-                            <div key={label} onClick={() => navigate(to)} className={`animate-fade-in-up cursor-pointer ${gradient} rounded-2xl p-4 flex flex-col gap-2 border ${dark ? 'border-[#1a4a7a]' : 'border-gray-100'} shadow-sm hover:shadow-md transition-all`} style={{ ...style, animationDelay: `${i * 60}ms` }}>
+                            <div key={label} onClick={() => navigate(to)} className={`animate-fade-in-up cursor-pointer ${gradient} rounded-2xl p-4 flex flex-col gap-2 border ${dark ? 'border-[#1a4a7a]' : 'border-gray-100'} shadow-md hover:shadow-lg transition-all`} style={{ ...style, animationDelay: `${i * 60}ms` }}>
                                 <div className="flex items-center justify-between">
                                     <p className={`text-[10px] font-semibold uppercase tracking-wider ${dark ? 'text-white/50' : 'text-gray-400'}`}>{label}</p>
                                     <Icon size={16} className={color} />
@@ -456,8 +458,11 @@ export default function AdminDashboard() {
                         {/* Revenue Line Chart */}
                         <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
                             <div className="mb-4">
-                                <p className="text-sm font-bold text-gray-800">Revenue Trend</p>
-                                <p className="text-[10px] text-gray-400">Total revenue over time</p>
+                                <div className="flex items-center gap-2">
+                                    <LineChart size={15} className="text-gray-800 shrink-0" />
+                                    <p className="text-sm font-bold text-gray-800">Revenue Trend</p>
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-0.5">Total revenue over time</p>
                             </div>
                             <LineChartCustom data={chartData} />
                         </div>
@@ -465,8 +470,11 @@ export default function AdminDashboard() {
                         {/* Orders & Revenue Bar Chart */}
                         <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
                             <div className="mb-4">
-                                <p className="text-sm font-bold text-gray-800">Orders & Revenue</p>
-                                <p className="text-[10px] text-gray-400">{period === 'daily' ? 'Click a bar to see day details' : 'Comparison by period'}</p>
+                                <div className="flex items-center gap-2">
+                                    <BarChart2 size={15} className="text-gray-800 shrink-0" />
+                                    <p className="text-sm font-bold text-gray-800">Orders & Revenue</p>
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-0.5">{period === 'daily' ? 'Click a bar to see day details' : 'Comparison by period'}</p>
                             </div>
                             <BarChartCustom data={chartData} onBarClick={period === 'daily' ? setSelectedDay : undefined} />
                         </div>
@@ -476,7 +484,10 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {/* Top Products */}
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                            <p className="text-sm font-bold text-gray-800 mb-1">Top Products</p>
+                            <div className="flex items-center gap-2 mb-1">
+                                <Award size={15} className="text-gray-800 shrink-0" />
+                                <p className="text-sm font-bold text-gray-800">Top Products</p>
+                            </div>
                             <p className="text-[10px] text-gray-400 mb-4">By quantity sold (delivered orders only)</p>
                             {topProducts.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-28 text-gray-300 gap-2">
@@ -509,7 +520,10 @@ export default function AdminDashboard() {
 
                         {/* Status Breakdown */}
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                            <p className="text-sm font-bold text-gray-800 mb-1">Order Status Breakdown</p>
+                            <div className="flex items-center gap-2 mb-1">
+                                <PieChart size={15} className="text-gray-800 shrink-0" />
+                                <p className="text-sm font-bold text-gray-800">Order Status Breakdown</p>
+                            </div>
                             <p className="text-[10px] text-gray-400 mb-4">Across all orders in this period</p>
                             {rows.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-28 text-gray-300 gap-2">
@@ -560,8 +574,11 @@ export default function AdminDashboard() {
                         {period === 'daily' && rows.length > 0 && (
                             <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                                 <div className="px-5 py-4 border-b border-gray-100">
-                                    <p className="text-sm font-bold text-gray-800">Daily Breakdown</p>
-                                    <p className="text-[10px] text-gray-400">Click a row to see full day details</p>
+                                    <div className="flex items-center gap-2">
+                                        <CalendarDays size={15} className="text-gray-800 shrink-0" />
+                                        <p className="text-sm font-bold text-gray-800">Daily Breakdown</p>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">Click a row to see full day details</p>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm border-collapse">
@@ -601,7 +618,10 @@ export default function AdminDashboard() {
                             {/* Header */}
                             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-bold text-gray-800">Current Inventory</p>
+                                    <div className="flex items-center gap-2">
+                                        <Boxes size={15} className="text-gray-800 shrink-0" />
+                                        <p className="text-sm font-bold text-gray-800">Current Inventory</p>
+                                    </div>
                                     <p className="text-[10px] text-gray-400">
                                         {inventory.filter(i => i.is_active && i.quantity <= i.min_stock_level).length} item(s) low on stock
                                     </p>
@@ -646,10 +666,9 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                             <span className="text-xs text-gray-500">Status</span>
-                                            <span className={`text-xs font-bold ${
-                                                selectedInventoryItem.quantity === 0 ? 'text-red-600' :
-                                                selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'text-amber-600' : 'text-emerald-600'
-                                            }`}>
+                                            <span className={`text-xs font-bold ${selectedInventoryItem.quantity === 0 ? 'text-red-600' :
+                                                    selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'text-amber-600' : 'text-emerald-600'
+                                                }`}>
                                                 {selectedInventoryItem.quantity === 0 ? 'Out of Stock' : selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'Low Stock' : 'In Stock'}
                                             </span>
                                         </div>
@@ -662,10 +681,9 @@ export default function AdminDashboard() {
                                     <div>
                                         <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full rounded-full transition-all ${
-                                                    selectedInventoryItem.quantity === 0 ? 'bg-red-500' :
-                                                    selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'bg-amber-400' : 'bg-emerald-500'
-                                                }`}
+                                                className={`h-full rounded-full transition-all ${selectedInventoryItem.quantity === 0 ? 'bg-red-500' :
+                                                        selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'bg-amber-400' : 'bg-emerald-500'
+                                                    }`}
                                                 style={{ width: `${Math.min(100, (selectedInventoryItem.quantity / Math.max(selectedInventoryItem.min_stock_level * 2, 1)) * 100)}%` }}
                                             />
                                         </div>

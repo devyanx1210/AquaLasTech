@@ -179,8 +179,8 @@ function NotifPanel({ notifications, unreadCount, onClose, onMarkAllRead, onMark
     )
 }
 
-// ────────────────────────────────────────────────────────────────────────────
 
+// Layout
 export default function CustomerLayout() {
     const { user, setUser } = useAuth()
     const navigate = useNavigate()

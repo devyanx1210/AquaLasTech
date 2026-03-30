@@ -16,9 +16,7 @@ const {
   PAYMENT_MODE_NAMES,
 } = require('../constants/dbEnums');
 
-// =====================================================
 // EXAMPLE 1: INSERT with ENUM Values
-// =====================================================
 
 // OLD WAY (Do NOT use anymore):
 // db.query('INSERT INTO users (full_name, email, role) VALUES (?, ?, ?)',
@@ -33,9 +31,7 @@ async function createAdmin(name, email) {
   return result;
 }
 
-// =====================================================
 // EXAMPLE 2: SELECT with ENUM Filtering
-// =====================================================
 
 // OLD WAY:
 // db.query('SELECT * FROM users WHERE role = "admin"');
@@ -47,9 +43,7 @@ async function getAllAdmins() {
   return admins;
 }
 
-// =====================================================
 // EXAMPLE 3: UPDATE Order Status
-// =====================================================
 
 // OLD WAY:
 // db.query('UPDATE orders SET order_status = "delivered" WHERE order_id = ?', [123]);
@@ -61,9 +55,7 @@ async function markOrderDelivered(orderId) {
   return result;
 }
 
-// =====================================================
 // EXAMPLE 4: Complex Query with Multiple Enums
-// =====================================================
 
 async function getConfirmedOrders() {
   const query = `
@@ -94,9 +86,7 @@ async function getConfirmedOrders() {
   return orders;
 }
 
-// =====================================================
 // EXAMPLE 5: Converting Output to Readable Names
-// =====================================================
 
 async function getOrdersWithReadableStatus() {
   const query = 'SELECT * FROM orders LIMIT 10';
@@ -121,9 +111,7 @@ async function getOrdersWithReadableStatus() {
 //   ...
 // }
 
-// =====================================================
 // EXAMPLE 6: API Response with Enum Names (Best for Frontend)
-// =====================================================
 
 async function getOrderDetailsAPI(orderId) {
   const query = `
@@ -163,9 +151,7 @@ async function getOrderDetailsAPI(orderId) {
 //   createdAt: '2026-03-24T03:19:38.000Z'
 // }
 
-// =====================================================
 // EXAMPLE 7: WHERE IN with Multiple Values
-// =====================================================
 
 async function getActiveOrCompletedOrders() {
   // Get orders that are either 'confirmed' or 'delivered'
@@ -183,9 +169,7 @@ async function getActiveOrCompletedOrders() {
   return orders;
 }
 
-// =====================================================
 // EXAMPLE 8: Transaction Operations
-// =====================================================
 
 async function createInventoryTransaction(inventoryId, quantity, type) {
   const query = `
@@ -205,9 +189,7 @@ async function createInventoryTransaction(inventoryId, quantity, type) {
 // await createInventoryTransaction(5, 50, TRANSACTION_TYPE.RESTOCK);
 // await createInventoryTransaction(5, 10, TRANSACTION_TYPE.DEDUCTION);
 
-// =====================================================
 // EXAMPLE 9: Notifications
-// =====================================================
 
 async function createNotification(userId, message, type) {
   const query = `
@@ -229,9 +211,7 @@ async function createNotification(userId, message, type) {
 // await createNotification(13, 'Your order has been confirmed!', NOTIFICATION_TYPE.ORDER_UPDATE);
 // await createNotification(6, 'Water Bottle is now in stock!', NOTIFICATION_TYPE.INVENTORY_ALERT);
 
-// =====================================================
 // EXAMPLE 10: Admin Role Check
-// =====================================================
 
 function isAdmin(userRole) {
   return [ROLE.ADMIN, ROLE.SUPER_ADMIN].includes(userRole);

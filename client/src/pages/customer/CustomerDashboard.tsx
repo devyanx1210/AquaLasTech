@@ -23,7 +23,7 @@ interface Station {
     distance_km?: number
 }
 
-// Haversine
+// Haversine = distance calcualtion between two GPS coordinates
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371
     const dLat = ((lat2 - lat1) * Math.PI) / 180

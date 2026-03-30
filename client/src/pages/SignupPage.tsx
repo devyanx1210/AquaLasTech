@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiUser, FiMail, FiLock, FiX } from "react-icons/fi";
-import { FcGoogle } from "react-icons/fc";
 import logo from "../assets/aqualastech-logo-noBG.png"
 import WaterLoader from "../components/ui/WaterLoader";
 import axios from "axios";
@@ -106,16 +105,6 @@ export default function SignupPage() {
                             {loading ? "Creating account..." : "Sign Up"}
                         </button>
                     </form>
-
-                    <div className="flex items-center gap-3 my-2.5">
-                        <div className="flex-1 h-px bg-gray-200" />
-                        <span className="text-xs text-gray-400 font-medium">OR</span>
-                        <div className="flex-1 h-px bg-gray-200" />
-                    </div>
-
-                    <button className="w-full flex items-center justify-center gap-2.5 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-all active:scale-95 text-sm font-medium text-gray-700 shadow-sm">
-                        <FcGoogle size={18} /> Continue with Google
-                    </button>
 
                     <p className="text-center text-xs text-gray-500 mt-2.5">
                         Already have an account?{" "}

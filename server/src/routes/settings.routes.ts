@@ -14,6 +14,21 @@ const __dirname = path.dirname(__filename)
 const router = express.Router()
 router.use(verifyToken)
 
+// GET /settings/maintenance-status — any authenticated user (customer/admin)
+router.get('/maintenance-status', async (req, res) => {
+    const user = (req as any).user
+    const station_id = user?.station_id
+    if (!station_id) return res.json({ is_maintenance: false, status: 1 })
+    try {
+        const db = await connectToDatabase()
+        const [rows]: any = await db.query('SELECT status FROM stations WHERE station_id = ?', [station_id])
+        const status = rows[0]?.status ?? 1
+        return res.json({ is_maintenance: status === 3, status })
+    } catch {
+        return res.json({ is_maintenance: false, status: 1 })
+    }
+})
+
 // Super admin guard
 router.use((req, res, next) => {
     const u = (req as any).user

@@ -81,6 +81,7 @@ const PAYMENT_LABEL: Record<string, string> = {
     cash: 'Cash',
 }
 
+// currency formatter
 const fmt = (n: number) => `₱${Number(n).toFixed(2)}`
 const timeAgo = (d: string) => {
     const diff = Date.now() - new Date(d).getTime()
@@ -773,7 +774,7 @@ export default function CustomerOrder() {
         </div>
     )
 
-    
+
     return (
         <div className="flex flex-col gap-5 pb-24 lg:pb-10">
             <StationBanner />

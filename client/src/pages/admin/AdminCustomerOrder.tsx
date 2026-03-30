@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { FaMoneyBillWave, FaMobileAlt } from 'react-icons/fa'
 
-// BUG WHen in landscape mode is my order must be there
+// TODO Check variable names and functions
 
 // Types
 interface Order {
@@ -22,7 +22,7 @@ interface Order {
     customer_email: string
     customer_contact: string | null
     customer_address: string | null
-    customer_complete_address: string | null
+    full_address: string | null
     total_amount: number
     payment_mode: 'gcash' | 'cash' | 'cash_on_delivery' | 'cash_on_pickup'
     order_status: 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'returned'
@@ -79,7 +79,7 @@ const PAY_CFG: Record<string, { label: string; color: string; bg: string; border
     not_required: { label: 'N/A', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200', solidBg: 'bg-gray-500' },
 }
 
-// Returns status display config — shows "Awaiting Payment" for unverified GCash orders
+// Returns status display config  shows "Awaiting Payment" for unverified GCash orders
 const getStatusDisplay = (order: Pick<Order, 'payment_mode' | 'payment_status' | 'order_status'>) => {
     if (order.payment_mode === 'gcash' && order.payment_status === 'pending') {
         return { label: 'Awaiting Payment', btnBg: 'bg-amber-500', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: FaMobileAlt }
@@ -130,7 +130,7 @@ const CompactSelect = ({ value, onChange, options, icon: Icon, darkBg = false }:
     )
 }
 
-// buildDeliveryHtml - pure function, no side effects
+// buildDeliveryHtml  pure function, no side effects
 const buildDeliveryHtml = (deliveryOrders: Order[], stationName: string) => {
     const now = new Date().toLocaleString('en-PH', {
         month: 'long', day: 'numeric', year: 'numeric',
@@ -140,12 +140,12 @@ const buildDeliveryHtml = (deliveryOrders: Order[], stationName: string) => {
         const { datePart, timePart } = formatDateParts(o.created_at)
         const payLabel = o.payment_mode === 'gcash' ? 'GCash'
             : o.payment_mode === 'cash_on_delivery' ? 'Cash on Delivery'
-            : o.payment_mode === 'cash_on_pickup' ? 'Cash on Pickup'
-            : 'Cash'
-        const addrLine = o.customer_complete_address
-            ? `${o.customer_complete_address}`
+                : o.payment_mode === 'cash_on_pickup' ? 'Cash on Pickup'
+                    : 'Cash'
+        const addrLine = o.full_address
+            ? `${o.full_address}`
             : (o.customer_address || '—')
-        const areaLine = o.customer_complete_address && o.customer_address
+        const areaLine = o.full_address && o.customer_address
             ? `<span class="small">${o.customer_address}</span>` : ''
         return `
         <tr>
@@ -258,7 +258,7 @@ const GCashModal = ({ order, onClose, onVerify, API }: {
     )
 }
 
-// ── Return Modal 
+// Return Modal 
 const ReturnModal = ({ order, onClose, onResolve }: {
     order: OrderDetail; onClose: () => void
     onResolve: (id: number, status: 'approved' | 'rejected') => Promise<void>
@@ -493,7 +493,7 @@ const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0
             {/* Checkbox (select mode) */}
             {showCheckbox && (
                 <td className="w-10 px-3 py-3.5 border-r border-gray-100 text-center" onClick={e => { e.stopPropagation(); onToggle?.() }}>
-                    <input type="checkbox" checked={!!isSelected} onChange={() => {}}
+                    <input type="checkbox" checked={!!isSelected} onChange={() => { }}
                         className="w-4 h-4 rounded accent-[#0d2a4a] cursor-pointer" />
                 </td>
             )}
@@ -721,8 +721,11 @@ export default function AdminCustomerOrder() {
             setSelectedIds(new Set())
             setShowDeleteConfirm(false)
             await fetchOrders()
-        } catch (_e) { /* ignore */ }
-        finally { setDeletingSelected(false) }
+        } catch (err) {
+            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+            console.error('Delete order error:', err)
+            alert(msg ?? 'Failed to delete orders')
+        } finally { setDeletingSelected(false) }
     }
 
     const toggleSelect = (id: number) =>
@@ -739,6 +742,9 @@ export default function AdminCustomerOrder() {
 
     const allSelected = displayed.length > 0 && displayed.every(o => selectedIds.has(o.order_id))
     const someSelected = selectedIds.size > 0
+    const selectedOrders = orders.filter(o => selectedIds.has(o.order_id))
+    const allSelectedConfirmed = someSelected && selectedOrders.every(o => o.order_status === 'confirmed')
+    const allSelectedOutForDelivery = someSelected && selectedOrders.every(o => o.order_status === 'out_for_delivery')
 
     return (
         <div className="flex flex-col gap-4 pb-10">
@@ -833,14 +839,14 @@ export default function AdminCustomerOrder() {
                 {/* Bulk action buttons — own row below filters */}
                 {selectMode && someSelected && (
                     <div className="flex gap-2 flex-wrap">
-                        {filterStatus === 'confirmed' && (
+                        {allSelectedConfirmed && (
                             <button onClick={() => handleBulkStatusChange('out_for_delivery')} disabled={bulkUpdating}
                                 className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all whitespace-nowrap disabled:opacity-60">
                                 {bulkUpdating ? <Loader2 size={13} className="animate-spin inline mr-1" /> : null}
                                 Mark as Out for Delivery ({selectedIds.size})
                             </button>
                         )}
-                        {filterStatus === 'out_for_delivery' && (
+                        {allSelectedOutForDelivery && (
                             <button onClick={() => handleBulkStatusChange('delivered')} disabled={bulkUpdating}
                                 className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all whitespace-nowrap disabled:opacity-60">
                                 {bulkUpdating ? <Loader2 size={13} className="animate-spin inline mr-1" /> : null}

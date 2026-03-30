@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./LandingPage.css";
 import logo from "../assets/aqualastech-logo-noBG.png";
+import altFont from "../assets/ALT_FONT.png";
 import teamLogo from "../assets/team-logo.png";
 import water_bg from "../assets/water-bg.jpg";
 import {
@@ -73,6 +74,13 @@ function FeatureCard({ icon: Icon, title, desc, delay, index }: {
 const LandingPage = () => {
     const navigate = useNavigate();
     const [bgLoaded, setBgLoaded] = useState(false);
+    const [logoError, setLogoError] = useState(false);
+    const logoFallback = (
+        <h1 className="tracking-tight leading-none text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+            style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 900, background: "linear-gradient(90deg, #1de9b6 0%, #29b6f6 50%, #1565c0 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+            AquaLasTech
+        </h1>
+    );
     const featuresRef = useRef<HTMLDivElement>(null);
     const { ref: aboutRef, visible: aboutVisible } = useVisible(0.08);
     const { ref: ctaRef, visible: ctaVisible } = useVisible(0.12);
@@ -84,9 +92,9 @@ const LandingPage = () => {
             {/* HERO */}
             <div className="hero-section">
                 <div className="absolute inset-0"
-                    style={{ background: "linear-gradient(155deg,#001a4d 0%,#003a8c 40%,#1a6faf 75%,#4aa3d4 100%)" }} />
+                    style={{ background: "linear-gradient(155deg,#000d2e 0%,#001a5c 40%,#002a7a 70%,#003d99 100%)" }} />
                 <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
-                    style={{ backgroundImage: `url(${water_bg})`, opacity: bgLoaded ? 0.10 : 0 }} />
+                    style={{ backgroundImage: `url(${water_bg})`, opacity: bgLoaded ? 0.20 : 0 }} />
                 <div className="absolute inset-0 pointer-events-none"
                     style={{ background: "radial-gradient(ellipse 80% 55% at 65% 45%,rgba(56,189,248,0.18) 0%,transparent 60%)" }} />
                 <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
@@ -103,7 +111,7 @@ const LandingPage = () => {
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
                         <img src={logo} alt="logo" className="h-6 w-6 sm:h-8 sm:w-8 md:h-9 md:w-9 object-contain drop-shadow-lg shrink-0" />
                         <span className="font-bold text-white text-xs sm:text-base md:text-lg tracking-tight truncate"
-                            style={{ textShadow: "0 1px 8px rgba(0,30,80,0.4)" }}>AquaLasTech</span>
+                            style={{ textShadow: "0 1px 8px rgba(0,30,80,0.4)" }}>AquaLas<span style={{ color: "#38bdf8" }}>Tech</span></span>
                     </div>
                     <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         <button onClick={() => navigate("/login")}
@@ -122,11 +130,16 @@ const LandingPage = () => {
                     style={{ animation: "heroIn 0.85s cubic-bezier(.22,1,.36,1) forwards" }}>
                     <div className="hero-left flex flex-col items-center">
 
-                        <h1 className="font-black tracking-tight leading-none text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
-                            style={{ color: "#fff", textShadow: "0 4px 32px rgba(0,30,90,0.5)" }}>
-                            AquaLasTech
-                        </h1>
-                        <p className="mt-3 max-w-sm text-sm md:text-lg leading-relaxed font-light"
+                        {logoError ? logoFallback : (
+                            <img
+                                src={altFont}
+                                alt="AquaLasTech"
+                                className="object-contain drop-shadow-2xl alt-font-img"
+                                style={{ width: "min(95vw, 1000px)", maxHeight: "560px", objectFit: "contain", marginTop: "-160px", marginBottom: "-200px", filter: "brightness(1.3) saturate(1.4)" }}
+                                onError={() => setLogoError(true)}
+                            />
+                        )}
+                        <p className="mt-2 w-full text-[11px] sm:text-sm md:text-lg leading-relaxed font-light sm:whitespace-nowrap"
                             style={{ color: "rgba(210,235,255,0.82)" }}>
                             Streamlining Water Orders,{" "}
                             <span style={{ color: "rgba(147,210,255,0.95)", fontWeight: 600 }}>
@@ -134,14 +147,11 @@ const LandingPage = () => {
                             </span>
                         </p>
                     </div>
-                    <div className="hero-right flex flex-col items-center mt-8">
+                    <div className="hero-right flex flex-col items-center mt-6">
                         <button onClick={() => navigate("/login")} className="cta-btn-hero group">
                             Order Water Now
                             <FiArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                         </button>
-                        <p className="mt-2.5 text-xs" style={{ color: "rgba(180,215,255,0.50)" }}>
-                            Inventory Management · Real-time Tracking · Easy Order
-                        </p>
                         <button
                             onClick={() => featuresRef.current?.scrollIntoView({ behavior: "smooth" })}
                             className="scroll-cue flex flex-col items-center gap-1.5 mt-9"
@@ -232,8 +242,6 @@ const LandingPage = () => {
                     ref={ctaRef}
                     className="relative overflow-hidden mx-4 md:mx-8 lg:mx-auto lg:max-w-5xl rounded-3xl"
                     style={{
-                        background: "#ffffff",
-                        boxShadow: "0 20px 60px rgba(0,60,180,0.12)",
                         opacity: ctaVisible ? 1 : 0,
                         transform: ctaVisible ? "scale(1)" : "scale(0.96)",
                         transition: "opacity 0.7s ease, transform 0.7s ease",
@@ -246,7 +254,10 @@ const LandingPage = () => {
                             className="font-black leading-[1.05] mb-5"
                             style={{
                                 fontSize: "clamp(2.4rem, 7vw, 5.5rem)",
-                                color: "#0d2a4a",
+                                background: "linear-gradient(135deg, #0d2a4a 0%, #0e6ba8 40%, #38bdf8 75%, #7dd3fc 100%)",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                backgroundClip: "text",
                             }}
                         >
                             Start Your Smart<br />Water Business Today

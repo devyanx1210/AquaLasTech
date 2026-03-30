@@ -49,13 +49,13 @@ const uploadAvatar = multer({
     },
 })
 
-// Auto-add profile_picture column if not yet present
-;(async () => {
-    try {
-        const db = await connectToDatabase()
-        await db.query('ALTER TABLE users ADD COLUMN profile_picture VARCHAR(500) NULL')
-    } catch { /* already exists */ }
-})()
+    // Auto-add profile_picture column if not yet present
+    ; (async () => {
+        try {
+            const db = await connectToDatabase()
+            await db.query('ALTER TABLE users ADD COLUMN profile_picture VARCHAR(500) NULL')
+        } catch { /* already exists */ }
+    })()
 
 // POST /customer/profile-picture — works for any authenticated user (customer, admin, super_admin)
 router.post('/profile-picture', uploadAvatar.single('avatar'), async (req: any, res: any) => {
@@ -256,7 +256,7 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
 
         // Insert order — snapshot customer fields so they never change if profile updates
         const [orderResult]: any = await conn.query(
-            `INSERT INTO orders (user_id, station_id, order_reference, customer_name, customer_address, customer_complete_address, total_amount, payment_mode, order_status, created_at, updated_at)
+            `INSERT INTO orders (user_id, station_id, order_reference, customer_name, customer_address, full_address, total_amount, payment_mode, order_status, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
             [userId, station_id, order_reference, snapName, snapAddress, snapCompleteAddress, total_amount, paymentModeNum, ORDER_STATUS.CONFIRMED]
         )
@@ -403,7 +403,7 @@ router.get('/orders/:id', async (req, res) => {
         const [orders]: any = await pool.query(`
             SELECT
                 o.order_id, o.order_reference, o.total_amount,
-                o.customer_name, o.customer_address, o.customer_complete_address,
+                o.customer_name, o.customer_address, o.full_address,
                 o.created_at, o.updated_at,
                 CASE o.order_status
                     WHEN 1 THEN 'confirmed' WHEN 2 THEN 'preparing'

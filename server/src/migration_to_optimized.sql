@@ -1,6 +1,4 @@
--- =====================================================
 -- MIGRATION SCRIPT: OLD SCHEMA TO OPTIMIZED SCHEMA
--- =====================================================
 -- This script safely migrates data from the old schema to the optimized version
 -- BACKUP YOUR DATABASE BEFORE RUNNING THIS!
 -- Run this step by step, not all at once
@@ -9,9 +7,7 @@ SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
--- =====================================================
 -- STEP 1: CREATE ARCHIVE TABLES (Backup original data)
--- =====================================================
 CREATE TABLE `users_archive` LIKE `users`;
 INSERT INTO `users_archive` SELECT * FROM `users`;
 
@@ -51,9 +47,7 @@ INSERT INTO `reports_archive` SELECT * FROM `reports`;
 CREATE TABLE `system_logs_archive` LIKE `system_logs`;
 INSERT INTO `system_logs_archive` SELECT * FROM `system_logs`;
 
--- =====================================================
 -- STEP 2: ALTER USERS TABLE
--- =====================================================
 ALTER TABLE `users`
   MODIFY `full_name` varchar(100) NOT NULL,
   MODIFY `phone_number` varchar(20) DEFAULT NULL,
@@ -73,9 +67,7 @@ UPDATE `users` SET `role` = 4 WHERE `role` = 'sys_admin';
 -- Add indexes
 ALTER TABLE `users` ADD KEY `role` (`role`), ADD KEY `account_status` (`account_status`);
 
--- =====================================================
 -- STEP 3: ALTER STATIONS TABLE
--- =====================================================
 ALTER TABLE `stations`
   MODIFY `address` varchar(255) NOT NULL,
   ADD COLUMN `deleted_at` datetime DEFAULT NULL AFTER `updated_at`,
@@ -89,9 +81,7 @@ UPDATE `stations` SET `status` = 3 WHERE `status` = 'maintenance';
 -- Add indexes
 ALTER TABLE `stations` ADD KEY `status` (`status`);
 
--- =====================================================
 -- STEP 4: ALTER PRODUCTS TABLE
--- =====================================================
 ALTER TABLE `products`
   MODIFY `description` varchar(500) DEFAULT NULL,
   ADD COLUMN `cost_price` decimal(10,2) DEFAULT NULL AFTER `price`,
@@ -106,9 +96,7 @@ UPDATE `products` SET `unit_type` = 3 WHERE `unit_type` = 'piece';
 -- Add indexes
 ALTER TABLE `products` ADD KEY `is_active` (`is_active`);
 
--- =====================================================
 -- STEP 5: ALTER INVENTORY TABLE
--- =====================================================
 ALTER TABLE `inventory`
   ADD COLUMN `reorder_point` int(10) UNSIGNED DEFAULT 10 AFTER `min_stock_level`,
   ADD COLUMN `last_stock_check` datetime DEFAULT NULL AFTER `reorder_point`;
@@ -116,9 +104,7 @@ ALTER TABLE `inventory`
 -- Add indexes
 ALTER TABLE `inventory` ADD KEY `quantity` (`quantity`);
 
--- =====================================================
 -- STEP 6: ALTER INVENTORY_TRANSACTIONS TABLE
--- =====================================================
 ALTER TABLE `inventory_transactions`
   MODIFY `notes` varchar(500) DEFAULT NULL,
   CHANGE COLUMN `transaction_type` `transaction_type` tinyint(1) UNSIGNED NOT NULL COMMENT '1=restock, 2=deduction, 3=adjustment';
@@ -133,9 +119,7 @@ ALTER TABLE `inventory_transactions`
   ADD KEY `transaction_type` (`transaction_type`),
   ADD KEY `created_at` (`created_at`);
 
--- =====================================================
 -- STEP 7: ALTER ORDERS TABLE
--- =====================================================
 ALTER TABLE `orders`
   ADD COLUMN `subtotal` decimal(10,2) DEFAULT NULL AFTER `total_amount`,
   ADD COLUMN `discount_amount` decimal(10,2) DEFAULT 0.00 AFTER `subtotal`,
@@ -172,9 +156,7 @@ ALTER TABLE `orders`
   ADD KEY `order_status` (`order_status`),
   ADD KEY `created_at` (`created_at`);
 
--- =====================================================
 -- STEP 8: ALTER ORDER_ITEMS TABLE
--- =====================================================
 ALTER TABLE `order_items`
   ADD COLUMN `unit_type` tinyint(1) UNSIGNED NOT NULL DEFAULT 1 COMMENT '1=liter, 2=gallon, 3=piece' AFTER `quantity`;
 
@@ -182,9 +164,7 @@ ALTER TABLE `order_items`
 UPDATE `order_items` oi
 SET `oi`.`unit_type` = COALESCE((SELECT `unit_type` FROM `products` WHERE `product_id` = `oi`.`product_id`), 1);
 
--- =====================================================
 -- STEP 9: ALTER PAYMENTS TABLE
--- =====================================================
 ALTER TABLE `payments`
   ADD COLUMN `amount` decimal(10,2) DEFAULT 0.00 AFTER `payment_status`,
   MODIFY `proof_image_path` varchar(500) DEFAULT NULL,
@@ -212,9 +192,7 @@ WHERE `p`.`amount` = 0 OR `p`.`amount` IS NULL;
 ALTER TABLE `payments`
   ADD KEY `payment_status` (`payment_status`);
 
--- =====================================================
 -- STEP 10: ALTER ORDER_RETURNS TABLE
--- =====================================================
 ALTER TABLE `order_returns`
   MODIFY `reason` varchar(500) NOT NULL,
   ADD COLUMN `refund_amount` decimal(10,2) DEFAULT NULL AFTER `reason`,
@@ -236,9 +214,7 @@ WHERE `refund_amount` IS NULL AND `return_status` = 2;
 ALTER TABLE `order_returns`
   ADD KEY `return_status` (`return_status`);
 
--- =====================================================
 -- STEP 11: ALTER POS_TRANSACTIONS TABLE
--- =====================================================
 ALTER TABLE `pos_transactions`
   ADD COLUMN `receipt_number` varchar(50) DEFAULT NULL AFTER `pos_id`,
   MODIFY `full_name` varchar(150) DEFAULT NULL,
@@ -266,9 +242,7 @@ ALTER TABLE `pos_transactions`
   ADD KEY `transaction_status` (`transaction_status`),
   ADD KEY `transaction_date` (`transaction_date`);
 
--- =====================================================
 -- STEP 12: ALTER NOTIFICATIONS TABLE
--- =====================================================
 ALTER TABLE `notifications`
   MODIFY `message` varchar(500) NOT NULL,
   ADD COLUMN `sent_at` datetime DEFAULT NULL AFTER `is_read`,
@@ -286,9 +260,7 @@ ALTER TABLE `notifications`
   ADD KEY `notification_type` (`notification_type`),
   ADD KEY `is_read` (`is_read`);
 
--- =====================================================
 -- STEP 13: ALTER REPORTS TABLE
--- =====================================================
 ALTER TABLE `reports`
   CHANGE COLUMN `report_type` `report_type` tinyint(1) UNSIGNED NOT NULL COMMENT '1=daily, 2=weekly, 3=monthly, 4=yearly';
 
@@ -302,9 +274,7 @@ UPDATE `reports` SET `report_type` = 4 WHERE `report_type` = 'yearly';
 ALTER TABLE `reports`
   ADD KEY `report_type` (`report_type`);
 
--- =====================================================
 -- STEP 14: ALTER SYSTEM_LOGS TABLE
--- =====================================================
 ALTER TABLE `system_logs`
   MODIFY `event_type` varchar(50) NOT NULL,
   MODIFY `description` varchar(500) NOT NULL,
@@ -314,9 +284,7 @@ ALTER TABLE `system_logs`
 
 COMMIT;
 
--- =====================================================
 -- VERIFICATION & CLEANUP (Run after confirming data integrity)
--- =====================================================
 -- Verify all conversions were successful
 SELECT 'Users' AS table_name, COUNT(*) AS total_records FROM `users`
 UNION ALL

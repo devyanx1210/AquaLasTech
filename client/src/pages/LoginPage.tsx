@@ -29,7 +29,7 @@ export default function LoginPage() {
         if (!form.email || !form.password) { setError("All fields are required"); return; }
         setError(""); setLoading(true);
         try {
-            const res = await axios.post("http://localhost:8080/auth/login", form, { withCredentials: true });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, form, { withCredentials: true });
             if (res.data.Status === "Success") {
                 setUser(res.data.user);
                 setForm({ email: "", password: "" });

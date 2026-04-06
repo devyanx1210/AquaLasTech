@@ -25,10 +25,10 @@ export default function SignupPage() {
         if (form.password !== form.confirm) { setError("Confirm password unmatched"); return; }
         setError(""); setLoading(true);
         try {
-            await axios.post("http://localhost:8080/auth/signup", {
+            await axios.post(`${import.meta.env.VITE_API_URL}/auth/signup`, {
                 name: form.name, email: form.email, password: form.password
             });
-            const loginRes = await axios.post("http://localhost:8080/auth/login",
+            const loginRes = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`,
                 { email: form.email, password: form.password }, { withCredentials: true });
             if (loginRes.data.Status === "Success") {
                 setUser(loginRes.data.user);

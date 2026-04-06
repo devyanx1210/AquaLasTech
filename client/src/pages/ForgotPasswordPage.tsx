@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
         if (!email.trim()) { setError("Email is required"); return }
         setError(""); setLoading(true)
         try {
-            await axios.post("http://localhost:8080/auth/forgot-password", { email })
+            await axios.post(`${import.meta.env.VITE_API_URL}/auth/forgot-password`, { email })
             setSuccess(true)
         } catch (err: any) {
             setError(err.response?.data?.message || "Server error")

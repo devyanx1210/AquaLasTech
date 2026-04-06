@@ -29,7 +29,7 @@ export default function ResetPasswordPage() {
 
         setError(""); setLoading(true)
         try {
-            await axios.post("http://localhost:8080/auth/reset-password", {
+            await axios.post(`${import.meta.env.VITE_API_URL}/auth/reset-password`, {
                 token,
                 new_password: newPassword,
             })

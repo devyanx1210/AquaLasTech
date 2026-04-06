@@ -330,7 +330,7 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
 
         // Notify the customer — message depends on payment mode
         const orderNotifMessage = paymentModeNum === PAYMENT_MODE.GCASH
-            ? `Your order ${order_reference} has been placed. Your GCash receipt is pending verification by the station.`
+            ? `Your order ${order_reference} has been placed. Your GCash receipt is awaiting verification from the station.`
             : paymentModeNum === PAYMENT_MODE.CASH_ON_DELIVERY
             ? `Your order ${order_reference} has been confirmed. Payment will be collected upon delivery.`
             : `Your order ${order_reference} has been confirmed. Payment will be collected upon pickup.`

@@ -26,11 +26,23 @@ router.post("/signup", async (req, res) => {
             return res.status(400).json({ message: "All fields required" })
 
         const db = await connectToDatabase()
-        const [existing]: any = await db.query(
-            "SELECT user_id FROM users WHERE email = ?", [email]
+        const [anyExisting]: any = await db.query(
+            "SELECT user_id, deleted_at FROM users WHERE email = ?", [email]
         )
-        if (existing.length > 0)
-            return res.status(409).json({ message: "User already exists" })
+        if (anyExisting.length > 0) {
+            const existing = anyExisting[0]
+            if (!existing.deleted_at) {
+                // Active account already exists
+                return res.status(409).json({ message: "User already exists" })
+            }
+            // Reactivate soft-deleted account with new name and password
+            const hash = await bcrypt.hash(password.toString(), 10)
+            await db.query(
+                "UPDATE users SET full_name = ?, password_hash = ?, deleted_at = NULL, updated_at = NOW() WHERE user_id = ?",
+                [name, hash, existing.user_id]
+            )
+            return res.status(201).json({ Status: "Success" })
+        }
 
         const hash = await bcrypt.hash(password.toString(), 10)
         const [result]: any = await db.query(

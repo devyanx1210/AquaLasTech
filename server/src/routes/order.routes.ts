@@ -153,7 +153,7 @@ router.get('/', async (req, res) => {
                 ORDER_STATUS.CONFIRMED,
                 ORDER_STATUS.PREPARING,
                 ORDER_STATUS.OUT_FOR_DELIVERY,
-                ORDER_STATUS.DELIVERED,
+                ORDER_STATUS.RETURNED,
                 RETURN_STATUS.PENDING,
             )
         }

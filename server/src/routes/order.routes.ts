@@ -385,7 +385,7 @@ router.put('/:id/status', async (req, res) => {
                      WHERE oi.order_id = ?`,
                     [id]
                 )
-                const itemList = items.map((i: any) => `${i.product_name} x${i.quantity}`).join(', ')
+                const itemList = items.map((i: any) => `${i.quantity} ${i.product_name}`).join(', ')
                 const amount = `₱${Number(total_amount).toFixed(2)}`
                 message = `Your order is out for delivery. Items: ${itemList}.`
                 if (payment_mode === PAYMENT_MODE.CASH_ON_DELIVERY) {

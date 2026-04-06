@@ -618,7 +618,8 @@ router.delete('/orders/:id', async (req, res) => {
         )
         if (!rows.length) return res.status(404).json({ message: 'Order not found' })
         const { order_status } = rows[0]
-        if (!['delivered', 'cancelled', 'returned'].includes(order_status))
+        const deletableStatuses = [ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED, ORDER_STATUS.RETURNED]
+        if (!deletableStatuses.includes(order_status))
             return res.status(400).json({ message: 'Only completed orders can be deleted' })
 
         await pool.query(`UPDATE orders SET hidden_at = NOW() WHERE order_id = ? AND user_id = ?`, [id, userId])

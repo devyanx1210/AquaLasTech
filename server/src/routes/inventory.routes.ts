@@ -227,7 +227,7 @@ router.post('/check-low-stock', async (req, res) => {
         for (const item of lowItems) {
             const msg = item.quantity === 0
                 ? `${item.product_name} is out of stock.`
-                : `${item.product_name} is running low — only ${item.quantity} left.`
+                : `${item.product_name} is running low, only ${item.quantity} left.`
 
             for (const admin of stationAdmins) {
                 // Only insert if no unread notification for this item exists today

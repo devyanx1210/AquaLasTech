@@ -340,6 +340,21 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
             [userId, station_id, orderNotifMessage, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
 
+        // Notify station admins about the new order
+        const [stationAdmins]: any = await conn.query(
+            `SELECT u.user_id FROM admins a JOIN users u ON u.user_id = a.user_id WHERE a.station_id = ?`,
+            [station_id]
+        )
+        const paymentLabel = paymentModeNum === PAYMENT_MODE.GCASH ? 'GCash' : paymentModeNum === PAYMENT_MODE.CASH_ON_DELIVERY ? 'Cash on Delivery' : 'Cash on Pickup'
+        const adminOrderMsg = `New order ${order_reference} received. Total: ₱${Number(total_amount).toFixed(2)}, Payment: ${paymentLabel}.`
+        for (const admin of stationAdmins) {
+            await conn.query(
+                `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+                 VALUES (?, ?, ?, ?, 0, NOW())`,
+                [admin.user_id, station_id, adminOrderMsg, NOTIFICATION_TYPE.ORDER_UPDATE]
+            )
+        }
+
         await conn.commit()
         conn.release()
 
@@ -597,11 +612,30 @@ router.post('/orders/:id/return', async (req, res) => {
             `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
             [ORDER_STATUS.RETURNED, id]
         )
+        // Notify customer
         await pool.query(
             `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
              VALUES (?, ?, 'Your return request has been submitted and is under review.', ?, 0, NOW())`,
             [userId, rows[0].station_id, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
+
+        // Notify station admins about the return request
+        const [customerRow]: any = await pool.query(
+            `SELECT COALESCE(o.customer_name, u.full_name) AS customer_name, o.order_reference
+             FROM orders o JOIN users u ON u.user_id = o.user_id WHERE o.order_id = ?`, [id]
+        )
+        const [stationAdmins]: any = await pool.query(
+            `SELECT u.user_id FROM admins a JOIN users u ON u.user_id = a.user_id WHERE a.station_id = ?`,
+            [rows[0].station_id]
+        )
+        const returnMsg = `Return requested for order ${customerRow[0]?.order_reference} by ${customerRow[0]?.customer_name}.`
+        for (const admin of stationAdmins) {
+            await pool.query(
+                `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+                 VALUES (?, ?, ?, ?, 0, NOW())`,
+                [admin.user_id, rows[0].station_id, returnMsg, NOTIFICATION_TYPE.ORDER_UPDATE]
+            )
+        }
 
         return res.status(201).json({ message: 'Return request submitted' })
     } catch (err) {

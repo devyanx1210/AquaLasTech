@@ -190,9 +190,9 @@ router.get('/notifications', async (req, res) => {
         const [rows]: any = await db.query(
             `SELECT notification_id, message, notification_type, is_read, created_at
              FROM notifications
-             WHERE user_id = ? AND notification_type = ?
+             WHERE user_id = ? AND notification_type IN (?, ?)
              ORDER BY created_at DESC LIMIT 50`,
-            [user.id, NOTIFICATION_TYPE.INVENTORY_ALERT]
+            [user.id, NOTIFICATION_TYPE.INVENTORY_ALERT, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
         return res.json(rows)
     } catch (err) {
@@ -305,10 +305,10 @@ router.get('/:id', async (req, res) => {
 // Notification messages per status (keyed by numeric TINYINT values)
 const STATUS_MESSAGES: Record<number, string> = {
     [ORDER_STATUS.CONFIRMED]: 'Your order has been confirmed and is being processed.',
-    [ORDER_STATUS.PREPARING]: 'Your order is now being prepared at the station.',
+    [ORDER_STATUS.PREPARING]: 'Your order has been approved and is now being prepared at the station.',
     [ORDER_STATUS.OUT_FOR_DELIVERY]: 'Your order is out for delivery and on its way to you.',
     [ORDER_STATUS.DELIVERED]: 'Your order has been delivered. Thank you for your purchase.',
-    [ORDER_STATUS.CANCELLED]: 'Your order has been cancelled. Please contact us for assistance.',
+    [ORDER_STATUS.CANCELLED]: 'Your order has been cancelled by the station.',
     [ORDER_STATUS.RETURNED]: 'Your return request has been processed.',
 }
 
@@ -386,10 +386,12 @@ router.put('/:id/status', async (req, res) => {
                     [id]
                 )
                 const itemList = items.map((i: any) => `${i.product_name} x${i.quantity}`).join(', ')
-                const isCOD = payment_mode === PAYMENT_MODE.CASH_ON_DELIVERY
-                message = `Your order is out for delivery! Items: ${itemList}.`
-                if (isCOD) {
-                    message += ` Please prepare ₱${Number(total_amount).toFixed(2)} for payment upon delivery.`
+                const amount = `₱${Number(total_amount).toFixed(2)}`
+                message = `Your order is out for delivery. Items: ${itemList}.`
+                if (payment_mode === PAYMENT_MODE.CASH_ON_DELIVERY) {
+                    message += ` Please prepare ${amount} for payment upon delivery.`
+                } else if (payment_mode === PAYMENT_MODE.CASH_ON_PICKUP) {
+                    message += ` Please prepare ${amount} for payment upon pickup.`
                 }
             }
 

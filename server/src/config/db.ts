@@ -10,6 +10,7 @@ export const connectToDatabase = async () => {
     if (!connection) {
         connection = await mysql.createPool({
             host: process.env.DB_HOST as string,
+            port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306,
             user: process.env.DB_USER as string,
             password: process.env.DB_PASSWORD as string,
             database: process.env.DB_NAME as string,

@@ -428,6 +428,22 @@ router.put('/:id/payment', async (req, res) => {
             [payment_status, user.id, id]
         )
 
+        // Notify the customer about their payment status
+        const [orderRows]: any = await db.query(
+            `SELECT o.user_id, o.station_id FROM orders o WHERE o.order_id = ?`, [id]
+        )
+        if (orderRows.length) {
+            const { user_id, station_id } = orderRows[0]
+            const message = payment_status === PAYMENT_STATUS.VERIFIED
+                ? 'Your GCash payment has been verified. Thank you!'
+                : 'Your GCash payment was rejected. Please contact the station for assistance.'
+            await db.query(
+                `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+                 VALUES (?, ?, ?, ?, 0, NOW())`,
+                [user_id, station_id, message, NOTIFICATION_TYPE.PAYMENT_UPDATE]
+            )
+        }
+
         return res.json({ message: 'Payment updated' })
     } catch (err) {
         console.error('PUT /orders/:id/payment error:', err)

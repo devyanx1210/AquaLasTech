@@ -35,6 +35,31 @@ const fmtDate = () => new Date().toLocaleString('en-PH', {
     hour: '2-digit', minute: '2-digit',
 })
 
+// Typeable quantity input
+function QtyInput({ value, max, className, onChange }: { value: number; max: number; className?: string; onChange: (v: number) => void }) {
+    const [raw, setRaw] = useState(String(value))
+    useEffect(() => { setRaw(String(value)) }, [value])
+    return (
+        <input
+            type="number"
+            inputMode="numeric"
+            value={raw}
+            onChange={e => {
+                setRaw(e.target.value)
+                const n = parseInt(e.target.value)
+                if (!isNaN(n) && n >= 1) onChange(Math.min(n, max))
+            }}
+            onBlur={() => {
+                const n = parseInt(raw)
+                if (isNaN(n) || n < 1) setRaw(String(value))
+                else onChange(Math.min(n, max))
+            }}
+            className={`text-center font-black bg-transparent border-none outline-none
+                [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className ?? ''}`}
+        />
+    )
+}
+
 // Toast
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
@@ -511,7 +536,8 @@ export default function PointOfSale() {
                                 className="w-8 h-8 rounded-full bg-[#0d2a4a] text-white flex items-center justify-center hover:bg-[#1a4a7a] transition-all active:scale-90">
                                 <Minus size={14} />
                             </button>
-                            <span className="text-sm font-black text-gray-800 w-6 text-center">{cart[cart.length - 1].qty}</span>
+                            <QtyInput value={cart[cart.length - 1].qty} max={cart[cart.length - 1].quantity} className="text-sm text-gray-800 w-8"
+                                onChange={v => updateQty(cart[cart.length - 1].product_id, v)} />
                             <button onClick={() => addToCart(cart[cart.length - 1])}
                                 className="w-8 h-8 rounded-full bg-[#0d2a4a] text-white flex items-center justify-center hover:bg-[#1a4a7a] transition-all active:scale-90">
                                 <Plus size={14} />
@@ -679,7 +705,8 @@ export default function PointOfSale() {
                                                             className="w-5 h-5 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-500 flex items-center justify-center text-gray-500 transition-all">
                                                             <Minus size={9} />
                                                         </button>
-                                                        <span className="text-xs font-black text-gray-800 w-4 text-center">{item.qty}</span>
+                                                        <QtyInput value={item.qty} max={item.quantity} className="text-xs text-gray-800 w-6"
+                                            onChange={v => updateQty(item.product_id, v)} />
                                                         <button onClick={() => updateQty(item.product_id, item.qty + 1)}
                                                             className="w-5 h-5 rounded-full bg-gray-100 hover:bg-emerald-100 hover:text-emerald-600 flex items-center justify-center text-gray-500 transition-all">
                                                             <Plus size={9} />

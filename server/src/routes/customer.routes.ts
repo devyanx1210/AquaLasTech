@@ -641,6 +641,17 @@ router.delete('/account', async (req: any, res) => {
         if (!rows.length) return res.status(404).json({ message: 'Account not found' })
         const valid = await bcrypt.compare(password, rows[0].password_hash)
         if (!valid) return res.status(401).json({ message: 'Incorrect password' })
+        // Wipe all customer data in dependency order
+        const [orders]: any = await pool.query('SELECT order_id FROM orders WHERE user_id = ?', [userId])
+        if (orders.length > 0) {
+            const orderIds = orders.map((o: any) => o.order_id)
+            await pool.query('DELETE FROM order_returns WHERE order_id IN (?)', [orderIds])
+            await pool.query('DELETE FROM order_items WHERE order_id IN (?)', [orderIds])
+            await pool.query('DELETE FROM payments WHERE order_id IN (?)', [orderIds])
+            await pool.query('DELETE FROM orders WHERE order_id IN (?)', [orderIds])
+        }
+        await pool.query('DELETE FROM notifications WHERE user_id = ?', [userId])
+        await pool.query('UPDATE customers SET address = NULL, complete_address = NULL, latitude = NULL, longitude = NULL WHERE user_id = ?', [userId])
         await pool.query('UPDATE users SET deleted_at = NOW() WHERE user_id = ?', [userId])
         const isProd = process.env.NODE_ENV === 'production'
         res.clearCookie('token', { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'strict' })

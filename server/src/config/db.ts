@@ -16,7 +16,8 @@ export const connectToDatabase = async () => {
             database: process.env.DB_NAME as string,
             waitForConnections: true,
             connectionLimit: 10,
-            queueLimit: 0
+            queueLimit: 0,
+            ...(process.env.DB_SSL === 'true' && { ssl: { rejectUnauthorized: false } }),
         })
     }
     return connection

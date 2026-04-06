@@ -392,6 +392,7 @@ export default function CustomerSettings() {
             await axios.delete(`${API}/customer/account`, {
                 data: { password: deletePassword }, withCredentials: true
             })
+            localStorage.clear()
             setUser(null)
             navigate('/')
         } catch (err) {

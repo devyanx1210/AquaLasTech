@@ -6,8 +6,8 @@
 --          columns match production exactly, all data current.
 -- ============================================================
 
+USE defaultdb;
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
 SET time_zone = "+00:00";
 SET NAMES utf8mb4;
 
@@ -664,4 +664,4 @@ CREATE TABLE `password_reset_tokens` (
   CONSTRAINT `fk_prt_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-COMMIT;
+SET FOREIGN_KEY_CHECKS = 1;

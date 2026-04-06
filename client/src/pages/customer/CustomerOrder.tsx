@@ -94,6 +94,32 @@ const timeAgo = (d: string) => {
 const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+// Quantity input that allows free typing without snapping back
+function QtyInput({ value, max, size, onChange }: { value: number; max: number; size: 'sm' | 'xs'; onChange: (v: number) => void }) {
+    const [raw, setRaw] = useState(String(value))
+    useEffect(() => { setRaw(String(value)) }, [value])
+    return (
+        <input
+            type="number"
+            inputMode="numeric"
+            value={raw}
+            onChange={e => {
+                setRaw(e.target.value)
+                const n = parseInt(e.target.value)
+                if (!isNaN(n) && n >= 1) onChange(Math.min(n, max))
+            }}
+            onBlur={() => {
+                const n = parseInt(raw)
+                if (isNaN(n) || n < 1) setRaw(String(value))
+                else onChange(Math.min(n, max))
+            }}
+            className={`text-center font-black text-gray-800 bg-transparent border-none outline-none
+                [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none
+                ${size === 'sm' ? 'w-10 text-sm' : 'w-8 text-sm'}`}
+        />
+    )
+}
+
 // Toast
 function Toast({ msg, type, onDone }: { msg: string; type: ToastType; onDone: () => void }) {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
@@ -636,6 +662,11 @@ export default function CustomerOrder() {
         }).filter(i => i.qty > 0))
     }
 
+    const setQtyDirect = (product_id: number, value: number, maxQty: number) => {
+        if (value > maxQty) { showToast('Not enough stock', 'error'); value = maxQty }
+        setCart(prev => prev.map(i => i.product_id === product_id ? { ...i, qty: value } : i))
+    }
+
     const removeFromCart = (product_id: number) =>
         setCart(prev => prev.filter(i => i.product_id !== product_id))
     const getQtyInCart = (product_id: number) =>
@@ -673,7 +704,7 @@ export default function CustomerOrder() {
             setReceipt(null)
             setReceiptPreview(null)
             setView('products')
-            await fetchOrders()
+            await Promise.all([fetchOrders(), fetchProducts()])
             setShowOrdersPanel(true)
             setPanelTab('active')
         } catch (err: any) {
@@ -886,7 +917,8 @@ export default function CustomerOrder() {
                                                                 className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all active:scale-95">
                                                                 <Minus size={11} />
                                                             </button>
-                                                            <span className="text-sm font-black text-gray-800">{inCart}</span>
+                                                            <QtyInput value={inCart} max={product.quantity} size="sm"
+                                                                onChange={v => setQtyDirect(product.product_id, v, product.quantity)} />
                                                             <button onClick={() => updateQty(product.product_id, 1)}
                                                                 disabled={inCart >= product.quantity}
                                                                 className="w-7 h-7 rounded-lg bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white flex items-center justify-center transition-all active:scale-95 disabled:opacity-40">
@@ -949,7 +981,8 @@ export default function CustomerOrder() {
                                                             className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center active:scale-95 transition-all">
                                                             <Minus size={10} />
                                                         </button>
-                                                        <span className="text-sm font-black w-5 text-center">{item.qty}</span>
+                                                        <QtyInput value={item.qty} max={item.quantity} size="xs"
+                                                            onChange={v => setQtyDirect(item.product_id, v, item.quantity)} />
                                                         <button onClick={() => updateQty(item.product_id, 1)}
                                                             disabled={item.qty >= item.quantity}
                                                             className="w-6 h-6 rounded-lg bg-[#0d2a4a] text-white flex items-center justify-center active:scale-95 transition-all disabled:opacity-40">

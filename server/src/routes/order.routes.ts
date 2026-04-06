@@ -329,6 +329,14 @@ router.put('/:id/status', async (req, res) => {
     try {
         const db = await connectToDatabase()
 
+        // Guard: cannot cancel once out for delivery or beyond
+        if (order_status === ORDER_STATUS.CANCELLED) {
+            const [cur]: any = await db.query(`SELECT order_status FROM orders WHERE order_id = ?`, [id])
+            if (cur.length && cur[0].order_status >= ORDER_STATUS.OUT_FOR_DELIVERY) {
+                return res.status(400).json({ message: 'Order cannot be cancelled once it is out for delivery' })
+            }
+        }
+
         // Update order status
         await db.query(
             `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,

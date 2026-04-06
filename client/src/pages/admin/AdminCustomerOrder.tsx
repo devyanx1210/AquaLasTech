@@ -342,7 +342,7 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
     const nextStatuses: Record<string, string[]> = {
         confirmed: ['out_for_delivery', 'cancelled'],
         preparing: ['out_for_delivery', 'cancelled'],
-        out_for_delivery: ['delivered', 'cancelled'],
+        out_for_delivery: ['delivered'],
         delivered: [],
         cancelled: [],
         returned: [],

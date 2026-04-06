@@ -628,6 +628,28 @@ router.delete('/orders/:id', async (req, res) => {
     }
 })
 
+// DELETE /customer/account — soft-delete the customer's own account after password verify
+router.delete('/account', async (req: any, res) => {
+    const userId = req.user.id
+    const { password } = req.body
+    if (!password) return res.status(400).json({ message: 'Password is required' })
+    try {
+        const pool = await connectToDatabase()
+        const [rows]: any = await pool.query(
+            'SELECT password_hash FROM users WHERE user_id = ? AND is_deleted = 0', [userId]
+        )
+        if (!rows.length) return res.status(404).json({ message: 'Account not found' })
+        const valid = await bcrypt.compare(password, rows[0].password_hash)
+        if (!valid) return res.status(401).json({ message: 'Incorrect password' })
+        await pool.query('UPDATE users SET is_deleted = 1 WHERE user_id = ?', [userId])
+        res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'none' })
+        return res.json({ message: 'Account deleted' })
+    } catch (err) {
+        console.error('DELETE /customer/account error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
 // Catch multer & other middleware errors — returns JSON instead of HTML
 router.use((err: any, _req: any, res: any, _next: any) => {
     console.error('[customer router error]', err)

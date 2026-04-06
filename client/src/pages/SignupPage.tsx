@@ -17,9 +17,9 @@ export default function SignupPage() {
     const navigate = useNavigate();
     const { setUser } = useAuth();
 
-    const handle = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+    const handle = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [field]: e.target.value });
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         if (!form.name || !form.email || !form.password || !form.confirm) return;
         if (form.password !== form.confirm) { setError("Confirm password unmatched"); return; }
@@ -37,7 +37,8 @@ export default function SignupPage() {
                 navigate(role === "admin" ? "/admin/dashboard" : "/customer/dashboard");
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Signup failed");
+            const e = err as { response?: { data?: { message?: string } } }
+            setError(e.response?.data?.message || "Signup failed");
         } finally { setLoading(false); }
     };
 

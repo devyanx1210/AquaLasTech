@@ -22,9 +22,9 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const { setUser } = useAuth();
 
-    const handle = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+    const handle = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [field]: e.target.value });
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.email || !form.password) { setError("All fields are required"); return; }
         setError(""); setLoading(true);
@@ -36,8 +36,8 @@ export default function LoginPage() {
                 const role = res.data.user.role;
                 navigate(role === "sys_admin" ? "/sysadmin" : (role === "admin" || role === "super_admin") ? "/admin/dashboard" : "/customer/dashboard");
             }
-        } catch (err) {
-            setError(err.response?.data?.message || "Server error");
+        } catch (err: unknown) {
+            setError(axios.isAxiosError(err) ? err.response?.data?.message || "Server error" : "Server error");
         } finally { setLoading(false); }
     };
 

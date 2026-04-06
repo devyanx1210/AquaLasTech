@@ -242,15 +242,21 @@ const LineChartCustom = ({ data }: { data: { name: string; revenue: number; orde
 const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; API: string }) => {
     const [loading, setLoading] = useState(true)
     const [data, setData] = useState<{ orders: DayOrder[]; summary: DaySummary } | null>(null)
+    const [error, setError] = useState('')
 
     useEffect(() => {
         ; (async () => {
             setLoading(true)
+            setError('')
             try {
                 const r = await axios.get(`${API}/reports/day/${date}`, { withCredentials: true })
                 setData(r.data)
-            } catch { /* noop */ }
-            setLoading(false)
+            } catch (err) {
+                const e = err as { response?: { data?: { message?: string } } }
+                setError(e.response?.data?.message || 'Failed to load data for this day.')
+            } finally {
+                setLoading(false)
+            }
         })()
     }, [date, API])
 
@@ -281,6 +287,11 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
                 {loading ? (
                     <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
                         <Loader2 size={18} className="animate-spin" /> Loading...
+                    </div>
+                ) : error ? (
+                    <div className="flex flex-col items-center justify-center py-12 px-6 gap-2">
+                        <p className="text-sm text-gray-500 font-medium">Could not load daily data</p>
+                        <p className="text-xs text-gray-400 text-center">{error}</p>
                     </div>
                 ) : data ? (
                     <div className="overflow-y-auto flex-1 p-5 flex flex-col gap-5">
@@ -343,9 +354,7 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
                             </div>
                         </div>
                     </div>
-                ) : (
-                    <p className="text-center py-8 text-gray-400 text-sm">Failed to load data</p>
-                )}
+                ) : null}
             </div>
         </div>
     )
@@ -357,6 +366,7 @@ export default function AdminDashboard() {
     const navigate = useNavigate()
     const [period, setPeriod] = useState<Period>('daily')
     const [loading, setLoading] = useState(true)
+    const [dashError, setDashError] = useState('')
     const [rows, setRows] = useState<SummaryRow[]>([])
     const [totals, setTotals] = useState<Totals | null>(null)
     const [topProducts, setTopProducts] = useState<TopProduct[]>([])
@@ -368,6 +378,7 @@ export default function AdminDashboard() {
 
     const fetchData = useCallback(async () => {
         setLoading(true)
+        setDashError('')
         try {
             const res = await axios.get(`${API}/reports/summary`, {
                 params: { period }, withCredentials: true
@@ -375,8 +386,10 @@ export default function AdminDashboard() {
             setRows(res.data.rows ?? [])
             setTotals(res.data.totals ?? null)
             setTopProducts(res.data.topProducts ?? [])
-        } catch { /* noop */ }
-        finally { setLoading(false) }
+        } catch (err) {
+            const e = err as { response?: { data?: { message?: string } } }
+            setDashError(e.response?.data?.message || 'Could not load dashboard data.')
+        } finally { setLoading(false) }
     }, [API, period])
 
     useEffect(() => { fetchData() }, [fetchData])
@@ -386,7 +399,7 @@ export default function AdminDashboard() {
         try {
             const r = await axios.get(`${API}/inventory`, { withCredentials: true })
             setInventory(r.data ?? [])
-        } catch { /* noop */ }
+        } catch { /* inventory errors are shown inside the modal */ }
         setInventoryLoading(false)
     }, [API])
 
@@ -430,6 +443,11 @@ export default function AdminDashboard() {
             {loading ? (
                 <div className="flex items-center justify-center py-24 text-gray-400 gap-2">
                     <Loader2 size={20} className="animate-spin" /> Loading dashboard...
+                </div>
+            ) : dashError ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-2">
+                    <p className="text-sm text-gray-500 font-medium">Could not load dashboard</p>
+                    <p className="text-xs text-gray-400 text-center">{dashError}</p>
                 </div>
             ) : (
                 <>
@@ -667,7 +685,7 @@ export default function AdminDashboard() {
                                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                             <span className="text-xs text-gray-500">Status</span>
                                             <span className={`text-xs font-bold ${selectedInventoryItem.quantity === 0 ? 'text-red-600' :
-                                                    selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'text-amber-600' : 'text-emerald-600'
+                                                selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'text-amber-600' : 'text-emerald-600'
                                                 }`}>
                                                 {selectedInventoryItem.quantity === 0 ? 'Out of Stock' : selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'Low Stock' : 'In Stock'}
                                             </span>
@@ -682,7 +700,7 @@ export default function AdminDashboard() {
                                         <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all ${selectedInventoryItem.quantity === 0 ? 'bg-red-500' :
-                                                        selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'bg-amber-400' : 'bg-emerald-500'
+                                                    selectedInventoryItem.quantity <= selectedInventoryItem.min_stock_level ? 'bg-amber-400' : 'bg-emerald-500'
                                                     }`}
                                                 style={{ width: `${Math.min(100, (selectedInventoryItem.quantity / Math.max(selectedInventoryItem.min_stock_level * 2, 1)) * 100)}%` }}
                                             />

@@ -12,8 +12,6 @@ import {
 } from 'lucide-react'
 import { FaMoneyBillWave, FaMobileAlt } from 'react-icons/fa'
 
-// TODO Check variable names and functions
-
 // Types
 interface Order {
     order_id: number
@@ -51,6 +49,17 @@ interface OrderDetail extends Order {
         quantity: number
         price_snapshot: number
     }[]
+}
+
+// Toast
+interface ToastData { message: string; type: 'success' | 'error' }
+const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
+    useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
+    return (
+        <div className="fixed bottom-6 right-6 z-[999] px-4 py-3 rounded-xl shadow-md bg-white text-sm font-medium text-gray-700">
+            {toast.message}
+        </div>
+    )
 }
 
 // Helpers
@@ -556,9 +565,9 @@ const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0
                         ${order.return_status === 'pending' ? 'text-orange-500 animate-pulse' :
                             order.return_status === 'approved' ? 'text-emerald-600' :
                                 order.return_status === 'rejected' ? 'text-red-400' : 'text-orange-500'}`}>
-                        {order.return_status === 'pending' ? '⟳ Return Pending' :
-                            order.return_status === 'approved' ? '✓ Return Approved' :
-                                order.return_status === 'rejected' ? '✕ Return Rejected' : '⟳ Return Req.'}
+                        {order.return_status === 'pending' ? 'Return Pending' :
+                            order.return_status === 'approved' ? 'Return Approved' :
+                                order.return_status === 'rejected' ? 'Return Rejected' : 'Return Req.'}
                     </span>
                 )}
             </td>
@@ -604,6 +613,8 @@ export default function AdminCustomerOrder() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deletingSelected, setDeletingSelected] = useState(false)
     const [bulkUpdating, setBulkUpdating] = useState(false)
+    const [toast, setToast] = useState<ToastData | null>(null)
+    const showToast = (message: string, type: 'success' | 'error') => setToast({ message, type })
 
     // Fetch station name for print header
     useEffect(() => {
@@ -617,15 +628,16 @@ export default function AdminCustomerOrder() {
     const fetchOrders = useCallback(async () => {
         setLoading(true)
         try {
-            const params: any = { view }
+            const params: Record<string, string> = { view }
             // 'returned_cancelled' is a client-side pseudo-filter; don't send to backend
             if (filterStatus !== 'all' && filterStatus !== 'returned_cancelled') params.status = filterStatus
             if (filterPayment !== 'all') params.payment_mode = filterPayment
             if (search) params.search = search
             const res = await axios.get(`${API}/orders`, { params, withCredentials: true })
             setOrders(res.data)
-        } catch { }
-        finally { setLoading(false) }
+        } catch {
+            showToast('Failed to load orders', 'error')
+        } finally { setLoading(false) }
     }, [API, view, filterStatus, filterPayment, search])
 
     useEffect(() => { fetchOrders() }, [fetchOrders])
@@ -641,8 +653,9 @@ export default function AdminCustomerOrder() {
         try {
             const res = await axios.get(`${API}/orders/${order.order_id}`, { withCredentials: true })
             setSelectedOrder(res.data)
-        } catch { }
-        finally { setLoadingDetail(false) }
+        } catch {
+            showToast('Failed to load order details', 'error')
+        } finally { setLoadingDetail(false) }
     }
 
     const refreshOrder = async (id: number) => {
@@ -655,24 +668,36 @@ export default function AdminCustomerOrder() {
     }
 
     const handleStatusChange = async (id: number, status: string) => {
-        await axios.put(`${API}/orders/${id}/status`, { order_status: status }, { withCredentials: true })
-        await refreshOrder(id)
+        try {
+            await axios.put(`${API}/orders/${id}/status`, { order_status: status }, { withCredentials: true })
+            await refreshOrder(id)
+        } catch {
+            showToast('Failed to update order status', 'error')
+        }
     }
 
     const handlePaymentVerify = async (id: number, payment_status: string) => {
-        await axios.put(`${API}/orders/${id}/payment`, { payment_status }, { withCredentials: true })
-        await refreshOrder(id)
+        try {
+            await axios.put(`${API}/orders/${id}/payment`, { payment_status }, { withCredentials: true })
+            await refreshOrder(id)
+        } catch {
+            showToast('Failed to update payment status', 'error')
+        }
     }
 
     const handleReturnResolve = async (id: number, return_status: string) => {
-        await axios.put(`${API}/orders/${id}/return`, { return_status }, { withCredentials: true })
-        await refreshOrder(id)
+        try {
+            await axios.put(`${API}/orders/${id}/return`, { return_status }, { withCredentials: true })
+            await refreshOrder(id)
+        } catch {
+            showToast('Failed to process return', 'error')
+        }
     }
 
     const handlePrint = async () => {
         // Open window synchronously (before any await) so the browser does not block it as a popup
         const win = window.open('', '_blank', 'width=1050,height=700')
-        if (!win) { alert('Please allow popups for this site.'); return }
+        if (!win) { showToast('Please allow popups for this site', 'error'); return }
         win.document.write('<p style="font-family:Arial;padding:20px">Loading delivery list...</p>')
         try {
             const res = await axios.get(`${API}/orders`, { params: { view: 'active' }, withCredentials: true })
@@ -681,7 +706,7 @@ export default function AdminCustomerOrder() {
             )
             if (deliveryOrders.length === 0) {
                 win.close()
-                alert('No orders currently out for delivery.')
+                showToast('No orders currently out for delivery', 'error')
                 return
             }
             win.document.open()
@@ -691,7 +716,7 @@ export default function AdminCustomerOrder() {
             setTimeout(() => { win.print(); win.close() }, 300)
         } catch {
             win.close()
-            alert('Failed to load orders. Please try again.')
+            showToast('Failed to load orders for printing', 'error')
         }
     }
 
@@ -706,8 +731,9 @@ export default function AdminCustomerOrder() {
             setSelectedIds(new Set())
             setSelectMode(false)
             await fetchOrders()
-        } catch { /* ignore */ }
-        finally { setBulkUpdating(false) }
+        } catch {
+            showToast('Failed to update selected orders', 'error')
+        } finally { setBulkUpdating(false) }
     }
 
     const handleDeleteSelected = async () => {
@@ -722,9 +748,8 @@ export default function AdminCustomerOrder() {
             setShowDeleteConfirm(false)
             await fetchOrders()
         } catch (err) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-            console.error('Delete order error:', err)
-            alert(msg ?? 'Failed to delete orders')
+            const e = err as { response?: { data?: { message?: string } } }
+            showToast(e.response?.data?.message ?? 'Failed to delete orders', 'error')
         } finally { setDeletingSelected(false) }
     }
 
@@ -748,6 +773,7 @@ export default function AdminCustomerOrder() {
 
     return (
         <div className="flex flex-col gap-4 pb-10">
+            {toast && <Toast toast={toast} onDone={() => setToast(null)} />}
 
             {/* Header */}
             <div className="flex items-center gap-3">

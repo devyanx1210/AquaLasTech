@@ -8,7 +8,7 @@ import { connectToDatabase } from "../config/db.js"
 import dotenv from "dotenv"
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
 
-dotenv.config()
+dotenv.config({ quiet: true })
 const router = express.Router()
 
 const ROLE_NAMES: Record<number, string> = {
@@ -79,10 +79,11 @@ router.post("/login", async (req, res) => {
             { expiresIn: "3h" }
         )
 
+        const isProd = process.env.NODE_ENV === "production"
         res.cookie("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            secure: isProd,
+            sameSite: isProd ? "none" : "strict",
             maxAge: 3 * 60 * 60 * 1000,
         })
 
@@ -323,10 +324,11 @@ router.post("/reset-password", async (req, res) => {
 
 // POST /auth/logout
 router.post("/logout", (_req, res) => {
+    const isProd = process.env.NODE_ENV === "production"
     res.clearCookie("token", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: isProd,
+        sameSite: isProd ? "none" : "strict",
     })
     return res.json({ Status: "Logged out" })
 })

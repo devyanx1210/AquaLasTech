@@ -1,10 +1,11 @@
 ﻿// CustomerSettings - customer profile and delivery address management
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
 import {
     MapPin, Phone, Save, User, Mail, Lock,
-    Eye, EyeOff, CheckCircle2, AlertCircle,
+    Eye, EyeOff,
     Loader2, Navigation,
 } from 'lucide-react'
 import ProfileAvatarUpload from '../../components/ProfileAvatarUpload'
@@ -53,13 +54,7 @@ const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
         return () => clearTimeout(t)
     }, [onDone])
     return (
-        <div className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-md border text-sm font-medium
-            ${toast.type === 'success'
-                ? 'bg-white border-gray-200 text-emerald-700'
-                : 'bg-white border-gray-200 text-red-600'}`}>
-            {toast.type === 'success'
-                ? <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                : <AlertCircle size={16} className="text-red-500 shrink-0" />}
+        <div className="fixed bottom-6 right-6 z-[999] px-4 py-3 rounded-xl shadow-md bg-white text-sm font-medium text-gray-700">
             {toast.message}
         </div>
     )
@@ -91,6 +86,7 @@ const inputCls = `w-full bg-white border border-[#0d2a4a]/40 rounded-xl text-sm 
 export default function CustomerSettings() {
     const { user, setUser } = useAuth()
     const API = import.meta.env.VITE_API_URL
+    const navigate = useNavigate()
 
     // Profile state
     const [fullName, setFullName] = useState(user?.full_name ?? '')
@@ -114,6 +110,13 @@ export default function CustomerSettings() {
     const [showPw, setShowPw] = useState(false)
     const [showCpw, setShowCpw] = useState(false)
     const [savingPassword, setSavingPassword] = useState(false)
+
+    // Delete account state
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [deletePassword, setDeletePassword] = useState('')
+    const [deleteError, setDeleteError] = useState('')
+    const [deletingAccount, setDeletingAccount] = useState(false)
+    const [showDeletePw, setShowDeletePw] = useState(false)
 
     // Map refs (identical pattern to AdminSettings)
     const mapInstanceRef = useRef<any>(null)
@@ -352,7 +355,7 @@ export default function CustomerSettings() {
                 longitude,
                 complete_address: completeAddress.trim() || null,
             }, { withCredentials: true })
-            setUser(prev => prev ? { ...prev, ...res.data.user } : res.data.user)
+            setUser(user ? { ...user, ...res.data.user } : res.data.user)
             showToast('Profile updated successfully!', 'success')
         } catch (err: any) {
             showToast(err.response?.data?.message ?? 'Failed to save', 'error')
@@ -381,6 +384,21 @@ export default function CustomerSettings() {
         }
     }
 
+
+    const handleDeleteAccount = async () => {
+        if (!deletePassword) { setDeleteError('Password is required'); return }
+        setDeletingAccount(true); setDeleteError('')
+        try {
+            await axios.delete(`${API}/customer/account`, {
+                data: { password: deletePassword }, withCredentials: true
+            })
+            setUser(null)
+            navigate('/')
+        } catch (err) {
+            const e = err as { response?: { data?: { message?: string } } }
+            setDeleteError(e.response?.data?.message || 'Incorrect password')
+        } finally { setDeletingAccount(false) }
+    }
 
     return (
         <div className="max-w-2xl mx-auto flex flex-col gap-5 pb-10">
@@ -624,6 +642,71 @@ export default function CustomerSettings() {
                     </button>
                 </div>
             </Section>
+
+            {/* Delete Account */}
+            <div className="animate-fade-in-up" style={{ animationDelay: '210ms' }}>
+                <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-bold text-sm transition-all shadow-sm"
+                >
+                    Delete Account
+                </button>
+            </div>
+
+            {/* Delete Account Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 flex flex-col gap-4">
+                        <div>
+                            <h2 className="text-base font-bold text-gray-800">Delete Account</h2>
+                            <p className="text-xs text-gray-500 mt-1">This action is permanent and cannot be undone. Enter your password to confirm.</p>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
+                            <div className="relative">
+                                <input
+                                    type={showDeletePw ? 'text' : 'password'}
+                                    value={deletePassword}
+                                    onChange={e => { setDeletePassword(e.target.value); setDeleteError('') }}
+                                    className={`${inputCls} pr-10`}
+                                    placeholder="Enter your password"
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeletePw(s => !s)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    {showDeletePw ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
+                            </div>
+                            {deleteError && (
+                                <p className="text-xs text-red-500">{deleteError}</p>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3 mt-1">
+                            <button
+                                onClick={() => { setShowDeleteModal(false); setDeletePassword(''); setDeleteError('') }}
+                                disabled={deletingAccount}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={deletingAccount}
+                                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                            >
+                                {deletingAccount
+                                    ? <><Loader2 size={14} className="animate-spin" /> Deleting…</>
+                                    : 'Delete Account'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {toast && <Toast toast={toast} onDone={() => setToast(null)} />}
         </div>

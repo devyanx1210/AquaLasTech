@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import {
     Plus, Search, Edit2, RefreshCw,
-    CheckCircle2, AlertCircle,
     Loader2, X, ImageIcon,
     Droplets, Package, Trash2, SlidersHorizontal,
 } from 'lucide-react'
@@ -35,9 +34,7 @@ const fmt = (p: number) => `₱${Number(p).toFixed(2)}`
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
     return (
-        <div className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-sm font-medium
-            ${toast.type === 'success' ? 'bg-white border-emerald-200 text-emerald-700' : 'bg-white border-red-200 text-red-600'}`}>
-            {toast.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> : <AlertCircle size={16} className="text-red-500 shrink-0" />}
+        <div className="fixed bottom-6 right-6 z-[999] px-4 py-3 rounded-xl shadow-md bg-white text-sm font-medium text-gray-700">
             {toast.message}
         </div>
     )

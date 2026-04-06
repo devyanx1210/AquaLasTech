@@ -233,14 +233,14 @@ export const getEnumName = (value: number, namesMap: Record<number, string>): st
  * Check if an order status is a "final" status (won't change)
  */
 export const isFinalOrderStatus = (status: number): boolean => {
-  return [ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED, ORDER_STATUS.RETURNED].includes(status);
+  return ([ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED, ORDER_STATUS.RETURNED] as number[]).includes(status);
 };
 
 /**
  * Check if an order status is "in progress"
  */
 export const isActiveOrderStatus = (status: number): boolean => {
-  return [ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.OUT_FOR_DELIVERY].includes(status);
+  return ([ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.OUT_FOR_DELIVERY] as number[]).includes(status);
 };
 
 /**

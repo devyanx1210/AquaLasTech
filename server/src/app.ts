@@ -22,8 +22,17 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    process.env.CLIENT_URL,
+].filter(Boolean) as string[];
+
 const corsOptions = {
-    origin: "http://localhost:5174",
+    origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+        cb(new Error(`CORS blocked: ${origin}`));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -61,5 +70,6 @@ app.use("/pos", posRoutes);
 app.use("/reports", reportsRoutes);
 app.use("/customer", customerRoutes);   // ← NEW: PUT /customer/profile & /customer/password
 app.use("/sysadmin", sysadminRoutes)
+
 
 export default app;

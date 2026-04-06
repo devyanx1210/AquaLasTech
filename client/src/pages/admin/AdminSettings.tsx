@@ -5,7 +5,7 @@ import { useStation } from '../../hooks/useStation'
 import axios from 'axios'
 import {
     MapPin, Phone, Building2, Save, UserPlus,
-    Eye, EyeOff, CheckCircle2, AlertCircle,
+    Eye, EyeOff, AlertCircle,
     Loader2, Navigation, Lock, Mail, User,
     Upload, X, QrCode, ImageIcon, Trash2, Users,
 } from 'lucide-react'
@@ -78,9 +78,7 @@ const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
         return () => clearTimeout(t)
     }, [onDone])
     return (
-        <div className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-md border border-gray-200 text-sm font-medium
-            ${toast.type === 'success' ? 'bg-white text-emerald-700' : 'bg-white text-red-600'}`}>
-            {toast.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> : <AlertCircle size={16} className="text-red-500 shrink-0" />}
+        <div className="fixed bottom-6 right-6 z-[999] px-4 py-3 rounded-xl shadow-md bg-white text-sm font-medium text-gray-700">
             {toast.message}
         </div>
     )
@@ -140,7 +138,7 @@ export default function AdminSettings() {
     const [deleteAdminError, setDeleteAdminError] = useState('')
     const [deletingAdmin, setDeletingAdmin] = useState(false)
 
-    const mapRef = useRef<HTMLDivElement>(null) // kept for GPS access only
+
     const mapInstanceRef = useRef<any>(null)
     const markerRef = useRef<any>(null)
     const [mapReady, setMapReady] = useState(false)
@@ -280,8 +278,8 @@ export default function AdminSettings() {
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/settings/admins`, { withCredentials: true })
             setAdmins(res.data)
-        } catch { /* non-critical */ } finally { setLoadingAdmins(false) }
-    }, [])
+        } catch { showToast('Failed to load admins', 'error') } finally { setLoadingAdmins(false) }
+    }, [showToast])
 
     useEffect(() => { fetchAdmins() }, [fetchAdmins])
 

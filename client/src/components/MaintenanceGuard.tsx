@@ -1,5 +1,6 @@
 // MaintenanceGuard - wraps customer routes; shows MaintenancePage if station is under maintenance
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import axios from 'axios'
 import MaintenancePage from '../pages/MaintenancePage'
 

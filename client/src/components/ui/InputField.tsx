@@ -1,5 +1,18 @@
 ﻿// InputField - reusable labeled input with error state support
+import type { ReactNode, ChangeEvent } from "react"
 import { FiEye, FiEyeOff } from "react-icons/fi"
+
+interface InputFieldProps {
+    icon?: ReactNode
+    placeholder?: string
+    type?: string
+    value: string
+    onChange: (e: ChangeEvent<HTMLInputElement>) => void
+    showToggle?: boolean
+    onToggle?: () => void
+    show?: boolean
+    required?: boolean
+}
 
 export default function InputField({
     icon,
@@ -10,8 +23,8 @@ export default function InputField({
     showToggle,
     onToggle,
     show,
-    required
-}) {
+    required,
+}: InputFieldProps) {
     return (
         <div className="signup-input relative flex items-center">
             <span className="absolute left-3 text-blue-400 pointer-events-none">

@@ -2,17 +2,17 @@
 import mysql from "mysql2/promise"; //promise because we use await and async
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
-let connection;
+let connection: mysql.Pool | null = null;
 
 export const connectToDatabase = async () => {
     if (!connection) {
         connection = await mysql.createPool({
-            host: process.env.DB_HOST,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME,
+            host: process.env.DB_HOST as string,
+            user: process.env.DB_USER as string,
+            password: process.env.DB_PASSWORD as string,
+            database: process.env.DB_NAME as string,
             waitForConnections: true,
             connectionLimit: 10,
             queueLimit: 0

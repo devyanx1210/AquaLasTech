@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
 import axios from 'axios'
 import {
-    Building2, Plus, Loader2, X, CheckCircle2, AlertCircle,
+    Building2, Plus, Loader2, X,
     MapPin, Phone, User, Mail, Lock, Navigation, Trash2, Search, Wrench,
 } from 'lucide-react'
 
@@ -28,11 +28,7 @@ interface ToastData { message: string; type: 'success' | 'error' }
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
     return (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium
-            ${toast.type === 'success' ? 'bg-white text-emerald-700' : 'bg-white border border-red-200 text-red-600'}`}>
-            {toast.type === 'success'
-                ? <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                : <AlertCircle size={16} className="text-red-500 shrink-0" />}
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-md bg-white text-sm font-medium text-gray-700">
             {toast.message}
         </div>
     )

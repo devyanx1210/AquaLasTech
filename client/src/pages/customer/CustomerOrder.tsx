@@ -1,14 +1,13 @@
 ﻿// CustomerOrder - place new water delivery orders and track their status
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
 import {
     ShoppingCart, Minus, Plus, Trash2, ArrowLeft,
     Droplets, MapPin, CheckCircle2, AlertCircle,
     Loader2, Upload, X, ChevronRight, Smartphone,
     Banknote, Package, RefreshCw, Clock, Truck,
-    XCircle, RotateCcw, History, Zap, ChevronDown,
+    XCircle, RotateCcw, History, Zap,
     Maximize2, Download,
 } from 'lucide-react'
 
@@ -518,7 +517,6 @@ function ReturnModal({ order, onClose, onConfirm }: {
 }
 
 export default function CustomerOrder() {
-    const { user } = useAuth()
     const navigate = useNavigate()
 
     const [station, setStation] = useState<Station | null>(() => {

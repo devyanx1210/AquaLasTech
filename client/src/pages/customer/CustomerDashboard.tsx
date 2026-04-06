@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import {
     MapPin, Droplets, CheckCircle2, AlertCircle,
-    Loader2, RefreshCw, ChevronRight, Navigation,
+    RefreshCw, ChevronRight, Navigation,
     Store, AlertTriangle,
 } from 'lucide-react'
 

@@ -328,11 +328,16 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
             [order_id, paymentModeNum, PAYMENT_STATUS.PENDING, proof_image_path]
         )
 
-        // Notify the customer that their order was received
+        // Notify the customer — message depends on payment mode
+        const orderNotifMessage = paymentModeNum === PAYMENT_MODE.GCASH
+            ? `Your order ${order_reference} has been placed. Your GCash receipt is pending verification by the station.`
+            : paymentModeNum === PAYMENT_MODE.CASH_ON_DELIVERY
+            ? `Your order ${order_reference} has been confirmed. Payment will be collected upon delivery.`
+            : `Your order ${order_reference} has been confirmed. Payment will be collected upon pickup.`
         await conn.query(
             `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
              VALUES (?, ?, ?, ?, 0, NOW())`,
-            [userId, station_id, `Your order ${order_reference} has been received and is pending confirmation.`, NOTIFICATION_TYPE.ORDER_UPDATE]
+            [userId, station_id, orderNotifMessage, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
 
         await conn.commit()

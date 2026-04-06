@@ -6,7 +6,7 @@
 --          columns match production exactly, all data current.
 -- ============================================================
 
-USE defaultdb;
+USE aqualastech;
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
 SET NAMES utf8mb4;

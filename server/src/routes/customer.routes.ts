@@ -636,12 +636,12 @@ router.delete('/account', async (req: any, res) => {
     try {
         const pool = await connectToDatabase()
         const [rows]: any = await pool.query(
-            'SELECT password_hash FROM users WHERE user_id = ? AND is_deleted = 0', [userId]
+            'SELECT password_hash FROM users WHERE user_id = ? AND deleted_at IS NULL', [userId]
         )
         if (!rows.length) return res.status(404).json({ message: 'Account not found' })
         const valid = await bcrypt.compare(password, rows[0].password_hash)
         if (!valid) return res.status(401).json({ message: 'Incorrect password' })
-        await pool.query('UPDATE users SET is_deleted = 1 WHERE user_id = ?', [userId])
+        await pool.query('UPDATE users SET deleted_at = NOW() WHERE user_id = ?', [userId])
         res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'none' })
         return res.json({ message: 'Account deleted' })
     } catch (err) {

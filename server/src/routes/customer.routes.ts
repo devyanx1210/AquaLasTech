@@ -524,11 +524,12 @@ router.put('/orders/:id/cancel', async (req, res) => {
             [id, userId]
         )
         if (!rows.length) return res.status(404).json({ message: 'Order not found' })
-        if (rows[0].order_status !== 'confirmed')
-            return res.status(400).json({ message: 'Order can only be cancelled when status is Confirmed' })
+        if (rows[0].order_status !== ORDER_STATUS.CONFIRMED)
+            return res.status(400).json({ message: 'Order can no longer be cancelled' })
 
         await pool.query(
-            `UPDATE orders SET order_status = 'cancelled', updated_at = NOW() WHERE order_id = ?`, [id]
+            `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
+            [ORDER_STATUS.CANCELLED, id]
         )
 
         // Restore stock for each item back to inventory

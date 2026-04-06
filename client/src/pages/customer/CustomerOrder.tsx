@@ -174,16 +174,18 @@ function StatusTimeline({ status }: { status: string }) {
 
 // Order Detail Modal
 // Replaces inline expand — opens as a proper full modal with scroll
-function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
+function OrderDetailModal({ order, onClose, onCancel, onReturn, onDelete }: {
     order: CustomerOrder
     onClose: () => void
     onCancel: (o: CustomerOrder) => void
     onReturn: (o: CustomerOrder) => void
+    onDelete?: (o: CustomerOrder) => void
 }) {
     const cfg = STATUS_CFG[order.order_status] ?? STATUS_CFG.confirmed
     const canCancel = order.order_status === 'confirmed'
     const canReturn = order.order_status === 'delivered'
     const isReturned = order.order_status === 'returned'
+    const isHistory = ['delivered', 'cancelled', 'returned'].includes(order.order_status)
 
     return (
         <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center">
@@ -318,7 +320,7 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
                 </div>
 
                 {/* Footer actions — sticky */}
-                {(canCancel || canReturn) && (
+                {(canCancel || canReturn || (isHistory && onDelete)) && (
                     <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0 bg-white">
                         {canCancel && (
                             <button
@@ -332,6 +334,13 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn }: {
                                 onClick={() => { onReturn(order); onClose() }}
                                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-orange-50 hover:bg-orange-100 text-orange-500 text-sm font-bold transition-all active:scale-95">
                                 Request Return
+                            </button>
+                        )}
+                        {isHistory && onDelete && (
+                            <button
+                                onClick={() => { onDelete(order); onClose() }}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 text-sm font-bold transition-all active:scale-95">
+                                <Trash2 size={14} /> Delete
                             </button>
                         )}
                     </div>
@@ -1194,6 +1203,7 @@ export default function CustomerOrder() {
                     onClose={() => setDetailOrder(null)}
                     onCancel={o => { setDetailOrder(null); setCancelTarget(o) }}
                     onReturn={o => { setDetailOrder(null); setReturnTarget(o) }}
+                    onDelete={o => { setDetailOrder(null); handleDeleteOrder(o) }}
                 />
             )}
 

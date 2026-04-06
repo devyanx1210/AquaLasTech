@@ -551,8 +551,8 @@ router.put('/orders/:id/cancel', async (req, res) => {
             : 'Your order has been cancelled successfully.'
         await pool.query(
             `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
-             VALUES (?, ?, ?, 'order_update', 0, NOW())`,
-            [userId, rows[0].station_id, cancelMsg]
+             VALUES (?, ?, ?, ?, 0, NOW())`,
+            [userId, rows[0].station_id, cancelMsg, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
 
         return res.json({ message: 'Order cancelled' })

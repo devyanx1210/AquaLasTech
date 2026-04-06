@@ -140,10 +140,11 @@ router.get('/', async (req, res) => {
             params.push(ORDER_STATUS.CANCELLED, ORDER_STATUS.RETURNED, ORDER_STATUS.DELIVERED)
         } else {
             // Active: today's open orders + previous-day in-progress
-            // Delivered, cancelled, and returned all go to history
+            // + any delivered order with a pending return request
             query += ` AND (
                 (DATE(o.created_at) = CURDATE() AND o.order_status NOT IN (?, ?, ?))
                 OR (DATE(o.created_at) < CURDATE() AND o.order_status IN (?, ?, ?))
+                OR (o.order_status = ? AND r.return_status = ?)
             )`
             params.push(
                 ORDER_STATUS.CANCELLED,
@@ -152,6 +153,8 @@ router.get('/', async (req, res) => {
                 ORDER_STATUS.CONFIRMED,
                 ORDER_STATUS.PREPARING,
                 ORDER_STATUS.OUT_FOR_DELIVERY,
+                ORDER_STATUS.DELIVERED,
+                RETURN_STATUS.PENDING,
             )
         }
 

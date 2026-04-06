@@ -136,7 +136,7 @@ router.get("/me", async (req, res) => {
              FROM users u
              LEFT JOIN admins sp ON sp.user_id = u.user_id
              LEFT JOIN customers cp ON cp.user_id = u.user_id
-             WHERE u.user_id = ?`,
+             WHERE u.user_id = ? AND u.deleted_at IS NULL`,
             [decoded.id]
         )
         if (!rows || rows.length === 0)

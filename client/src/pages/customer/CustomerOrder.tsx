@@ -639,11 +639,16 @@ export default function CustomerOrder() {
     useEffect(() => { fetchProducts() }, [fetchProducts])
     useEffect(() => { fetchOrders() }, [fetchOrders])
 
-    // Auto-refresh active orders every 30s
+    // Auto-refresh active orders and stock every 30s
     useEffect(() => {
         const t = setInterval(fetchOrders, 30000)
         return () => clearInterval(t)
     }, [fetchOrders])
+
+    useEffect(() => {
+        const t = setInterval(fetchProducts, 30000)
+        return () => clearInterval(t)
+    }, [fetchProducts])
 
     // Cart helpers
     const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0)

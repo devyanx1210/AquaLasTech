@@ -41,8 +41,9 @@ function timeAgo(dateStr: string) {
 }
 
 // Which page to navigate to when clicking a notification
+// notification_type: 1 = order_update, 3 = inventory_alert
 function notifLink(type: string) {
-    if (type === 'low_stock') return '/admin/inventory'
+    if (Number(type) === 3) return '/admin/inventory'
     return '/admin/orders'
 }
 

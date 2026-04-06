@@ -642,7 +642,8 @@ router.delete('/account', async (req: any, res) => {
         const valid = await bcrypt.compare(password, rows[0].password_hash)
         if (!valid) return res.status(401).json({ message: 'Incorrect password' })
         await pool.query('UPDATE users SET deleted_at = NOW() WHERE user_id = ?', [userId])
-        res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'none' })
+        const isProd = process.env.NODE_ENV === 'production'
+        res.clearCookie('token', { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'strict' })
         return res.json({ message: 'Account deleted' })
     } catch (err) {
         console.error('DELETE /customer/account error:', err)

@@ -51,7 +51,7 @@ The system handles the full operational lifecycle of a water refilling station: 
 ## Backend
 
 | Technology | Version | Purpose |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | Node.js | v20+ | JavaScript runtime for the server |
 | TypeScript | ~5.9 | Strongly-typed superset of JavaScript |
 | Express.js | ^5.2 | HTTP server and routing framework |
@@ -69,7 +69,7 @@ The system handles the full operational lifecycle of a water refilling station: 
 ## Frontend
 
 | Technology | Version | Purpose |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | React | ^19.2 | UI component library |
 | TypeScript | ~5.9 | Type-safe JavaScript for the frontend |
 | Vite | ^7.3 | Build tool and development server |
@@ -85,13 +85,13 @@ The system handles the full operational lifecycle of a water refilling station: 
 ## Database
 
 | Technology | Purpose |
-| --- | --- |
+| :--- | :--- |
 | MySQL 8.0+ | Relational database for all persistent data |
 
 ## Development Tools
 
 | Tool | Purpose |
-| --- | --- |
+| :--- | :--- |
 | Nodemon | Auto-restarts server on file change |
 | ESLint | Linting for code quality |
 | Git | Version control |
@@ -425,7 +425,7 @@ The database uses **MySQL 8.0+** with a relational schema optimized for storage 
 The central identity table for all accounts in the system.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | user_id | INT AUTO_INCREMENT | Primary key |
 | full_name | VARCHAR(100) | Display name |
 | email | VARCHAR(150) | Unique login identifier |
@@ -440,7 +440,7 @@ The central identity table for all accounts in the system.
 Represents each individual water refilling station in the network.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | station_id | INT AUTO_INCREMENT | Primary key |
 | station_name | VARCHAR(150) | Display name |
 | address | VARCHAR(500) | Short address from GPS |
@@ -458,7 +458,7 @@ Represents each individual water refilling station in the network.
 Junction table linking users to stations. A user with `role=2` (admin) or `role=3` (super_admin) must have an entry here.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | admin_id | INT AUTO_INCREMENT | Primary key |
 | user_id | INT FK → users | The admin user |
 | station_id | INT FK → stations | Their assigned station |
@@ -467,7 +467,7 @@ Junction table linking users to stations. A user with `role=2` (admin) or `role=
 Extended profile for customer-role users, storing address and location.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | customer_id | INT AUTO_INCREMENT | Primary key |
 | user_id | INT FK → users | The customer user |
 | address | VARCHAR(500) | Delivery address |
@@ -479,7 +479,7 @@ Extended profile for customer-role users, storing address and location.
 The catalog of products available at a station.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | product_id | INT AUTO_INCREMENT | Primary key |
 | station_id | INT FK → stations | Which station sells this |
 | product_name | VARCHAR(150) | Display name |
@@ -494,7 +494,7 @@ The catalog of products available at a station.
 Current stock levels per product per station.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | inventory_id | INT AUTO_INCREMENT | Primary key |
 | station_id | INT FK → stations | Which station |
 | product_id | INT FK → products | Which product |
@@ -506,7 +506,7 @@ Current stock levels per product per station.
 Audit trail of every stock movement (restock, deduction, adjustment).
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | transaction_id | INT AUTO_INCREMENT | Primary key |
 | inventory_id | INT FK → inventory | Target inventory record |
 | transaction_type | TINYINT | 1=restock, 2=deduction, 3=adjustment |
@@ -518,7 +518,7 @@ Audit trail of every stock movement (restock, deduction, adjustment).
 Customer delivery/pickup orders.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | order_id | INT AUTO_INCREMENT | Primary key |
 | customer_id | INT FK → users | Ordering customer |
 | station_id | INT FK → stations | Fulfilling station |
@@ -536,7 +536,7 @@ Customer delivery/pickup orders.
 Line items within each order.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | item_id | INT AUTO_INCREMENT | Primary key |
 | order_id | INT FK → orders | Parent order |
 | product_id | INT FK → products | Product ordered |
@@ -548,7 +548,7 @@ Line items within each order.
 Payment records linked to orders, supports GCash receipt uploads.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | payment_id | INT AUTO_INCREMENT | Primary key |
 | order_id | INT FK → orders | Related order |
 | payment_mode | TINYINT | 1=gcash, 2=cash, etc. |
@@ -562,7 +562,7 @@ Payment records linked to orders, supports GCash receipt uploads.
 Walk-in in-store transactions processed through the POS system.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | pos_id | INT AUTO_INCREMENT | Primary key |
 | station_id | INT FK → stations | Processed at |
 | admin_id | INT FK → users | Who processed it |
@@ -578,7 +578,7 @@ Walk-in in-store transactions processed through the POS system.
 In-app notifications for users.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | notification_id | INT AUTO_INCREMENT | Primary key |
 | user_id | INT FK → users | Recipient |
 | message | VARCHAR(500) | Notification text |
@@ -590,7 +590,7 @@ In-app notifications for users.
 Immutable audit trail of all significant system events.
 
 | Column | Type | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | log_id | INT AUTO_INCREMENT | Primary key |
 | event_type | VARCHAR(50) | e.g. 'login', 'station_created' |
 | description | VARCHAR(500) | Human-readable event description |
@@ -1041,7 +1041,7 @@ The system enforces four levels of access:
 ## Authentication — `/auth`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | POST | /auth/signup | None | Register a new customer account |
 | POST | /auth/login | None | Login, receive JWT cookie |
 | POST | /auth/logout | Cookie | Clear JWT cookie |
@@ -1050,7 +1050,7 @@ The system enforces four levels of access:
 ## Stations — `/stations`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | GET | /stations | Any | List all stations |
 | GET | /stations/:id | Any | Get station details |
 | POST | /stations | super_admin | Create new station |
@@ -1059,7 +1059,7 @@ The system enforces four levels of access:
 ## Inventory — `/inventory`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | GET | /inventory | admin+ | Get stock levels for station |
 | POST | /inventory/restock | admin+ | Add stock to a product |
 | POST | /inventory/deduction | admin+ | Remove stock from a product |
@@ -1069,7 +1069,7 @@ The system enforces four levels of access:
 ## Orders — `/orders`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | POST | /orders | customer | Place a new order |
 | GET | /orders | admin/customer | List orders (scoped by role) |
 | GET | /orders/:id | admin/customer | View specific order |
@@ -1082,14 +1082,14 @@ The system enforces four levels of access:
 ## POS — `/pos`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | POST | /pos/transaction | admin+ | Process walk-in sale |
 | GET | /pos/history | admin+ | View POS transaction history |
 
 ## Settings — `/settings`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | GET | /settings/maintenance-status | Any | Check if station is in maintenance |
 | PUT | /settings/station/:id | super_admin | Update station details |
 | POST | /settings/station/:id/upload-logo | super_admin | Upload station logo |
@@ -1101,7 +1101,7 @@ The system enforces four levels of access:
 ## Customer — `/customer`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | PUT | /customer/profile | customer | Update name and address |
 | PUT | /customer/password | customer | Change password |
 | POST | /customer/avatar | customer | Upload profile picture |
@@ -1109,13 +1109,13 @@ The system enforces four levels of access:
 ## Reports — `/reports`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | GET | /reports/summary | admin+ | Sales summary (daily/weekly/monthly/yearly) |
 
 ## System Admin — `/sysadmin`
 
 | Method | Path | Auth | Description |
-| --- | --- | --- | --- |
+| :--- | :--- | :--- | :--- |
 | GET | /sysadmin/stations | sys_admin | All stations with super admin info |
 | POST | /sysadmin/stations | sys_admin | Create station + super admin |
 | DELETE | /sysadmin/stations/:id | sys_admin | Delete station (password required) |
@@ -1224,7 +1224,7 @@ Managed in `customer.routes.ts`. Users upload a profile photo. Stored in `users.
 Notifications are stored in the `notifications` table and linked to a specific `user_id`. They are created automatically by the server at key events:
 
 | Trigger | Recipient | Type |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | Customer places order | Admin | Order update |
 | Admin changes order status | Customer | Order update |
 | Admin verifies payment | Customer | Payment update |
@@ -1283,7 +1283,7 @@ POS transactions appear in the history panel and are included in the reports dat
 ## Server `.env`
 
 | Variable | Example | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | PORT | 8080 | Port the Express server listens on |
 | DB_HOST | 127.0.0.1 | MySQL server host |
 | DB_USER | root | MySQL username |
@@ -1298,7 +1298,7 @@ POS transactions appear in the history panel and are included in the reports dat
 ## Client `.env`
 
 | Variable | Example | Description |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | VITE_API_URL | http://localhost:8080 | Base URL of the backend API |
 | VITE_FB_PAGE_URL | https://facebook.com/... | Facebook page URL for landing page |
 | VITE_CONTACT_EMAIL | info@aqualas.com | Contact email shown on landing page |
@@ -1315,7 +1315,7 @@ All numeric status codes used in the database are defined in `server/src/constan
 ## User Roles (`users.role`)
 
 | Name | Value | Access Level |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | ROLE.CUSTOMER | 1 | Customer dashboard only |
 | ROLE.ADMIN | 2 | Admin dashboard (station-scoped) |
 | ROLE.SUPER_ADMIN | 3 | Admin + Settings |
@@ -1324,7 +1324,7 @@ All numeric status codes used in the database are defined in `server/src/constan
 ## Station Status (`stations.status`)
 
 | Name | Value | Meaning |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | STATION_STATUS.OPEN | 1 | Normal operation |
 | STATION_STATUS.CLOSED | 2 | Temporarily closed |
 | STATION_STATUS.MAINTENANCE | 3 | System maintenance active |
@@ -1332,7 +1332,7 @@ All numeric status codes used in the database are defined in `server/src/constan
 ## Order Status (`orders.order_status`)
 
 | Name | Value | Meaning |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | ORDER_STATUS.CONFIRMED | 1 | Order received |
 | ORDER_STATUS.PREPARING | 2 | Being prepared |
 | ORDER_STATUS.OUT_FOR_DELIVERY | 3 | En route |
@@ -1343,7 +1343,7 @@ All numeric status codes used in the database are defined in `server/src/constan
 ## Payment Mode (`orders.payment_mode`)
 
 | Name | Value | Meaning |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | PAYMENT_MODE.GCASH | 1 | GCash digital payment |
 | PAYMENT_MODE.CASH | 2 | Upfront cash |
 | PAYMENT_MODE.CASH_ON_DELIVERY | 3 | Pay when order arrives |
@@ -1352,7 +1352,7 @@ All numeric status codes used in the database are defined in `server/src/constan
 ## Payment Status (`payments.payment_status`)
 
 | Name | Value | Meaning |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | PAYMENT_STATUS.PENDING | 1 | Awaiting admin verification |
 | PAYMENT_STATUS.VERIFIED | 2 | Payment confirmed |
 | PAYMENT_STATUS.REJECTED | 3 | Payment rejected |
@@ -1360,7 +1360,7 @@ All numeric status codes used in the database are defined in `server/src/constan
 ## Inventory Transaction Type (`inventory_transactions.transaction_type`)
 
 | Name | Value | Meaning |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | TRANSACTION_TYPE.RESTOCK | 1 | Stock added |
 | TRANSACTION_TYPE.DEDUCTION | 2 | Stock removed |
 | TRANSACTION_TYPE.ADJUSTMENT | 3 | Stock set to exact value |
@@ -1368,7 +1368,7 @@ All numeric status codes used in the database are defined in `server/src/constan
 ## Notification Type (`notifications.notification_type`)
 
 | Name | Value | Meaning |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | NOTIFICATION_TYPE.ORDER_UPDATE | 1 | Order status changed |
 | NOTIFICATION_TYPE.PAYMENT_UPDATE | 2 | Payment verified or rejected |
 | NOTIFICATION_TYPE.INVENTORY_ALERT | 3 | Low stock warning |
@@ -1377,7 +1377,7 @@ All numeric status codes used in the database are defined in `server/src/constan
 ## System Log Event Types (`system_logs.event_type` — VARCHAR)
 
 | Value | Trigger |
-| --- | --- |
+| :--- | :--- |
 | login | User logs in |
 | logout | User logs out |
 | station_created | System admin creates a station |

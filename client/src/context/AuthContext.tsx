@@ -16,7 +16,6 @@ type User = {
     profile_picture: string | null;
 } | null;
 
-
 type AuthContextType = {
     user: User;
     loading: boolean;
@@ -36,7 +35,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         axios
             .get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true })
-            .then(res => setUser(res.data.user))
+            .then(res => {
+                if (res.data.token) localStorage.setItem('authToken', res.data.token);
+                setUser(res.data.user);
+            })
             .catch(() => setUser(null))
             .finally(() => setLoading(false));
     }, []);

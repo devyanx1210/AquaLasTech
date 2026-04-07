@@ -160,6 +160,7 @@ router.get("/me", async (req, res) => {
 
         const u = rows[0]
         return res.json({
+            token,
             user: {
                 user_id: u.user_id,
                 full_name: u.full_name,

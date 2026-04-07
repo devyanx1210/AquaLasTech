@@ -321,11 +321,13 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
         }
 
         // Insert payment record
+        // GCash needs manual verification → PENDING; COD/COP payment happens later → VERIFIED immediately
         const proof_image_path = req.file ? `/uploads/receipts/${req.file.filename}` : null
+        const initialPaymentStatus = paymentModeNum === PAYMENT_MODE.GCASH ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.VERIFIED
         await conn.query(
             `INSERT INTO payments (order_id, payment_type, payment_status, proof_image_path, created_at)
              VALUES (?, ?, ?, ?, NOW())`,
-            [order_id, paymentModeNum, PAYMENT_STATUS.PENDING, proof_image_path]
+            [order_id, paymentModeNum, initialPaymentStatus, proof_image_path]
         )
 
         // Notify the customer — message depends on payment mode
@@ -342,7 +344,7 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
 
         // Notify station admins about the new order
         const [stationAdmins]: any = await conn.query(
-            `SELECT u.user_id FROM admins a JOIN users u ON u.user_id = a.user_id WHERE a.station_id = ?`,
+            `SELECT u.user_id FROM admins a JOIN users u ON u.user_id = a.user_id WHERE a.station_id = ? AND u.role IN (2, 3)`,
             [station_id]
         )
         const paymentLabel = paymentModeNum === PAYMENT_MODE.GCASH ? 'GCash' : paymentModeNum === PAYMENT_MODE.CASH_ON_DELIVERY ? 'Cash on Delivery' : 'Cash on Pickup'
@@ -351,7 +353,7 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
             await conn.query(
                 `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
                  VALUES (?, ?, ?, ?, 0, NOW())`,
-                [admin.user_id, station_id, adminOrderMsg, NOTIFICATION_TYPE.ORDER_UPDATE]
+                [admin.user_id, station_id, adminOrderMsg, NOTIFICATION_TYPE.SYSTEM_MESSAGE]
             )
         }
 
@@ -625,7 +627,7 @@ router.post('/orders/:id/return', async (req, res) => {
              FROM orders o JOIN users u ON u.user_id = o.user_id WHERE o.order_id = ?`, [id]
         )
         const [stationAdmins]: any = await pool.query(
-            `SELECT u.user_id FROM admins a JOIN users u ON u.user_id = a.user_id WHERE a.station_id = ?`,
+            `SELECT u.user_id FROM admins a JOIN users u ON u.user_id = a.user_id WHERE a.station_id = ? AND u.role IN (2, 3)`,
             [rows[0].station_id]
         )
         const returnMsg = `Return requested for order ${customerRow[0]?.order_reference} by ${customerRow[0]?.customer_name}.`
@@ -633,7 +635,7 @@ router.post('/orders/:id/return', async (req, res) => {
             await pool.query(
                 `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
                  VALUES (?, ?, ?, ?, 0, NOW())`,
-                [admin.user_id, rows[0].station_id, returnMsg, NOTIFICATION_TYPE.ORDER_UPDATE]
+                [admin.user_id, rows[0].station_id, returnMsg, NOTIFICATION_TYPE.SYSTEM_MESSAGE]
             )
         }
 

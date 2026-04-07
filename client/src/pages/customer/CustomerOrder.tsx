@@ -66,11 +66,18 @@ type PanelTab = 'active' | 'history'
 
 // Status config
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string; icon: any; btnBg: string }> = {
+    pending:  { label: 'Pending',  color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-400', icon: Clock, btnBg: 'bg-amber-500' },
     confirmed: { label: 'Confirmed', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-400', icon: CheckCircle2, btnBg: 'bg-blue-600' },
     out_for_delivery: { label: 'Out for Delivery', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', icon: Truck, btnBg: 'bg-purple-600' },
     delivered: { label: 'Delivered', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2, btnBg: 'bg-emerald-600' },
     cancelled: { label: 'Cancelled', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-400', icon: XCircle, btnBg: 'bg-red-500' },
     returned: { label: 'Returned', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200', dot: 'bg-orange-400', icon: RotateCcw, btnBg: 'bg-orange-500' },
+}
+
+// Derive display status: GCash orders with pending payment show as 'pending' instead of 'confirmed'
+function getDisplayStatus(order: CustomerOrder): string {
+    if (order.order_status === 'confirmed' && order.payment_mode === 'gcash' && order.payment_status === 'pending') return 'pending'
+    return order.order_status
 }
 
 const PAYMENT_LABEL: Record<string, string> = {
@@ -134,7 +141,10 @@ function Toast({ msg, type, onDone }: { msg: string; type: ToastType; onDone: ()
 
 // Status Timeline (horizontal steps)
 function StatusTimeline({ status }: { status: string }) {
-    const steps = ['confirmed', 'out_for_delivery', 'delivered']
+    const isPending = status === 'pending'
+    const steps = isPending
+        ? ['pending', 'confirmed', 'out_for_delivery', 'delivered']
+        : ['confirmed', 'out_for_delivery', 'delivered']
     if (status === 'cancelled' || status === 'returned') {
         const cfg = STATUS_CFG[status]
         return (
@@ -181,8 +191,9 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn, onDelete }: {
     onReturn: (o: CustomerOrder) => void
     onDelete?: (o: CustomerOrder) => void
 }) {
-    const cfg = STATUS_CFG[order.order_status] ?? STATUS_CFG.confirmed
-    const canCancel = order.order_status === 'confirmed'
+    const displayStatus = getDisplayStatus(order)
+    const cfg = STATUS_CFG[displayStatus] ?? STATUS_CFG.confirmed
+    const canCancel = displayStatus === 'pending'  // only while GCash payment is unverified
     const canReturn = order.order_status === 'delivered'
     const isReturned = order.order_status === 'returned'
     const isHistory = ['delivered', 'cancelled', 'returned'].includes(order.order_status)
@@ -229,17 +240,11 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn, onDelete }: {
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white ${cfg.btnBg}`}>
                                 <cfg.icon size={12} /> {cfg.label}
                             </span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold text-white
-                                ${order.payment_status === 'verified' ? 'bg-emerald-600' : 'bg-amber-500'}`}>
-                                {order.payment_status === 'verified'
-                                    ? <><CheckCircle2 size={11} /> Paid</>
-                                    : <><Clock size={11} /> Payment Pending</>}
-                            </span>
                             <span className="ml-auto text-base font-black text-[#0d2a4a]">{fmt(order.total_amount)}</span>
                         </div>
                         {order.order_status !== 'cancelled' && order.order_status !== 'returned' && (
                             <div className="bg-gray-50 rounded-2xl p-3">
-                                <StatusTimeline status={order.order_status} />
+                                <StatusTimeline status={displayStatus} />
                             </div>
                         )}
                     </div>
@@ -356,7 +361,8 @@ function OrderCard({ order, onOpen, onDelete }: {
     onOpen: () => void
     onDelete?: (o: CustomerOrder) => void
 }) {
-    const cfg = STATUS_CFG[order.order_status] ?? STATUS_CFG.confirmed
+    const displayStatus = getDisplayStatus(order)
+    const cfg = STATUS_CFG[displayStatus] ?? STATUS_CFG.confirmed
 
     return (
         <div
@@ -389,12 +395,12 @@ function OrderCard({ order, onOpen, onDelete }: {
                         )}
                     </span>
                 ) : (
-                    <StatusTimeline status={order.order_status} />
+                    <StatusTimeline status={displayStatus} />
                 )}
             </div>
 
-            {/* Cancel hint when confirmed */}
-            {order.order_status === 'confirmed' && (
+            {/* Cancel hint when pending payment */}
+            {displayStatus === 'pending' && (
                 <div className="mx-4 mb-3 flex items-center gap-1.5 text-[10px] text-red-400 font-semibold">
                     <XCircle size={10} /> Tap to view · Can still cancel
                 </div>
@@ -424,7 +430,7 @@ function OrderCard({ order, onOpen, onDelete }: {
     )
 }
 
-// Cancel Modal (with reason field, no admin approval needed)
+// Cancel Modal
 function CancelModal({ order, onClose, onConfirm }: {
     order: CustomerOrder
     onClose: () => void
@@ -432,12 +438,10 @@ function CancelModal({ order, onClose, onConfirm }: {
 }) {
     const [reason, setReason] = useState('')
     const [busy, setBusy] = useState(false)
-
     return (
         <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             <div className="relative z-10 w-full sm:max-w-sm bg-white sm:rounded-2xl rounded-t-3xl shadow-2xl p-6 flex flex-col gap-4">
-                {/* Handle */}
                 <div className="flex justify-center -mt-2 mb-1 sm:hidden">
                     <div className="w-10 h-1 bg-gray-300 rounded-full" />
                 </div>
@@ -454,29 +458,17 @@ function CancelModal({ order, onClose, onConfirm }: {
                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                         Reason for cancellation <span className="text-red-400">*</span>
                     </label>
-                    <textarea
-                        value={reason}
-                        onChange={e => setReason(e.target.value)}
+                    <textarea value={reason} onChange={e => setReason(e.target.value)}
                         placeholder="e.g. Changed my mind, ordered by mistake..."
                         rows={3}
-                        className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-red-300 outline-none text-sm resize-none transition-all"
-                    />
+                        className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-red-300 outline-none text-sm resize-none transition-all" />
                 </div>
-                <p className="text-[10px] text-gray-400 -mt-2">
-                    Your order will be cancelled immediately and stock will be restored.
-                </p>
                 <div className="flex gap-3">
                     <button onClick={onClose} disabled={busy}
                         className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all">
                         Keep Order
                     </button>
-                    <button
-                        onClick={async () => {
-                            if (!reason.trim()) return
-                            setBusy(true)
-                            await onConfirm(reason)
-                            setBusy(false)
-                        }}
+                    <button onClick={async () => { if (!reason.trim()) return; setBusy(true); await onConfirm(reason); setBusy(false) }}
                         disabled={busy || !reason.trim()}
                         className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60">
                         {busy ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
@@ -728,21 +720,19 @@ export default function CustomerOrder() {
         }
     }
 
-    // Cancel order
+    // Delete history order
     const handleCancel = async (reason: string) => {
         if (!cancelTarget) return
         try {
-            await axios.put(`${API}/customer/orders/${cancelTarget.order_id}/cancel`,
-                { reason }, { withCredentials: true })
+            await axios.put(`${API}/customer/orders/${cancelTarget.order_id}/cancel`, { reason }, { withCredentials: true })
             showToast('Order cancelled', 'success')
             setCancelTarget(null)
             await fetchOrders()
-        } catch (err: any) {
-            showToast(err.response?.data?.message ?? 'Failed to cancel', 'error')
+        } catch (err: unknown) {
+            showToast(axios.isAxiosError(err) ? err.response?.data?.message ?? 'Failed to cancel' : 'Failed to cancel', 'error')
         }
     }
 
-    // Delete history order
     const handleDeleteOrder = async (order: CustomerOrder) => {
         try {
             await axios.delete(`${API}/customer/orders/${order.order_id}`, { withCredentials: true })

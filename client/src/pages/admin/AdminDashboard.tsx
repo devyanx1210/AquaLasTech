@@ -1,6 +1,7 @@
 ﻿// AdminDashboard - overview of sales, orders, and inventory for station admins
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
 import {
     TrendingUp, ShoppingBag, PackageCheck, XCircle,
@@ -362,8 +363,13 @@ const DayModal = ({ date, onClose, API }: { date: string; onClose: () => void; A
 
 
 export default function AdminDashboard() {
+    const { user } = useAuth()
     const API = import.meta.env.VITE_API_URL
     const navigate = useNavigate()
+
+    useEffect(() => {
+        if (user && user.role !== 'super_admin') navigate('/admin/inventory', { replace: true })
+    }, [user, navigate])
     const [period, setPeriod] = useState<Period>('daily')
     const [loading, setLoading] = useState(true)
     const [dashError, setDashError] = useState('')

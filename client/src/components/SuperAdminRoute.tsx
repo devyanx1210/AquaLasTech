@@ -11,5 +11,5 @@ export default function SuperAdminRoute() {
 
     return user?.role === 'super_admin'
         ? <Outlet />
-        : <Navigate to="/admin/dashboard" replace />
+        : <Navigate to="/admin/inventory" replace />
 }

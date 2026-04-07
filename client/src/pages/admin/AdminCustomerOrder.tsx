@@ -342,7 +342,7 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
     const nextStatuses: Record<string, string[]> = {
         confirmed: ['out_for_delivery', 'cancelled'],
         preparing: ['out_for_delivery', 'cancelled'],
-        out_for_delivery: ['delivered'],
+        out_for_delivery: ['delivered', 'cancelled'],
         delivered: [],
         cancelled: [],
         returned: [],
@@ -629,8 +629,8 @@ export default function AdminCustomerOrder() {
         setLoading(true)
         try {
             const params: Record<string, string> = { view }
-            // 'returned_cancelled' is a client-side pseudo-filter; don't send to backend
-            if (filterStatus !== 'all' && filterStatus !== 'returned_cancelled') params.status = filterStatus
+            // 'returned_cancelled' and 'pending' are client-side pseudo-filters; don't send to backend
+            if (filterStatus !== 'all' && filterStatus !== 'returned_cancelled' && filterStatus !== 'pending') params.status = filterStatus
             if (filterPayment !== 'all') params.payment_mode = filterPayment
             if (search) params.search = search
             const res = await axios.get(`${API}/orders`, { params, withCredentials: true })
@@ -760,10 +760,12 @@ export default function AdminCustomerOrder() {
             return s
         })
 
-    // Client-side filter for 'returned_cancelled' pseudo-status
+    // Client-side filters for pseudo-statuses
     const displayed = filterStatus === 'returned_cancelled'
         ? orders.filter(o => o.order_status === 'returned' || o.order_status === 'cancelled')
-        : orders
+        : filterStatus === 'pending'
+            ? orders.filter(o => o.payment_status === 'pending')
+            : orders
 
     const allSelected = displayed.length > 0 && displayed.every(o => selectedIds.has(o.order_id))
     const someSelected = selectedIds.size > 0
@@ -839,12 +841,12 @@ export default function AdminCustomerOrder() {
                             darkBg
                             options={[
                                 { value: 'all', label: 'All Status' },
+                                { value: 'pending', label: 'Pending' },
                                 { value: 'confirmed', label: 'Confirmed' },
                                 { value: 'out_for_delivery', label: 'Out for Delivery' },
                                 { value: 'delivered', label: 'Delivered' },
                                 { value: 'cancelled', label: 'Cancelled' },
                                 { value: 'returned', label: 'Returned' },
-                                { value: 'returned_cancelled', label: 'Returns & Cancelled' },
                             ]}
                         />
                         <CompactSelect

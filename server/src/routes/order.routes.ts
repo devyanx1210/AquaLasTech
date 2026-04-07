@@ -182,7 +182,7 @@ router.get('/', async (req, res) => {
 
 // ── Admin Notification Routes (must be before /:id) ──
 
-// GET /orders/notifications — admins only see inventory/stock alerts
+// GET /orders/notifications — admins see inventory alerts and admin order/return events (SYSTEM_MESSAGE)
 router.get('/notifications', async (req, res) => {
     const user = (req as any).user
     try {
@@ -192,7 +192,7 @@ router.get('/notifications', async (req, res) => {
              FROM notifications
              WHERE user_id = ? AND notification_type IN (?, ?)
              ORDER BY created_at DESC LIMIT 50`,
-            [user.id, NOTIFICATION_TYPE.INVENTORY_ALERT, NOTIFICATION_TYPE.ORDER_UPDATE]
+            [user.id, NOTIFICATION_TYPE.INVENTORY_ALERT, NOTIFICATION_TYPE.SYSTEM_MESSAGE]
         )
         return res.json(rows)
     } catch (err) {
@@ -328,14 +328,6 @@ router.put('/:id/status', async (req, res) => {
 
     try {
         const db = await connectToDatabase()
-
-        // Guard: cannot cancel once out for delivery or beyond
-        if (order_status === ORDER_STATUS.CANCELLED) {
-            const [cur]: any = await db.query(`SELECT order_status FROM orders WHERE order_id = ?`, [id])
-            if (cur.length && cur[0].order_status >= ORDER_STATUS.OUT_FOR_DELIVERY) {
-                return res.status(400).json({ message: 'Order cannot be cancelled once it is out for delivery' })
-            }
-        }
 
         // Update order status
         await db.query(

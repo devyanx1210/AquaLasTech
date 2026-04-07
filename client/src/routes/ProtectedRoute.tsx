@@ -12,7 +12,8 @@ const ADMIN_ROLES = ["admin", "super_admin"]
 
 function getRedirect(userRole: string): string {
     if (userRole === "sys_admin") return "/sysadmin"
-    if (ADMIN_ROLES.includes(userRole)) return "/admin/dashboard"
+    if (userRole === "super_admin") return "/admin/dashboard"
+    if (userRole === "admin") return "/admin/inventory"
     return "/customer/dashboard"
 }
 

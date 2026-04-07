@@ -600,19 +600,21 @@ export default function AdminSettings() {
 
                     <div className="border-t border-gray-100 pt-4 flex flex-col gap-3">
                         <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Change Password</p>
-                        <div className="relative">
-                            <Field
-                                label="Current Password" icon={<Lock size={14} />}
-                                type={showPwCurrent ? 'text' : 'password'}
-                                placeholder="Enter current password"
-                                value={pwForm.current}
-                                onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
-                                error={pwErrors.current}
-                            />
-                            <button type="button" onClick={() => setShowPwCurrent(p => !p)}
-                                className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
-                                {showPwCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
-                            </button>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="relative">
+                                <Field
+                                    label="Current Password" icon={<Lock size={14} />}
+                                    type={showPwCurrent ? 'text' : 'password'}
+                                    placeholder="Enter current password"
+                                    value={pwForm.current}
+                                    onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
+                                    error={pwErrors.current}
+                                />
+                                <button type="button" onClick={() => setShowPwCurrent(p => !p)}
+                                    className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
+                                    {showPwCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
+                            </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="relative">

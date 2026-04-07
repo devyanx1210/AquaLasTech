@@ -41,7 +41,7 @@ function timeAgo(dateStr: string) {
 }
 
 // Which page to navigate to when clicking a notification
-// notification_type: 1 = order_update, 3 = inventory_alert
+// notification_type: 3 = inventory_alert, 4 = system_message (new order / return events)
 function notifLink(type: string) {
     if (Number(type) === 3) return '/admin/inventory'
     return '/admin/orders'
@@ -220,7 +220,10 @@ export default function AdminLayout() {
 
     // Build nav items based on role
     const isSuperAdmin = user?.role === 'super_admin'
-    const navItems = [...baseNavItems, settingsNavItem]
+    // Regular admins (staff) only see Inventory, Orders, POS — no Home or Settings
+    const navItems = isSuperAdmin
+        ? [...baseNavItems, settingsNavItem]
+        : baseNavItems.filter(item => item.label !== 'Home')
 
     const handleLogout = async () => {
         setLoggingOut(true)
@@ -379,9 +382,10 @@ export default function AdminLayout() {
                     )}
                 </div>
                 <button
-                    onClick={() => navigate('/admin/settings')}
-                    title="Go to Settings"
+                    onClick={() => isSuperAdmin && navigate('/admin/settings')}
+                    title={isSuperAdmin ? "Go to Settings" : undefined}
                     className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#38bdf8] to-[#0369a1] flex items-center justify-center text-xs font-bold text-white select-none hover:opacity-80 active:scale-95 transition-all shrink-0"
+                    style={!isSuperAdmin ? { cursor: 'default' } : undefined}
                 >
                     {avatarSrc
                         ? <img src={avatarSrc} alt="" className="w-full h-full object-cover" />

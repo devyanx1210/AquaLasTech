@@ -235,7 +235,6 @@ export default function AdminLayout() {
             )
         } catch { /* proceed regardless */ } finally {
             localStorage.removeItem('authToken')
-            delete axios.defaults.headers.common['Authorization']
             setUser(null)
             navigate('/login')
         }

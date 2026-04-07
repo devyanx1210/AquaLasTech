@@ -9,11 +9,10 @@ import axios from "axios";
 
 // Attach token to every request from localStorage (fallback for iOS Safari cross-site cookie blocking)
 axios.interceptors.request.use((config) => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-        config.headers = config.headers ?? {};
-        config.headers["Authorization"] = `Bearer ${token}`;
-    }
+    try {
+        const token = localStorage.getItem("authToken");
+        if (token) config.headers.set("Authorization", `Bearer ${token}`);
+    } catch { /* localStorage unavailable */ }
     return config;
 });
 

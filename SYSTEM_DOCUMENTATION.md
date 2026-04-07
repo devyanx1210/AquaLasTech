@@ -1,10 +1,10 @@
-#### AquaLasTech — Full System Documentation
+### AquaLasTech — Full System Documentation
 
 > A complete technical and academic reference for understanding, installing, configuring, and mastering the AquaLasTech water refilling station management system.
 
 ---
 
-##### Table of Contents
+## Table of Contents
 
 1. [[#Project Overview]]
 2. [[#Technology Stack]]
@@ -28,7 +28,7 @@
 
 ---
 
-##### Project Overview
+## Project Overview
 
 **AquaLasTech** is a full-stack web application built to digitize and streamline the operations of water refilling stations. It serves four distinct user roles — **System Administrator**, **Super Admin**, **Admin**, and **Customer** — each with a dedicated interface and permission scope.
 
@@ -46,59 +46,59 @@ The system handles the full operational lifecycle of a water refilling station: 
 
 ---
 
-##### Technology Stack
+## Technology Stack
 
-##### Backend
-
-| Technology | Version | Purpose |
-| --- | --- | --- |
-| **Node.js** | v20+ | JavaScript runtime for the server |
-| **TypeScript** | ~5.9 | Strongly-typed superset of JavaScript |
-| **Express.js** | ^5.2 | HTTP server and routing framework |
-| **MySQL 2** | ^3.18 | Database driver for MySQL with promise support |
-| **JSON Web Tokens (JWT)** | ^9.0 | Stateless authentication tokens |
-| **bcrypt** | ^6.0 | Password hashing algorithm |
-| **Multer** | ^2.1 | File upload middleware |
-| **Nodemailer** | ^8.0 | Email sending (password reset) |
-| **Helmet** | ^8.1 | HTTP security headers middleware |
-| **CORS** | ^2.8 | Cross-Origin Resource Sharing control |
-| **cookie-parser** | ^1.4 | Parses cookies from HTTP requests |
-| **dotenv** | ^17.3 | Loads environment variables from `.env` |
-| **tsx** | ^4.21 | TypeScript execution engine (development) |
-
-##### Frontend
+## Backend
 
 | Technology | Version | Purpose |
 | --- | --- | --- |
-| **React** | ^19.2 | UI component library |
-| **TypeScript** | ~5.9 | Type-safe JavaScript for the frontend |
-| **Vite** | ^7.3 | Build tool and development server |
-| **React Router DOM** | ^7.13 | Client-side routing |
-| **Axios** | ^1.13 | HTTP client for API requests |
-| **TailwindCSS** | ^3.4 | Utility-first CSS framework |
-| **Lucide React** | ^0.576 | Icon library |
-| **React Icons** | ^5.5 | Additional icon packs (e.g. FcGoogle) |
-| **Leaflet / React-Leaflet** | ^1.9 / ^5.0 | Interactive map for station location |
-| **PostCSS** | ^8.5 | CSS transformation pipeline |
-| **Autoprefixer** | ^10.4 | Automatically adds vendor CSS prefixes |
+| Node.js | v20+ | JavaScript runtime for the server |
+| TypeScript | ~5.9 | Strongly-typed superset of JavaScript |
+| Express.js | ^5.2 | HTTP server and routing framework |
+| MySQL 2 | ^3.18 | Database driver for MySQL with promise support |
+| JSON Web Tokens (JWT) | ^9.0 | Stateless authentication tokens |
+| bcrypt | ^6.0 | Password hashing algorithm |
+| Multer | ^2.1 | File upload middleware |
+| Nodemailer | ^8.0 | Email sending (password reset) |
+| Helmet | ^8.1 | HTTP security headers middleware |
+| CORS | ^2.8 | Cross-Origin Resource Sharing control |
+| cookie-parser | ^1.4 | Parses cookies from HTTP requests |
+| dotenv | ^17.3 | Loads environment variables from .env |
+| tsx | ^4.21 | TypeScript execution engine (development) |
 
-##### Database
+## Frontend
+
+| Technology | Version | Purpose |
+| --- | --- | --- |
+| React | ^19.2 | UI component library |
+| TypeScript | ~5.9 | Type-safe JavaScript for the frontend |
+| Vite | ^7.3 | Build tool and development server |
+| React Router DOM | ^7.13 | Client-side routing |
+| Axios | ^1.13 | HTTP client for API requests |
+| TailwindCSS | ^3.4 | Utility-first CSS framework |
+| Lucide React | ^0.576 | Icon library |
+| React Icons | ^5.5 | Additional icon packs (e.g. FcGoogle) |
+| Leaflet / React-Leaflet | ^1.9 / ^5.0 | Interactive map for station location |
+| PostCSS | ^8.5 | CSS transformation pipeline |
+| Autoprefixer | ^10.4 | Automatically adds vendor CSS prefixes |
+
+## Database
 
 | Technology | Purpose |
 | --- | --- |
-| **MySQL 8.0+** | Relational database for all persistent data |
+| MySQL 8.0+ | Relational database for all persistent data |
 
-##### Development Tools
+## Development Tools
 
 | Tool | Purpose |
 | --- | --- |
-| **Nodemon** | Auto-restarts server on file change |
-| **ESLint** | Linting for code quality |
-| **Git** | Version control |
+| Nodemon | Auto-restarts server on file change |
+| ESLint | Linting for code quality |
+| Git | Version control |
 
 ---
 
-##### System Architecture
+## System Architecture
 
 AquaLasTech follows a classic **three-tier architecture**: a React frontend (presentation), an Express API server (application logic), and a MySQL database (data layer). These three tiers are entirely decoupled and communicate over HTTP.
 
@@ -140,9 +140,9 @@ AquaLasTech follows a classic **three-tier architecture**: a React frontend (pre
 
 ---
 
-##### Project Folder Structure
+## Project Folder Structure
 
-##### Root
+## Root
 
 ```
 AquaLasTech/
@@ -151,7 +151,7 @@ AquaLasTech/
 └── SYSTEM_DOCUMENTATION.md
 ```
 
-##### Client Directory
+## Client Directory
 
 ```
 client/
@@ -219,7 +219,7 @@ client/
 └── .env                               ← Environment variables
 ```
 
-##### Server Directory
+## Server Directory
 
 ```
 server/
@@ -268,9 +268,9 @@ server/
 
 ---
 
-##### Installation and Configuration
+## Installation and Configuration
 
-##### Prerequisites
+## Prerequisites
 
 Before running the project, ensure you have the following installed on your machine:
 
@@ -278,14 +278,14 @@ Before running the project, ensure you have the following installed on your mach
 - **MySQL** 8.0 or higher — [mysql.com](https://mysql.com)
 - **Git** — for cloning the repository
 
-##### Step 1 — Clone the Repository
+## Step 1 — Clone the Repository
 
 ```bash
 git clone <repository-url>
 cd AquaLasTech
 ```
 
-##### Step 2 — Set Up the Database
+## Step 2 — Set Up the Database
 
 Open MySQL Workbench or your terminal MySQL client and create the database:
 
@@ -308,7 +308,7 @@ mysql -u root -p aqualastech < server/src/aqualastech_clean.sql
 
 This creates all required tables: `users`, `stations`, `products`, `inventory`, `orders`, `order_items`, `payments`, `pos_transactions`, `notifications`, `system_logs`, and more.
 
-##### Step 3 — Configure the Server Environment
+## Step 3 — Configure the Server Environment
 
 Navigate to the `server/` directory and create a `.env` file:
 
@@ -334,7 +334,7 @@ MAIL_FROM=AquaLasTech <your_email@gmail.com>
 
 > **Note on MAIL_PASS:** This should be a Gmail App Password, not your regular Gmail password. Generate it from Google Account → Security → 2-Step Verification → App Passwords.
 
-##### Step 4 — Configure the Client Environment
+## Step 4 — Configure the Client Environment
 
 Navigate to the `client/` directory and create a `.env` file:
 
@@ -345,7 +345,7 @@ VITE_CONTACT_EMAIL=your@email.com
 VITE_CONTACT_PHONE=09XXXXXXXXX
 ```
 
-##### Step 5 — Install Dependencies
+## Step 5 — Install Dependencies
 
 Install both server and client dependencies separately:
 
@@ -359,7 +359,7 @@ cd ../client
 npm install
 ```
 
-##### Step 6 — Create the System Administrator Account
+## Step 6 — Create the System Administrator Account
 
 The system admin (the topmost role) must be created manually using the CLI script:
 
@@ -376,7 +376,7 @@ To create a standalone system admin:
 npm run admin:create
 ```
 
-##### Step 7 — Run the Application
+## Step 7 — Run the Application
 
 Open **two terminal windows** and run:
 
@@ -396,7 +396,7 @@ npm run dev
 
 The frontend starts at `http://localhost:5173`
 
-##### Step 8 — Build for Production
+## Step 8 — Build for Production
 
 ```bash
 # Server
@@ -413,196 +413,196 @@ The client build outputs to `client/dist/`. The server compiles TypeScript to `s
 
 ---
 
-##### Database Design
+## Database Design
 
-##### Overview
+## Overview
 
 The database uses **MySQL 8.0+** with a relational schema optimized for storage efficiency. All status-type columns use **TINYINT** instead of VARCHAR enums, which reduces storage by approximately 90% while maintaining full readability through the `dbEnums.ts` constants file.
 
-##### Core Tables
+## Core Tables
 
-##### `users`
+## `users`
 The central identity table for all accounts in the system.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `user_id` | INT AUTO_INCREMENT | Primary key |
-| `full_name` | VARCHAR(100) | Display name |
-| `email` | VARCHAR(150) | Unique login identifier |
-| `password_hash` | VARCHAR(255) | bcrypt-hashed password |
-| `role` | TINYINT | 1=customer, 2=admin, 3=super_admin, 4=sys_admin |
-| `account_status` | TINYINT | 1=active, 2=suspended, 3=deleted |
-| `profile_picture` | VARCHAR(500) | Path to uploaded avatar |
-| `created_at` | DATETIME | Account creation timestamp |
-| `updated_at` | DATETIME | Last modification timestamp |
+| user_id | INT AUTO_INCREMENT | Primary key |
+| full_name | VARCHAR(100) | Display name |
+| email | VARCHAR(150) | Unique login identifier |
+| password_hash | VARCHAR(255) | bcrypt-hashed password |
+| role | TINYINT | 1=customer, 2=admin, 3=super_admin, 4=sys_admin |
+| account_status | TINYINT | 1=active, 2=suspended, 3=deleted |
+| profile_picture | VARCHAR(500) | Path to uploaded avatar |
+| created_at | DATETIME | Account creation timestamp |
+| updated_at | DATETIME | Last modification timestamp |
 
-##### `stations`
+## `stations`
 Represents each individual water refilling station in the network.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `station_id` | INT AUTO_INCREMENT | Primary key |
-| `station_name` | VARCHAR(150) | Display name |
-| `address` | VARCHAR(500) | Short address from GPS |
-| `complete_address` | VARCHAR(500) | Full address with landmarks |
-| `contact_number` | VARCHAR(20) | Station contact phone |
-| `latitude` | DECIMAL(10,8) | GPS latitude |
-| `longitude` | DECIMAL(11,8) | GPS longitude |
-| `status` | TINYINT | 1=open, 2=closed, 3=maintenance |
-| `image_path` | VARCHAR(500) | Station logo path |
-| `qr_code_path` | VARCHAR(500) | GCash QR code path |
-| `created_at` | DATETIME | — |
-| `updated_at` | DATETIME | — |
+| station_id | INT AUTO_INCREMENT | Primary key |
+| station_name | VARCHAR(150) | Display name |
+| address | VARCHAR(500) | Short address from GPS |
+| complete_address | VARCHAR(500) | Full address with landmarks |
+| contact_number | VARCHAR(20) | Station contact phone |
+| latitude | DECIMAL(10,8) | GPS latitude |
+| longitude | DECIMAL(11,8) | GPS longitude |
+| status | TINYINT | 1=open, 2=closed, 3=maintenance |
+| image_path | VARCHAR(500) | Station logo path |
+| qr_code_path | VARCHAR(500) | GCash QR code path |
+| created_at | DATETIME | — |
+| updated_at | DATETIME | — |
 
-##### `admins`
+## `admins`
 Junction table linking users to stations. A user with `role=2` (admin) or `role=3` (super_admin) must have an entry here.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `admin_id` | INT AUTO_INCREMENT | Primary key |
-| `user_id` | INT FK → users | The admin user |
-| `station_id` | INT FK → stations | Their assigned station |
+| admin_id | INT AUTO_INCREMENT | Primary key |
+| user_id | INT FK → users | The admin user |
+| station_id | INT FK → stations | Their assigned station |
 
-##### `customers`
+## `customers`
 Extended profile for customer-role users, storing address and location.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `customer_id` | INT AUTO_INCREMENT | Primary key |
-| `user_id` | INT FK → users | The customer user |
-| `address` | VARCHAR(500) | Delivery address |
-| `complete_address` | VARCHAR(500) | Additional address details |
-| `latitude` | DECIMAL(10,8) | Customer GPS latitude |
-| `longitude` | DECIMAL(11,8) | Customer GPS longitude |
+| customer_id | INT AUTO_INCREMENT | Primary key |
+| user_id | INT FK → users | The customer user |
+| address | VARCHAR(500) | Delivery address |
+| complete_address | VARCHAR(500) | Additional address details |
+| latitude | DECIMAL(10,8) | Customer GPS latitude |
+| longitude | DECIMAL(11,8) | Customer GPS longitude |
 
-##### `products`
+## `products`
 The catalog of products available at a station.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `product_id` | INT AUTO_INCREMENT | Primary key |
-| `station_id` | INT FK → stations | Which station sells this |
-| `product_name` | VARCHAR(150) | Display name |
-| `description` | VARCHAR(500) | Product details |
-| `price` | DECIMAL(10,2) | Selling price |
-| `cost_price` | DECIMAL(10,2) | Purchase cost (for profit tracking) |
-| `unit_type` | TINYINT | 1=liter, 2=gallon, 3=piece |
-| `image_path` | VARCHAR(500) | Product photo path |
-| `is_active` | TINYINT(1) | Whether the product is listed |
+| product_id | INT AUTO_INCREMENT | Primary key |
+| station_id | INT FK → stations | Which station sells this |
+| product_name | VARCHAR(150) | Display name |
+| description | VARCHAR(500) | Product details |
+| price | DECIMAL(10,2) | Selling price |
+| cost_price | DECIMAL(10,2) | Purchase cost (for profit tracking) |
+| unit_type | TINYINT | 1=liter, 2=gallon, 3=piece |
+| image_path | VARCHAR(500) | Product photo path |
+| is_active | TINYINT(1) | Whether the product is listed |
 
-##### `inventory`
+## `inventory`
 Current stock levels per product per station.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `inventory_id` | INT AUTO_INCREMENT | Primary key |
-| `station_id` | INT FK → stations | Which station |
-| `product_id` | INT FK → products | Which product |
-| `quantity` | INT | Current units in stock |
-| `min_stock_level` | INT | Alert threshold |
-| `updated_at` | DATETIME | Last stock change |
+| inventory_id | INT AUTO_INCREMENT | Primary key |
+| station_id | INT FK → stations | Which station |
+| product_id | INT FK → products | Which product |
+| quantity | INT | Current units in stock |
+| min_stock_level | INT | Alert threshold |
+| updated_at | DATETIME | Last stock change |
 
-##### `inventory_transactions`
+## `inventory_transactions`
 Audit trail of every stock movement (restock, deduction, adjustment).
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `transaction_id` | INT AUTO_INCREMENT | Primary key |
-| `inventory_id` | INT FK → inventory | Target inventory record |
-| `transaction_type` | TINYINT | 1=restock, 2=deduction, 3=adjustment |
-| `quantity_change` | INT | Positive or negative change |
-| `notes` | VARCHAR(500) | Reason for transaction |
-| `created_at` | DATETIME | Timestamp |
+| transaction_id | INT AUTO_INCREMENT | Primary key |
+| inventory_id | INT FK → inventory | Target inventory record |
+| transaction_type | TINYINT | 1=restock, 2=deduction, 3=adjustment |
+| quantity_change | INT | Positive or negative change |
+| notes | VARCHAR(500) | Reason for transaction |
+| created_at | DATETIME | Timestamp |
 
-##### `orders`
+## `orders`
 Customer delivery/pickup orders.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `order_id` | INT AUTO_INCREMENT | Primary key |
-| `customer_id` | INT FK → users | Ordering customer |
-| `station_id` | INT FK → stations | Fulfilling station |
-| `order_reference` | VARCHAR(20) | Human-readable order ID |
-| `order_status` | TINYINT | 1–6 (confirmed → returned) |
-| `payment_mode` | TINYINT | 1=gcash, 2=cash, 3=COD, 4=COP |
-| `payment_status` | TINYINT | 1=pending, 2=verified, 3=rejected |
-| `total_amount` | DECIMAL(10,2) | Order total |
-| `delivery_address` | VARCHAR(500) | Delivery destination |
-| `notes` | VARCHAR(500) | Customer instructions |
-| `created_at` | DATETIME | Order placement time |
-| `updated_at` | DATETIME | Last status change |
+| order_id | INT AUTO_INCREMENT | Primary key |
+| customer_id | INT FK → users | Ordering customer |
+| station_id | INT FK → stations | Fulfilling station |
+| order_reference | VARCHAR(20) | Human-readable order ID |
+| order_status | TINYINT | 1–6 (confirmed → returned) |
+| payment_mode | TINYINT | 1=gcash, 2=cash, 3=COD, 4=COP |
+| payment_status | TINYINT | 1=pending, 2=verified, 3=rejected |
+| total_amount | DECIMAL(10,2) | Order total |
+| delivery_address | VARCHAR(500) | Delivery destination |
+| notes | VARCHAR(500) | Customer instructions |
+| created_at | DATETIME | Order placement time |
+| updated_at | DATETIME | Last status change |
 
-##### `order_items`
+## `order_items`
 Line items within each order.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `item_id` | INT AUTO_INCREMENT | Primary key |
-| `order_id` | INT FK → orders | Parent order |
-| `product_id` | INT FK → products | Product ordered |
-| `quantity` | INT | Quantity of product |
-| `unit_price` | DECIMAL(10,2) | Price at time of order |
-| `subtotal` | DECIMAL(10,2) | quantity × unit_price |
+| item_id | INT AUTO_INCREMENT | Primary key |
+| order_id | INT FK → orders | Parent order |
+| product_id | INT FK → products | Product ordered |
+| quantity | INT | Quantity of product |
+| unit_price | DECIMAL(10,2) | Price at time of order |
+| subtotal | DECIMAL(10,2) | quantity × unit_price |
 
-##### `payments`
+## `payments`
 Payment records linked to orders, supports GCash receipt uploads.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `payment_id` | INT AUTO_INCREMENT | Primary key |
-| `order_id` | INT FK → orders | Related order |
-| `payment_mode` | TINYINT | 1=gcash, 2=cash, etc. |
-| `payment_status` | TINYINT | 1=pending, 2=verified, 3=rejected |
-| `amount` | DECIMAL(10,2) | Amount paid |
-| `reference_number` | VARCHAR(100) | GCash reference code |
-| `receipt_path` | VARCHAR(500) | Uploaded receipt image |
-| `verified_at` | DATETIME | When admin verified |
+| payment_id | INT AUTO_INCREMENT | Primary key |
+| order_id | INT FK → orders | Related order |
+| payment_mode | TINYINT | 1=gcash, 2=cash, etc. |
+| payment_status | TINYINT | 1=pending, 2=verified, 3=rejected |
+| amount | DECIMAL(10,2) | Amount paid |
+| reference_number | VARCHAR(100) | GCash reference code |
+| receipt_path | VARCHAR(500) | Uploaded receipt image |
+| verified_at | DATETIME | When admin verified |
 
-##### `pos_transactions`
+## `pos_transactions`
 Walk-in in-store transactions processed through the POS system.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `pos_id` | INT AUTO_INCREMENT | Primary key |
-| `station_id` | INT FK → stations | Processed at |
-| `admin_id` | INT FK → users | Who processed it |
-| `product_id` | INT FK → products | Product sold |
-| `quantity` | INT | Units sold |
-| `unit_price` | DECIMAL(10,2) | Price at time of sale |
-| `total_amount` | DECIMAL(10,2) | Total transaction |
-| `payment_method` | TINYINT | 1=cash, 2=gcash |
-| `transaction_status` | TINYINT | 1=completed, 2=cancelled |
-| `created_at` | DATETIME | Transaction time |
+| pos_id | INT AUTO_INCREMENT | Primary key |
+| station_id | INT FK → stations | Processed at |
+| admin_id | INT FK → users | Who processed it |
+| product_id | INT FK → products | Product sold |
+| quantity | INT | Units sold |
+| unit_price | DECIMAL(10,2) | Price at time of sale |
+| total_amount | DECIMAL(10,2) | Total transaction |
+| payment_method | TINYINT | 1=cash, 2=gcash |
+| transaction_status | TINYINT | 1=completed, 2=cancelled |
+| created_at | DATETIME | Transaction time |
 
-##### `notifications`
+## `notifications`
 In-app notifications for users.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `notification_id` | INT AUTO_INCREMENT | Primary key |
-| `user_id` | INT FK → users | Recipient |
-| `message` | VARCHAR(500) | Notification text |
-| `notification_type` | TINYINT | 1=order, 2=payment, 3=inventory, 4=system |
-| `is_read` | TINYINT(1) | 0=unread, 1=read |
-| `created_at` | DATETIME | When created |
+| notification_id | INT AUTO_INCREMENT | Primary key |
+| user_id | INT FK → users | Recipient |
+| message | VARCHAR(500) | Notification text |
+| notification_type | TINYINT | 1=order, 2=payment, 3=inventory, 4=system |
+| is_read | TINYINT(1) | 0=unread, 1=read |
+| created_at | DATETIME | When created |
 
-##### `system_logs`
+## `system_logs`
 Immutable audit trail of all significant system events.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `log_id` | INT AUTO_INCREMENT | Primary key |
-| `event_type` | VARCHAR(50) | e.g. 'login', 'station_created' |
-| `description` | VARCHAR(500) | Human-readable event description |
-| `user_id` | INT FK → users | Who triggered the event |
-| `ip_address` | VARCHAR(50) | Source IP (if tracked) |
-| `created_at` | DATETIME | Event timestamp |
+| log_id | INT AUTO_INCREMENT | Primary key |
+| event_type | VARCHAR(50) | e.g. 'login', 'station_created' |
+| description | VARCHAR(500) | Human-readable event description |
+| user_id | INT FK → users | Who triggered the event |
+| ip_address | VARCHAR(50) | Source IP (if tracked) |
+| created_at | DATETIME | Event timestamp |
 
 ---
 
-##### Server — Deep Dive
+## Server — Deep Dive
 
-##### Entry Point: `server.ts`
+## Entry Point: `server.ts`
 
 This is the very first file that runs. It loads environment variables using `dotenv`, imports the configured Express `app`, and starts the HTTP listener on the specified port (default `8080`).
 
@@ -618,7 +618,7 @@ app.listen(PORT, () => {
 });
 ```
 
-##### Application Setup: `app.ts`
+## Application Setup: `app.ts`
 
 This file is the heart of the Express configuration. It is responsible for:
 
@@ -642,7 +642,7 @@ app.use("/customer",  customerRoutes);
 app.use("/sysadmin",  sysadminRoutes);
 ```
 
-##### Database Connection: `config/db.ts`
+## Database Connection: `config/db.ts`
 
 The database module maintains a **singleton connection pool** using `mysql2/promise`. The first time `connectToDatabase()` is called, it creates a pool of up to 10 connections. Every subsequent call reuses the same pool. This avoids the overhead of opening a new connection for each request.
 
@@ -673,7 +673,7 @@ const [rows]: any = await db.query('SELECT * FROM users WHERE user_id = ?', [id]
 
 The parameterized query (`?` placeholders) automatically prevents SQL injection.
 
-##### Middleware: `verifyToken.middleware.ts`
+## Middleware: `verifyToken.middleware.ts`
 
 This is the most important middleware in the system. It intercepts every protected request and validates the JWT token stored in the `token` cookie.
 
@@ -703,11 +703,11 @@ After this middleware runs, all subsequent route handlers can access `req.user` 
 }
 ```
 
-##### Route Files
+## Route Files
 
 Each route file is a modular Express Router. They are grouped by functionality:
 
-##### `auth.routes.ts` — `/auth/*`
+## `auth.routes.ts` — `/auth/*`
 
 Handles the entire authentication lifecycle.
 
@@ -718,7 +718,7 @@ Handles the entire authentication lifecycle.
 
 **Why httpOnly cookies?** Because JavaScript cannot read httpOnly cookies, they are immune to XSS attacks. The browser sends them automatically on every request.
 
-##### `order.routes.ts` — `/orders/*`
+## `order.routes.ts` — `/orders/*`
 
 Manages the full order lifecycle from placement to delivery or return. Key logic:
 
@@ -727,7 +727,7 @@ Manages the full order lifecycle from placement to delivery or return. Key logic
 - **Payment verification** — Admin marks a payment as `verified` (TINYINT 2) or `rejected` (TINYINT 3). This updates both the `payments` and `orders` tables.
 - **Return requests** — Customer can request a return after delivery. Admin approves or rejects it.
 
-##### `inventory.routes.ts` — `/inventory/*`
+## `inventory.routes.ts` — `/inventory/*`
 
 Controls stock levels with a complete audit trail.
 
@@ -736,7 +736,7 @@ Controls stock levels with a complete audit trail.
 - **Adjustment** — Sets quantity to an exact number, logs `TRANSACTION_TYPE.ADJUSTMENT`.
 - **Low stock alerts** — When quantity falls below `min_stock_level`, a notification is automatically created for the admin.
 
-##### `pos.routes.ts` — `/pos/*`
+## `pos.routes.ts` — `/pos/*`
 
 Handles walk-in customer transactions directly at the station.
 
@@ -745,7 +745,7 @@ Handles walk-in customer transactions directly at the station.
 - Supports both cash and GCash payments.
 - Does not create a customer account — it is a direct sale.
 
-##### `settings.routes.ts` — `/settings/*`
+## `settings.routes.ts` — `/settings/*`
 
 Two-tier access control within this single route file:
 
@@ -753,7 +753,7 @@ Two-tier access control within this single route file:
 
 2. **After the super_admin guard:** All other settings endpoints (update station info, upload logo, upload QR, manage admins) require `role = 'super_admin'`. The guard middleware is mounted with `router.use(guard)`, which applies it to all routes defined after that line.
 
-##### `sysadmin.routes.ts` — `/sysadmin/*`
+## `sysadmin.routes.ts` — `/sysadmin/*`
 
 Exclusively for the `sys_admin` role. Uses an inline `requireSysAdmin` middleware that checks `req.user.role`.
 
@@ -764,7 +764,7 @@ Exclusively for the `sys_admin` role. Uses an inline `requireSysAdmin` middlewar
 - `GET /sysadmin/logs` — Returns the latest 200 system log entries.
 - `DELETE /sysadmin/logs` — Clears all logs. Requires password confirmation.
 
-##### `reports.routes.ts` — `/reports/*`
+## `reports.routes.ts` — `/reports/*`
 
 Generates aggregated sales and performance data for the admin dashboard.
 
@@ -772,7 +772,7 @@ Generates aggregated sales and performance data for the admin dashboard.
 - Queries `orders` and `order_items` filtered by `station_id` and date range.
 - Returns: total revenue, total orders, best-selling products, revenue per day (for charting).
 
-##### Constants: `dbEnums.ts`
+## Constants: `dbEnums.ts`
 
 This file is the single source of truth for all numeric status codes used in the database. Instead of using magic numbers like `3` scattered throughout the codebase, all code uses named constants:
 
@@ -791,9 +791,9 @@ This makes the code self-documenting and prevents bugs from misremembered number
 
 ---
 
-##### Client — Deep Dive
+## Client — Deep Dive
 
-##### Entry Point: `main.tsx`
+## Entry Point: `main.tsx`
 
 The entire React application starts here. It wraps everything in two providers:
 
@@ -810,7 +810,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 ```
 
-##### Authentication Context: `context/AuthContext.tsx`
+## Authentication Context: `context/AuthContext.tsx`
 
 This is the global state manager for authentication. When the app first loads, it fires an Axios GET to `/auth/me` to check if there is a valid cookie session. If yes, it stores the user object in state. If no, it stores `null`.
 
@@ -825,7 +825,7 @@ const { user, loading, setUser } = useAuth();
 
 This avoids prop-drilling and keeps auth state in one place.
 
-##### Routing: `routes/router.tsx`
+## Routing: `routes/router.tsx`
 
 Uses React Router v7's `createBrowserRouter`. Routes are organized into four groups based on layout and access level:
 
@@ -837,7 +837,7 @@ Uses React Router v7's `createBrowserRouter`. Routes are organized into four gro
 
 **System admin routes (`/sysadmin/*`)** — wrapped in `ProtectedRoute role="sys_admin"` then `SystemAdminLayout`.
 
-##### Protected Route: `routes/ProtectedRoute.tsx`
+## Protected Route: `routes/ProtectedRoute.tsx`
 
 This component reads `user` from `AuthContext`. While loading, it renders nothing (or a spinner). If the user is not logged in, it redirects to `/login`. If the user's role does not match the required role, it redirects to `/login` as well.
 
@@ -849,7 +849,7 @@ if (!hasRequiredRole(user.role, requiredRole)) return <Navigate to="/login" />
 return <Outlet />
 ```
 
-##### Layouts
+## Layouts
 
 Layouts are shell components. They render the navigation chrome (sidebar, bottom nav, topbar) and an `<Outlet />` which is where the current page component renders.
 
@@ -858,15 +858,15 @@ Layouts are shell components. They render the navigation chrome (sidebar, bottom
 - **`CustomerLayout`** — A mobile-first bottom navigation bar with Home, Orders, and Settings. Also has a notification bell. Has logout functionality.
 - **`SystemAdminLayout`** — A clean sidebar with Stations and Logs links. Shows the system admin's name. Has a mobile drawer for small screens.
 
-##### Custom Hook: `hooks/useStation.ts`
+## Custom Hook: `hooks/useStation.ts`
 
 This hook encapsulates fetching the station data for an admin. It accepts a `stationId` and returns `{ station, loading, refetch }`.
 
 The `refetch` function uses a `tick` counter trick — incrementing it causes `useEffect` to re-run, which re-fetches the station data. This is used in `AdminSettings` after a logo or station info update, so the UI reflects the change immediately without requiring a page reload.
 
-##### Pages — Admin
+## Pages — Admin
 
-##### `admin/AdminDashboard.tsx`
+## `admin/AdminDashboard.tsx`
 
 The main overview page for admins. Key elements:
 
@@ -876,7 +876,7 @@ The main overview page for admins. Key elements:
 - **Inventory modal** — Opens a panel showing all products with their current stock levels, color-coded by severity (red = critical, amber = warning, green = ok), sorted by critically low first.
 - **Refresh button** — Re-fetches dashboard data on demand.
 
-##### `admin/AdminCustomerOrder.tsx`
+## `admin/AdminCustomerOrder.tsx`
 
 The order management interface. Admins can:
 
@@ -886,7 +886,7 @@ The order management interface. Admins can:
 - Verify or reject GCash payments, with receipt image viewing.
 - Approve or reject return requests.
 
-##### `admin/AdminInventory.tsx`
+## `admin/AdminInventory.tsx`
 
 Full stock management UI. Admins can:
 
@@ -897,7 +897,7 @@ Full stock management UI. Admins can:
 - View transaction history per product.
 - Add and manage products (name, price, image, unit type).
 
-##### `admin/PointOfSale.tsx`
+## `admin/PointOfSale.tsx`
 
 Walk-in customer sales terminal. Designed to be fast and simple:
 
@@ -907,7 +907,7 @@ Walk-in customer sales terminal. Designed to be fast and simple:
 - Choose payment method (cash or GCash).
 - Confirm sale → deducts inventory and records a `pos_transaction`.
 
-##### `admin/AdminSettings.tsx`
+## `admin/AdminSettings.tsx`
 
 Station configuration panel, visible only to `super_admin`. Allows:
 
@@ -916,9 +916,9 @@ Station configuration panel, visible only to `super_admin`. Allows:
 - Uploading a GCash QR code for payments.
 - Managing admin accounts (create new admin, delete existing admins with password confirmation).
 
-##### Pages — Customer
+## Pages — Customer
 
-##### `customer/CustomerOrder.tsx`
+## `customer/CustomerOrder.tsx`
 
 The product catalog and checkout flow. The full order journey from this page:
 
@@ -929,17 +929,17 @@ The product catalog and checkout flow. The full order journey from this page:
 5. Submits order → POST `/orders`.
 6. Order confirmation message appears.
 
-##### `customer/CustomerDashboard.tsx`
+## `customer/CustomerDashboard.tsx`
 
 A summary of recent orders with their current statuses. Quick navigation to place a new order.
 
-##### `customer/CustomerSettings.tsx`
+## `customer/CustomerSettings.tsx`
 
 Profile management: update name, address, GPS coordinates, and profile picture.
 
-##### Pages — System Admin
+## Pages — System Admin
 
-##### `system-admin/SAStations.tsx`
+## `system-admin/SAStations.tsx`
 
 The primary tool for the system administrator. Features:
 
@@ -949,15 +949,15 @@ The primary tool for the system administrator. Features:
 - **Maintenance toggle** — In the header. A single toggle that switches ALL stations' status between `open` and `maintenance`. Opens a confirmation modal requiring password entry.
 - **Maintenance banner** — Displayed at the top of the page when maintenance is active.
 
-##### `system-admin/SALogs.tsx`
+## `system-admin/SALogs.tsx`
 
 A read-only audit log viewer. Shows the last 200 system events with event type, description, actor name, and timestamp. Has a "Clear Logs" action with password confirmation.
 
 ---
 
-##### Authentication and Authorization Flow
+## Authentication and Authorization Flow
 
-##### Login Flow (Step by Step)
+## Login Flow (Step by Step)
 
 1. User enters email and password on `LoginPage.tsx`.
 2. Frontend sends `POST /auth/login` with `{ email, password }`.
@@ -981,7 +981,7 @@ A read-only audit log viewer. Shows the last 200 system events with event type, 
 9. `AuthContext` calls `setUser(response.data.user)`.
 10. React Router redirects to the appropriate dashboard based on role.
 
-##### Request Authentication Flow (Every Protected Request)
+## Request Authentication Flow (Every Protected Request)
 
 1. Browser sends request to, e.g., `GET /orders`.
 2. Browser automatically attaches the `token` cookie (because `withCredentials: true` is set in Axios).
@@ -990,7 +990,7 @@ A read-only audit log viewer. Shows the last 200 system events with event type, 
 5. If valid, `req.user` is populated with the decoded token payload.
 6. Route handler executes and uses `req.user.station_id` to scope queries.
 
-##### Logout Flow
+## Logout Flow
 
 1. Frontend calls `POST /auth/logout`.
 2. Server sets the cookie to an empty string with `maxAge: 0`, effectively deleting it.
@@ -999,11 +999,11 @@ A read-only audit log viewer. Shows the last 200 system events with event type, 
 
 ---
 
-##### Role-Based Access Control
+## Role-Based Access Control
 
 The system enforces four levels of access:
 
-##### Level 1 — Customer (`role = 1`)
+## Level 1 — Customer (`role = 1`)
 
 - Can access `/customer/*` routes only.
 - Can only see products from their assigned station.
@@ -1011,21 +1011,21 @@ The system enforces four levels of access:
 - Cannot see other customers' orders.
 - Blocked from customer routes if station is in maintenance.
 
-##### Level 2 — Admin (`role = 2`)
+## Level 2 — Admin (`role = 2`)
 
 - Can access `/admin/*` routes.
 - All queries are scoped by `station_id` from the JWT token. They can never see or modify data from another station.
 - Can manage orders, inventory, and process POS transactions.
 - Cannot access `AdminSettings` (super_admin only).
 
-##### Level 3 — Super Admin (`role = 3`)
+## Level 3 — Super Admin (`role = 3`)
 
 - Same as admin, but also has access to `AdminSettings`.
 - Can create and delete admin accounts.
 - Can configure station details, logo, GCash QR.
 - The `SuperAdminRoute` component and the `super_admin` guard middleware in `settings.routes.ts` enforce this.
 
-##### Level 4 — System Admin (`role = 4`)
+## Level 4 — System Admin (`role = 4`)
 
 - Accesses `/sysadmin/*` only. Has no dashboard for individual station management.
 - Can see ALL stations across the entire network.
@@ -1036,98 +1036,98 @@ The system enforces four levels of access:
 
 ---
 
-##### API Endpoints Reference
+## API Endpoints Reference
 
-##### Authentication — `/auth`
-
-| Method | Path | Auth | Description |
-| --- | --- | --- | --- |
-| POST | `/auth/signup` | None | Register a new customer account |
-| POST | `/auth/login` | None | Login, receive JWT cookie |
-| POST | `/auth/logout` | Cookie | Clear JWT cookie |
-| GET | `/auth/me` | Cookie | Get current logged-in user |
-
-##### Stations — `/stations`
+## Authentication — `/auth`
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/stations` | Any | List all stations |
-| GET | `/stations/:id` | Any | Get station details |
-| POST | `/stations` | super_admin | Create new station |
-| PUT | `/stations/:id` | admin+ | Update station info |
+| POST | /auth/signup | None | Register a new customer account |
+| POST | /auth/login | None | Login, receive JWT cookie |
+| POST | /auth/logout | Cookie | Clear JWT cookie |
+| GET | /auth/me | Cookie | Get current logged-in user |
 
-##### Inventory — `/inventory`
-
-| Method | Path | Auth | Description |
-| --- | --- | --- | --- |
-| GET | `/inventory` | admin+ | Get stock levels for station |
-| POST | `/inventory/restock` | admin+ | Add stock to a product |
-| POST | `/inventory/deduction` | admin+ | Remove stock from a product |
-| POST | `/inventory/adjustment` | admin+ | Set exact stock level |
-| GET | `/inventory/transactions` | admin+ | View stock movement history |
-
-##### Orders — `/orders`
+## Stations — `/stations`
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/orders` | customer | Place a new order |
-| GET | `/orders` | admin/customer | List orders (scoped by role) |
-| GET | `/orders/:id` | admin/customer | View specific order |
-| PUT | `/orders/:id/status` | admin+ | Update order status |
-| PUT | `/orders/:id/payment` | admin+ | Verify or reject payment |
-| POST | `/orders/:id/cancel` | customer | Cancel an order |
-| POST | `/orders/:id/return` | customer | Request a return |
-| PUT | `/orders/:id/return` | admin+ | Approve or reject return |
+| GET | /stations | Any | List all stations |
+| GET | /stations/:id | Any | Get station details |
+| POST | /stations | super_admin | Create new station |
+| PUT | /stations/:id | admin+ | Update station info |
 
-##### POS — `/pos`
+## Inventory — `/inventory`
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/pos/transaction` | admin+ | Process walk-in sale |
-| GET | `/pos/history` | admin+ | View POS transaction history |
+| GET | /inventory | admin+ | Get stock levels for station |
+| POST | /inventory/restock | admin+ | Add stock to a product |
+| POST | /inventory/deduction | admin+ | Remove stock from a product |
+| POST | /inventory/adjustment | admin+ | Set exact stock level |
+| GET | /inventory/transactions | admin+ | View stock movement history |
 
-##### Settings — `/settings`
-
-| Method | Path | Auth | Description |
-| --- | --- | --- | --- |
-| GET | `/settings/maintenance-status` | Any | Check if station is in maintenance |
-| PUT | `/settings/station/:id` | super_admin | Update station details |
-| POST | `/settings/station/:id/upload-logo` | super_admin | Upload station logo |
-| POST | `/settings/station/:id/upload-qr` | super_admin | Upload GCash QR code |
-| GET | `/settings/admins` | super_admin | List admins for station |
-| DELETE | `/settings/admins/:id` | super_admin | Delete admin (password required) |
-| POST | `/settings/create-admin` | super_admin | Create a new admin account |
-
-##### Customer — `/customer`
+## Orders — `/orders`
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| PUT | `/customer/profile` | customer | Update name and address |
-| PUT | `/customer/password` | customer | Change password |
-| POST | `/customer/avatar` | customer | Upload profile picture |
+| POST | /orders | customer | Place a new order |
+| GET | /orders | admin/customer | List orders (scoped by role) |
+| GET | /orders/:id | admin/customer | View specific order |
+| PUT | /orders/:id/status | admin+ | Update order status |
+| PUT | /orders/:id/payment | admin+ | Verify or reject payment |
+| POST | /orders/:id/cancel | customer | Cancel an order |
+| POST | /orders/:id/return | customer | Request a return |
+| PUT | /orders/:id/return | admin+ | Approve or reject return |
 
-##### Reports — `/reports`
+## POS — `/pos`
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/reports/summary` | admin+ | Sales summary (daily/weekly/monthly/yearly) |
+| POST | /pos/transaction | admin+ | Process walk-in sale |
+| GET | /pos/history | admin+ | View POS transaction history |
 
-##### System Admin — `/sysadmin`
+## Settings — `/settings`
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/sysadmin/stations` | sys_admin | All stations with super admin info |
-| POST | `/sysadmin/stations` | sys_admin | Create station + super admin |
-| DELETE | `/sysadmin/stations/:id` | sys_admin | Delete station (password required) |
-| PUT | `/sysadmin/maintenance` | sys_admin | Toggle system-wide maintenance |
-| GET | `/sysadmin/logs` | sys_admin | View audit logs |
-| DELETE | `/sysadmin/logs` | sys_admin | Clear all logs (password required) |
+| GET | /settings/maintenance-status | Any | Check if station is in maintenance |
+| PUT | /settings/station/:id | super_admin | Update station details |
+| POST | /settings/station/:id/upload-logo | super_admin | Upload station logo |
+| POST | /settings/station/:id/upload-qr | super_admin | Upload GCash QR code |
+| GET | /settings/admins | super_admin | List admins for station |
+| DELETE | /settings/admins/:id | super_admin | Delete admin (password required) |
+| POST | /settings/create-admin | super_admin | Create a new admin account |
+
+## Customer — `/customer`
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| PUT | /customer/profile | customer | Update name and address |
+| PUT | /customer/password | customer | Change password |
+| POST | /customer/avatar | customer | Upload profile picture |
+
+## Reports — `/reports`
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | /reports/summary | admin+ | Sales summary (daily/weekly/monthly/yearly) |
+
+## System Admin — `/sysadmin`
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | /sysadmin/stations | sys_admin | All stations with super admin info |
+| POST | /sysadmin/stations | sys_admin | Create station + super admin |
+| DELETE | /sysadmin/stations/:id | sys_admin | Delete station (password required) |
+| PUT | /sysadmin/maintenance | sys_admin | Toggle system-wide maintenance |
+| GET | /sysadmin/logs | sys_admin | View audit logs |
+| DELETE | /sysadmin/logs | sys_admin | Clear all logs (password required) |
 
 ---
 
-##### Core Feature Walkthroughs
+## Core Feature Walkthroughs
 
-##### Customer Places an Order
+## Customer Places an Order
 
 1. Customer logs in → `GET /auth/me` confirms identity and station assignment.
 2. `MaintenanceGuard` calls `GET /settings/maintenance-status`. If `is_maintenance=true`, shows `MaintenancePage` and blocks access.
@@ -1138,7 +1138,7 @@ The system enforces four levels of access:
 7. Server validates stock, creates `order` record, inserts `order_items`, deducts inventory, creates notification for admin.
 8. Customer sees order confirmation. Order appears in their dashboard.
 
-##### Admin Processes an Order
+## Admin Processes an Order
 
 1. Admin sees notification bell light up with unread count.
 2. Admin opens `AdminCustomerOrder.tsx` → new order is visible with status `confirmed`.
@@ -1149,7 +1149,7 @@ The system enforces four levels of access:
 7. Upon completion, admin sets `Delivered`.
 8. Customer receives a notification at each step.
 
-##### System Admin Enables Maintenance
+## System Admin Enables Maintenance
 
 1. System admin logs in → routed to `/sysadmin`.
 2. In `SAStations.tsx`, the Maintenance toggle is off (gray).
@@ -1164,49 +1164,49 @@ The system enforces four levels of access:
 
 ---
 
-##### Maintenance Mode System
+## Maintenance Mode System
 
 The maintenance mode system involves four files working in coordination:
 
-##### 1. `sysadmin.routes.ts` — Toggle endpoint
+## 1. `sysadmin.routes.ts` — Toggle endpoint
 
 `PUT /sysadmin/maintenance` updates every row in `stations` simultaneously. It requires password verification before applying the change, ensuring accidental toggles are prevented.
 
-##### 2. `settings.routes.ts` — Status check endpoint
+## 2. `settings.routes.ts` — Status check endpoint
 
 `GET /settings/maintenance-status` reads the `status` column of the customer's assigned station. It returns `{ is_maintenance: boolean, status: number }`. This endpoint is placed **before** the `super_admin` middleware guard, making it accessible to any authenticated user including customers.
 
-##### 3. `MaintenanceGuard.tsx` — Frontend guard component
+## 3. `MaintenanceGuard.tsx` — Frontend guard component
 
 Wraps the entire `CustomerLayout`. On mount, it calls the status endpoint. While loading, it renders nothing. If maintenance is active, it renders `MaintenancePage` instead of the customer interface. If not, it renders children normally.
 
-##### 4. `MaintenancePage.tsx` — Customer-facing maintenance screen
+## 4. `MaintenancePage.tsx` — Customer-facing maintenance screen
 
 A water-themed page with an animated SVG water drop icon with a wrench, "Under Maintenance" heading, and a "Back to Home" button. Uses a dark navy gradient background with animated floating bubbles.
 
 ---
 
-##### File Upload System
+## File Upload System
 
 The system handles three types of file uploads:
 
-##### Station Logos (`/uploads/stations/`)
+## Station Logos (`/uploads/stations/`)
 
 Managed in `settings.routes.ts`. Uses Multer disk storage. Files are saved as `logo_<timestamp>.<ext>`. Only image MIME types are accepted. File size limited to 5MB. The `image_path` column in `stations` is updated after upload.
 
-##### GCash QR Codes (`/uploads/qrcodes/`)
+## GCash QR Codes (`/uploads/qrcodes/`)
 
 Saved as `qr_<timestamp>.<ext>`. Same size and type restrictions. Stored in `stations.qr_code_path`. Displayed to customers at checkout when they select GCash payment.
 
-##### Product Images (`/uploads/products/`)
+## Product Images (`/uploads/products/`)
 
 Managed in `inventory.routes.ts`. Saved with a timestamped filename. Stored in `products.image_path`. Displayed in the product catalog for both admin and customer views.
 
-##### GCash Payment Receipts (`/uploads/receipts/`)
+## GCash Payment Receipts (`/uploads/receipts/`)
 
 Managed in `order.routes.ts` and `pos.routes.ts`. Customers upload screenshots of their GCash payment. Admins view these when verifying payment. Stored in `payments.receipt_path`.
 
-##### Profile Pictures (`/uploads/avatars/`)
+## Profile Pictures (`/uploads/avatars/`)
 
 Managed in `customer.routes.ts`. Users upload a profile photo. Stored in `users.profile_picture`.
 
@@ -1219,7 +1219,7 @@ Managed in `customer.routes.ts`. Users upload a profile photo. Stored in `users.
 
 ---
 
-##### Notification System
+## Notification System
 
 Notifications are stored in the `notifications` table and linked to a specific `user_id`. They are created automatically by the server at key events:
 
@@ -1239,7 +1239,7 @@ Both `AdminLayout` and `CustomerLayout` poll the notifications endpoint on mount
 
 ---
 
-##### Reports and Analytics
+## Reports and Analytics
 
 The reports system generates aggregated sales data for the admin dashboard. It is scoped to the admin's `station_id` from their JWT.
 
@@ -1260,7 +1260,7 @@ The data feeds the chart and summary cards in `AdminDashboard.tsx`. The "Current
 
 ---
 
-##### Point of Sale System
+## Point of Sale System
 
 The POS system (`PointOfSale.tsx` + `pos.routes.ts`) is designed for walk-in customers who purchase directly at the station without placing an online order.
 
@@ -1278,119 +1278,119 @@ POS transactions appear in the history panel and are included in the reports dat
 
 ---
 
-##### Environment Variables Reference
+## Environment Variables Reference
 
-##### Server `.env`
-
-| Variable | Example | Description |
-| --- | --- | --- |
-| `PORT` | `8080` | Port the Express server listens on |
-| `DB_HOST` | `127.0.0.1` | MySQL server host |
-| `DB_USER` | `root` | MySQL username |
-| `DB_PASSWORD` | `yourpassword` | MySQL password |
-| `DB_NAME` | `aqualastech` | Database name |
-| `JWT_KEY` | `some_secret_key` | Secret used to sign and verify JWTs |
-| `CLIENT_URL` | `http://localhost:5173` | Frontend origin for CORS |
-| `MAIL_USER` | `email@gmail.com` | Gmail address for Nodemailer |
-| `MAIL_PASS` | `app_password` | Gmail App Password (not regular password) |
-| `MAIL_FROM` | `AquaLasTech <email>` | Display name and email in sent emails |
-
-##### Client `.env`
+## Server `.env`
 
 | Variable | Example | Description |
 | --- | --- | --- |
-| `VITE_API_URL` | `http://localhost:8080` | Base URL of the backend API |
-| `VITE_FB_PAGE_URL` | `https://facebook.com/...` | Facebook page URL for landing page |
-| `VITE_CONTACT_EMAIL` | `info@aqualas.com` | Contact email shown on landing page |
-| `VITE_CONTACT_PHONE` | `09XXXXXXXXX` | Contact number shown on landing page |
+| PORT | 8080 | Port the Express server listens on |
+| DB_HOST | 127.0.0.1 | MySQL server host |
+| DB_USER | root | MySQL username |
+| DB_PASSWORD | yourpassword | MySQL password |
+| DB_NAME | aqualastech | Database name |
+| JWT_KEY | some_secret_key | Secret used to sign and verify JWTs |
+| CLIENT_URL | http://localhost:5173 | Frontend origin for CORS |
+| MAIL_USER | email@gmail.com | Gmail address for Nodemailer |
+| MAIL_PASS | app_password | Gmail App Password (not regular password) |
+| MAIL_FROM | AquaLasTech <email> | Display name and email in sent emails |
+
+## Client `.env`
+
+| Variable | Example | Description |
+| --- | --- | --- |
+| VITE_API_URL | http://localhost:8080 | Base URL of the backend API |
+| VITE_FB_PAGE_URL | https://facebook.com/... | Facebook page URL for landing page |
+| VITE_CONTACT_EMAIL | info@aqualas.com | Contact email shown on landing page |
+| VITE_CONTACT_PHONE | 09XXXXXXXXX | Contact number shown on landing page |
 
 > **Important:** All Vite environment variables must be prefixed with `VITE_`. They are embedded at build time and become readable in the browser. Never put secrets (database passwords, JWT keys) in the client `.env`.
 
 ---
 
-##### Enum Constants Reference
+## Enum Constants Reference
 
 All numeric status codes used in the database are defined in `server/src/constants/dbEnums.ts`. The same constants are used throughout all route files.
 
-##### User Roles (`users.role`)
+## User Roles (`users.role`)
 
 | Name | Value | Access Level |
 | --- | --- | --- |
-| `ROLE.CUSTOMER` | 1 | Customer dashboard only |
-| `ROLE.ADMIN` | 2 | Admin dashboard (station-scoped) |
-| `ROLE.SUPER_ADMIN` | 3 | Admin + Settings |
-| `ROLE.SYS_ADMIN` | 4 | System-wide control |
+| ROLE.CUSTOMER | 1 | Customer dashboard only |
+| ROLE.ADMIN | 2 | Admin dashboard (station-scoped) |
+| ROLE.SUPER_ADMIN | 3 | Admin + Settings |
+| ROLE.SYS_ADMIN | 4 | System-wide control |
 
-##### Station Status (`stations.status`)
-
-| Name | Value | Meaning |
-| --- | --- | --- |
-| `STATION_STATUS.OPEN` | 1 | Normal operation |
-| `STATION_STATUS.CLOSED` | 2 | Temporarily closed |
-| `STATION_STATUS.MAINTENANCE` | 3 | System maintenance active |
-
-##### Order Status (`orders.order_status`)
+## Station Status (`stations.status`)
 
 | Name | Value | Meaning |
 | --- | --- | --- |
-| `ORDER_STATUS.CONFIRMED` | 1 | Order received |
-| `ORDER_STATUS.PREPARING` | 2 | Being prepared |
-| `ORDER_STATUS.OUT_FOR_DELIVERY` | 3 | En route |
-| `ORDER_STATUS.DELIVERED` | 4 | Successfully delivered |
-| `ORDER_STATUS.CANCELLED` | 5 | Cancelled |
-| `ORDER_STATUS.RETURNED` | 6 | Returned after delivery |
+| STATION_STATUS.OPEN | 1 | Normal operation |
+| STATION_STATUS.CLOSED | 2 | Temporarily closed |
+| STATION_STATUS.MAINTENANCE | 3 | System maintenance active |
 
-##### Payment Mode (`orders.payment_mode`)
+## Order Status (`orders.order_status`)
 
 | Name | Value | Meaning |
 | --- | --- | --- |
-| `PAYMENT_MODE.GCASH` | 1 | GCash digital payment |
-| `PAYMENT_MODE.CASH` | 2 | Upfront cash |
-| `PAYMENT_MODE.CASH_ON_DELIVERY` | 3 | Pay when order arrives |
-| `PAYMENT_MODE.CASH_ON_PICKUP` | 4 | Pay when picking up |
+| ORDER_STATUS.CONFIRMED | 1 | Order received |
+| ORDER_STATUS.PREPARING | 2 | Being prepared |
+| ORDER_STATUS.OUT_FOR_DELIVERY | 3 | En route |
+| ORDER_STATUS.DELIVERED | 4 | Successfully delivered |
+| ORDER_STATUS.CANCELLED | 5 | Cancelled |
+| ORDER_STATUS.RETURNED | 6 | Returned after delivery |
 
-##### Payment Status (`payments.payment_status`)
-
-| Name | Value | Meaning |
-| --- | --- | --- |
-| `PAYMENT_STATUS.PENDING` | 1 | Awaiting admin verification |
-| `PAYMENT_STATUS.VERIFIED` | 2 | Payment confirmed |
-| `PAYMENT_STATUS.REJECTED` | 3 | Payment rejected |
-
-##### Inventory Transaction Type (`inventory_transactions.transaction_type`)
+## Payment Mode (`orders.payment_mode`)
 
 | Name | Value | Meaning |
 | --- | --- | --- |
-| `TRANSACTION_TYPE.RESTOCK` | 1 | Stock added |
-| `TRANSACTION_TYPE.DEDUCTION` | 2 | Stock removed |
-| `TRANSACTION_TYPE.ADJUSTMENT` | 3 | Stock set to exact value |
+| PAYMENT_MODE.GCASH | 1 | GCash digital payment |
+| PAYMENT_MODE.CASH | 2 | Upfront cash |
+| PAYMENT_MODE.CASH_ON_DELIVERY | 3 | Pay when order arrives |
+| PAYMENT_MODE.CASH_ON_PICKUP | 4 | Pay when picking up |
 
-##### Notification Type (`notifications.notification_type`)
+## Payment Status (`payments.payment_status`)
 
 | Name | Value | Meaning |
 | --- | --- | --- |
-| `NOTIFICATION_TYPE.ORDER_UPDATE` | 1 | Order status changed |
-| `NOTIFICATION_TYPE.PAYMENT_UPDATE` | 2 | Payment verified or rejected |
-| `NOTIFICATION_TYPE.INVENTORY_ALERT` | 3 | Low stock warning |
-| `NOTIFICATION_TYPE.SYSTEM_MESSAGE` | 4 | General system notification |
+| PAYMENT_STATUS.PENDING | 1 | Awaiting admin verification |
+| PAYMENT_STATUS.VERIFIED | 2 | Payment confirmed |
+| PAYMENT_STATUS.REJECTED | 3 | Payment rejected |
 
-##### System Log Event Types (`system_logs.event_type` — VARCHAR)
+## Inventory Transaction Type (`inventory_transactions.transaction_type`)
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| TRANSACTION_TYPE.RESTOCK | 1 | Stock added |
+| TRANSACTION_TYPE.DEDUCTION | 2 | Stock removed |
+| TRANSACTION_TYPE.ADJUSTMENT | 3 | Stock set to exact value |
+
+## Notification Type (`notifications.notification_type`)
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| NOTIFICATION_TYPE.ORDER_UPDATE | 1 | Order status changed |
+| NOTIFICATION_TYPE.PAYMENT_UPDATE | 2 | Payment verified or rejected |
+| NOTIFICATION_TYPE.INVENTORY_ALERT | 3 | Low stock warning |
+| NOTIFICATION_TYPE.SYSTEM_MESSAGE | 4 | General system notification |
+
+## System Log Event Types (`system_logs.event_type` — VARCHAR)
 
 | Value | Trigger |
 | --- | --- |
-| `login` | User logs in |
-| `logout` | User logs out |
-| `station_created` | System admin creates a station |
-| `station_updated` | Station details changed |
-| `station_deleted` | System admin deletes a station |
-| `user_created` | Admin account created |
-| `user_updated` | Account details changed |
-| `user_deleted` | Account deleted |
-| `maintenance_on` | System maintenance enabled |
-| `maintenance_off` | System maintenance disabled |
-| `logs_cleared` | Audit logs cleared |
-| `order_created` | New order placed |
-| `order_updated` | Order status changed |
+| login | User logs in |
+| logout | User logs out |
+| station_created | System admin creates a station |
+| station_updated | Station details changed |
+| station_deleted | System admin deletes a station |
+| user_created | Admin account created |
+| user_updated | Account details changed |
+| user_deleted | Account deleted |
+| maintenance_on | System maintenance enabled |
+| maintenance_off | System maintenance disabled |
+| logs_cleared | Audit logs cleared |
+| order_created | New order placed |
+| order_updated | Order status changed |
 
 ---
 

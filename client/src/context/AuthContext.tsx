@@ -34,6 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const stored = localStorage.getItem('authToken');
+        if (stored) axios.defaults.headers.common['Authorization'] = `Bearer ${stored}`;
         axios
             .get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true })
             .then(res => setUser(res.data.user))

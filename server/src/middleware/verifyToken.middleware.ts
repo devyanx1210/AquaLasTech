@@ -3,7 +3,10 @@ import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-    const token = (req as any).cookies?.token;
+    const cookieToken = (req as any).cookies?.token;
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const token = cookieToken || bearerToken;
 
     if (!token) {
         return res.status(401).json({ message: "No token, access denied" });

@@ -279,6 +279,8 @@ export default function CustomerLayout() {
         try {
             await axios.post(`${API}/auth/logout`, {}, { withCredentials: true })
         } catch { }
+        localStorage.removeItem('authToken')
+        delete axios.defaults.headers.common['Authorization']
         setUser(null)
         navigate('/login')
     }

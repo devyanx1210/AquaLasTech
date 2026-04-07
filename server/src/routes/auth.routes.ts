@@ -88,7 +88,7 @@ router.post("/login", async (req, res) => {
         const token = jwt.sign(
             { id: user.user_id, role: roleStr, station_id: user.station_id ?? null },
             process.env.JWT_KEY || "",
-            { expiresIn: "3h" }
+            { expiresIn: "7d" }
         )
 
         const isProd = process.env.NODE_ENV === "production"
@@ -96,7 +96,7 @@ router.post("/login", async (req, res) => {
             httpOnly: true,
             secure: isProd,
             sameSite: isProd ? "none" : "strict",
-            maxAge: 3 * 60 * 60 * 1000,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         })
 
         // Log login event (non-critical — never fails the login)

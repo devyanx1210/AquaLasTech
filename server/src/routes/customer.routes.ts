@@ -1,15 +1,12 @@
 ﻿// customer.routes - /customers/* endpoints for customer-facing data
 import express from 'express'
 import bcrypt from 'bcrypt'
-import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
 import {
     ORDER_STATUS, PAYMENT_STATUS, PAYMENT_MODE, NOTIFICATION_TYPE, RETURN_STATUS,
 } from '../constants/dbEnums.js'
+import { createUpload } from '../config/cloudinary.js'
 
 const ROLE_NAMES: Record<number, string> = {
     1: 'customer', 2: 'admin', 3: 'super_admin', 4: 'sys_admin',
@@ -25,29 +22,7 @@ const PAYMENT_MODE_MAP: Record<string, number> = {
 const router = express.Router()
 router.use(verifyToken)
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-// Multer for profile avatars
-const avatarStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-        const dir = path.join(__dirname, '..', '..', 'uploads', 'avatars')
-        fs.mkdirSync(dir, { recursive: true })
-        cb(null, dir)
-    },
-    filename: (_req, file, cb) => {
-        const ext = path.extname(file.originalname)
-        cb(null, `avatar_${Date.now()}${ext}`)
-    },
-})
-const uploadAvatar = multer({
-    storage: avatarStorage,
-    limits: { fileSize: 3 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) cb(null, true)
-        else cb(new Error('Images only'))
-    },
-})
+const uploadAvatar = createUpload('avatars')
 
     // Auto-add profile_picture column if not yet present
     ; (async () => {
@@ -62,7 +37,7 @@ router.post('/profile-picture', uploadAvatar.single('avatar'), async (req: any, 
     console.log('[profile-picture] req.file:', req.file)
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
     const userId = req.user.id
-    const profile_picture = `/uploads/avatars/${req.file.filename}`
+    const profile_picture = req.file.path
     try {
         const pool = await connectToDatabase()
         await pool.query('UPDATE users SET profile_picture = ? WHERE user_id = ?', [profile_picture, userId])
@@ -87,26 +62,7 @@ router.delete('/profile-picture', async (req: any, res) => {
     }
 })
 
-// Multer for GCash receipt uploads
-const receiptStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-        const dir = path.join(__dirname, '..', '..', 'uploads', 'receipts')
-        fs.mkdirSync(dir, { recursive: true })
-        cb(null, dir)
-    },
-    filename: (_req, file, cb) => {
-        const ext = path.extname(file.originalname)
-        cb(null, `receipt_${Date.now()}${ext}`)
-    },
-})
-const uploadReceipt = multer({
-    storage: receiptStorage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-        if (/image\/(jpeg|jpg|png|webp)/.test(file.mimetype)) cb(null, true)
-        else cb(new Error('Only image files allowed'))
-    },
-})
+const uploadReceipt = createUpload('receipts')
 
 // PUT /customer/profile
 router.put('/profile', async (req, res) => {
@@ -322,7 +278,7 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
 
         // Insert payment record
         // GCash needs manual verification → PENDING; COD/COP payment happens later → VERIFIED immediately
-        const proof_image_path = req.file ? `/uploads/receipts/${req.file.filename}` : null
+        const proof_image_path = req.file ? req.file.path : null
         const initialPaymentStatus = paymentModeNum === PAYMENT_MODE.GCASH ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.VERIFIED
         await conn.query(
             `INSERT INTO payments (order_id, payment_type, payment_status, proof_image_path, created_at)

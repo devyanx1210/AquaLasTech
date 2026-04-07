@@ -1,15 +1,9 @@
 ﻿// settings.routes - /settings/* endpoints for station configuration
 import express from 'express'
 import bcrypt from 'bcrypt'
-import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import { createUpload } from '../config/cloudinary.js'
 
 const router = express.Router()
 router.use(verifyToken)
@@ -38,47 +32,8 @@ router.use((req, res, next) => {
     next()
 })
 
-// Multer — station logos
-const logoStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-        const dir = path.join(__dirname, '..', '..', 'uploads', 'stations')
-        fs.mkdirSync(dir, { recursive: true })
-        cb(null, dir)
-    },
-    filename: (_req, file, cb) => {
-        const ext = path.extname(file.originalname)
-        cb(null, `logo_${Date.now()}${ext}`)
-    },
-})
-const uploadLogo = multer({
-    storage: logoStorage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) cb(null, true)
-        else cb(new Error('Images only'))
-    },
-})
-
-// Multer — GCash QR codes
-const qrStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-        const dir = path.join(__dirname, '..', '..', 'uploads', 'qrcodes')
-        fs.mkdirSync(dir, { recursive: true })
-        cb(null, dir)
-    },
-    filename: (_req, file, cb) => {
-        const ext = path.extname(file.originalname)
-        cb(null, `qr_${Date.now()}${ext}`)
-    },
-})
-const uploadQR = multer({
-    storage: qrStorage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) cb(null, true)
-        else cb(new Error('Images only'))
-    },
-})
+const uploadLogo = createUpload('stations')
+const uploadQR = createUpload('qrcodes')
 
 // Auto-add complete_address column if not yet present
 ;(async () => {
@@ -118,7 +73,7 @@ router.put('/station/:id', async (req, res) => {
 // POST /settings/station/:id/upload-logo
 router.post('/station/:id/upload-logo', uploadLogo.single('logo'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
-    const image_path = `/uploads/stations/${req.file.filename}`
+    const image_path = req.file.path
     try {
         const db = await connectToDatabase()
         await db.query(
@@ -135,7 +90,7 @@ router.post('/station/:id/upload-logo', uploadLogo.single('logo'), async (req, r
 // POST /settings/station/:id/upload-qr
 router.post('/station/:id/upload-qr', uploadQR.single('qr'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
-    const qr_code_path = `/uploads/qrcodes/${req.file.filename}`
+    const qr_code_path = req.file.path
     try {
         const db = await connectToDatabase()
         // Auto-add column if migration hasn't been run yet

@@ -1,42 +1,22 @@
 ﻿// pos.routes - /pos/* endpoints for point-of-sale transactions
 import express from 'express'
-import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
 import {
     ORDER_STATUS, PAYMENT_STATUS, PAYMENT_MODE,
     NOTIFICATION_TYPE, POS_PAYMENT_METHOD, POS_TRANSACTION_STATUS,
 } from '../constants/dbEnums.js'
+import { createUpload } from '../config/cloudinary.js'
 
 const router = express.Router()
 router.use(verifyToken)
 
-// Multer for GCash receipts
-const uploadDir = path.join(process.cwd(), 'uploads', 'receipts')
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
-
-const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadDir),
-    filename: (_req, file, cb) => {
-        const ext = path.extname(file.originalname)
-        cb(null, `receipt_${Date.now()}${ext}`)
-    },
-})
-const upload = multer({
-    storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-        const allowed = ['image/jpeg', 'image/png', 'image/webp']
-        allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Images only'))
-    },
-})
+const upload = createUpload('receipts')
 
 // POST /pos/upload-receipt - Upload GCash receipt image
 router.post('/upload-receipt', upload.single('receipt'), (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
-    return res.json({ image_url: `/uploads/receipts/${req.file.filename}` })
+    return res.json({ image_url: req.file.path })
 })
 
 // POST /pos/transaction - Create POS transaction

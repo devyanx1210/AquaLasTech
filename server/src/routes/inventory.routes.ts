@@ -1,43 +1,20 @@
 ﻿// inventory.routes - /inventory/* endpoints for stock management
 import express from 'express'
-import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
 import { TRANSACTION_TYPE, NOTIFICATION_TYPE } from '../constants/dbEnums.js'
+import { createUpload } from '../config/cloudinary.js'
 
 const router = express.Router()
 router.use(verifyToken)
 
-// Multer setup — saves to /uploads/products/
-const uploadDir = path.join(process.cwd(), 'uploads', 'products')
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
-
-const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadDir),
-    filename: (_req, file, cb) => {
-        const ext = path.extname(file.originalname)
-        const name = `product_${Date.now()}${ext}`
-        cb(null, name)
-    },
-})
-
-const upload = multer({
-    storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
-    fileFilter: (_req, file, cb) => {
-        const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-        if (allowed.includes(file.mimetype)) cb(null, true)
-        else cb(new Error('Only image files are allowed'))
-    },
-})
+const upload = createUpload('products')
 
 // POST /inventory/upload-image — Upload product image
 router.post('/upload-image', upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No image uploaded' })
     // Return the public URL path the frontend can use
-    const imageUrl = `/uploads/products/${req.file.filename}`
+    const imageUrl = req.file.path
     return res.json({ image_url: imageUrl })
 })
 

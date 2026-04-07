@@ -1,38 +1,12 @@
 ﻿// station.customer.routes - station lookup endpoints for customer use
 import express from 'express'
-import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
+import { createUpload } from '../config/cloudinary.js'
 
 const router = express.Router()
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-// Multer setup for station images
-const stationImageStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = path.join(__dirname, '..', '..', 'uploads', 'stations')
-        fs.mkdirSync(dir, { recursive: true })
-        cb(null, dir)
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname)
-        cb(null, `station_${req.params.id}_${Date.now()}${ext}`)
-    },
-})
-
-const uploadStationImage = multer({
-    storage: stationImageStorage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_, file, cb) => {
-        if (/image\/(jpeg|jpg|png|webp)/.test(file.mimetype)) cb(null, true)
-        else cb(new Error('Only image files are allowed'))
-    },
-})
+const uploadStationImage = createUpload('stations')
 
 // GET /stations/customer/list
 // All active stations with total available stock (for customer dashboard)
@@ -91,7 +65,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 router.post('/:id/upload-image', verifyToken, uploadStationImage.single('image'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
 
-    const image_path = `/uploads/stations/${req.file.filename}`
+    const image_path = req.file.path
     try {
         const pool = await connectToDatabase()
         await pool.query(

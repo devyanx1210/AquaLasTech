@@ -134,7 +134,10 @@ router.post("/login", async (req, res) => {
 
 // GET /auth/me
 router.get("/me", async (req, res) => {
-    const token = (req as any).cookies?.token
+    const cookieToken = (req as any).cookies?.token
+    const authHeader = req.headers.authorization
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    const token = cookieToken || bearerToken
     if (!token)
         return res.status(401).json({ message: "Not authenticated" })
 

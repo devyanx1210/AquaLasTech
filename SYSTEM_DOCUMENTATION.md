@@ -829,8 +829,16 @@ Has a self-healing startup block that adds missing columns to `orders` via `ALTE
 **Key patterns:**
 
 - **Atomic placement:** `POST /orders` validates stock, inserts `orders`, inserts `order_items`, deducts `inventory`, and creates an admin notification — all in one request. If any product has insufficient stock, the entire request is rejected before any inserts.
+- **Payment status on placement:** The initial `payment_status` inserted into the `payments` table depends on the payment mode chosen by the customer:
+  - **GCash** → `pending` (admin must verify the uploaded receipt)
+  - **Cash on Delivery / Cash on Pickup** → `pending` (payment not yet collected)
+  - **Cash (upfront)** → `verified` (paid at placement)
+- **Auto-verify on delivery:** When an admin marks an order as `delivered`, the server automatically sets the payment to `verified` for all non-GCash payment modes. This handles COD and COP — the rider or staff collected the cash.
+- **GCash rejection → auto-cancel:** When an admin rejects a GCash payment (`PUT /orders/:id/payment { payment_status: "rejected" }`), the order is automatically cancelled and all items are restocked. The customer is notified that their order was cancelled due to payment rejection.
+- **COP status flow:** Cash on Pickup orders in `confirmed` status can only move to `delivered` or `cancelled` — the "out for delivery" step does not apply because the customer comes to the station.
 - **Status guard:** Before updating, calls `isFinalOrderStatus(currentStatus)`. Delivered, cancelled, and returned orders cannot have their status changed.
-- **Soft delete:** `DELETE /orders/history` sets `hidden_at = NOW()` rather than deleting rows. Orders with `hidden_at IS NOT NULL` are filtered from the admin list but remain in the database for reports.
+- **Soft delete:** `DELETE /orders/:id` sets `hidden_at = NOW()` rather than deleting rows. Orders with `hidden_at IS NOT NULL` are filtered from the admin list but remain in the database so reports are never affected by deletions. Any order status can be soft-deleted — there is no restriction to completed orders only.
+- **Password verification for delete:** `POST /orders/verify-password` accepts `{ password }` and compares it against the logged-in user's `password_hash` using `bcrypt.compare()`. The frontend calls this before executing bulk deletions in the history view. Returns `200` if correct, `401` if wrong.
 - **Return approval:** When an admin approves a return (`PUT /orders/:id/return`), the order status is set to `returned`. Inventory is **not** restocked — returned items are considered consumed. If the return is rejected, the order status reverts to `out_for_delivery`.
 
 #### `inventory.routes.ts` — Stock Management (`/inventory/*`)
@@ -1310,11 +1318,13 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 | GET | /orders | admin or customer | List orders (scoped by role) |
 | GET | /orders/:id | admin or customer | View a specific order |
 | PUT | /orders/:id/status | admin+ | Update order status |
-| PUT | /orders/:id/payment | admin+ | Verify or reject payment |
+| PUT | /orders/:id/payment | admin+ | Verify or reject GCash payment (rejection auto-cancels the order) |
+| POST | /orders/verify-password | admin+ | Verify the current user's password before bulk delete |
 | POST | /orders/:id/cancel | customer | Cancel an order |
 | POST | /orders/:id/return | customer | Request a return |
 | PUT | /orders/:id/return | admin+ | Approve or reject a return |
-| DELETE | /orders/history | admin+ | Soft-delete completed orders from the admin view |
+| DELETE | /orders/history | admin+ | Soft-delete all history orders from the admin view |
+| DELETE | /orders/:id | admin+ | Soft-delete a single order from the admin view (any status) |
 
 ### POS — `/pos`
 
@@ -1370,22 +1380,41 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 2. `ProtectedRoute role="customer"` passes. `MaintenanceGuard` checks status — not in maintenance. `CustomerLayout` renders.
 3. Customer navigates to `/customer/orders`. Products fetched for their station.
 4. Customer adds items to cart. Cart lives in React state only — no server calls yet.
-5. Customer selects GCash — station's QR code appears. Customer uploads receipt screenshot.
+5. Customer selects a payment method:
+   - **GCash** — station's QR code appears. Customer uploads receipt screenshot.
+   - **Cash on Delivery (COD)** — no screenshot needed. Payment collected when the order arrives.
+   - **Cash on Pickup (COP)** — no screenshot needed. Customer pays when they pick up at the station.
 6. Customer clicks "Place Order" → `POST /orders` as `multipart/form-data`.
 7. Server validates JWT. Checks inventory — rejects if any product has insufficient stock.
-8. Server inserts `orders`, then `order_items` rows. Streams receipt to Cloudinary, stores URL in `payments`.
-9. Server decrements `inventory.quantity` for each product.
-10. Server creates a notification for the admin.
-11. Frontend shows confirmation. Order appears in the customer's dashboard.
+8. Server inserts `orders`, then `order_items` rows. If GCash, streams receipt to Cloudinary and stores URL in `payments`.
+9. Server sets `payment_status` in the `payments` table: `pending` for GCash, COD, and COP; `verified` for upfront cash.
+10. Server decrements `inventory.quantity` for each product.
+11. Server creates a notification for the admin.
+12. Frontend shows confirmation. Order appears in the customer's dashboard.
 
-### An Admin Processes an Order
+### An Admin Processes an Order (GCash)
 
 1. Staff sees notification bell with unread count. Notification: "New order from [customer]."
-2. Staff opens `AdminCustomerOrder.tsx`. New order shows status `Confirmed`.
-3. Staff expands order — sees items, GCash receipt image from Cloudinary.
-4. Staff clicks "Verify Payment" → `PUT /orders/:id/payment { payment_status: "verified" }`.
-5. Server updates payment status, creates notification for customer.
-6. Staff changes status to "Preparing" → "Out for Delivery" → "Delivered". A notification is sent to the customer at each step.
+2. Staff opens `AdminCustomerOrder.tsx`. New order shows status `Confirmed` with payment `Pending`.
+3. Staff expands order — sees items and GCash receipt image from Cloudinary.
+4. Staff clicks "Verify Payment" → `PUT /orders/:id/payment { payment_status: "verified" }`. Customer is notified.
+5. Staff advances status: `Confirmed` → `Preparing` → `Out for Delivery` → `Delivered`. Customer is notified at each step.
+
+**If GCash is rejected:** Staff clicks "Reject" → `PUT /orders/:id/payment { payment_status: "rejected" }`. The server automatically cancels the order, restores stock to inventory, and sends the customer a notification that their order was cancelled.
+
+### An Admin Processes an Order (COD / COP)
+
+1. New order arrives with payment status `Pending` — no receipt to verify.
+2. For **COD**: Staff advances through `Confirmed` → `Preparing` → `Out for Delivery` → `Delivered`. When marked delivered, the server automatically sets payment to `verified` (cash collected on delivery).
+3. For **COP**: The "Out for Delivery" step does not appear. Staff can only move `Confirmed` → `Delivered` or `Confirmed` → `Cancelled`. When marked delivered, payment is automatically set to `verified` (cash collected at pickup).
+
+### Deleting Order History
+
+1. Staff switches to the History view in `AdminCustomerOrder.tsx`.
+2. Staff enters select mode and checks the orders to delete.
+3. A "Delete" button appears. Clicking it opens a password confirmation modal.
+4. Staff types their account password. The frontend calls `POST /orders/verify-password`.
+5. If correct, the selected orders are soft-deleted (hidden from view but kept in the database for reports).
 
 ### System Admin Enables Maintenance
 
@@ -1475,7 +1504,7 @@ Notifications are stored in the `notifications` table linked to a `user_id`. Alw
 | Customer places order | Admin/Staff | order_update |
 | Admin updates order status | Customer | order_update |
 | Admin verifies payment | Customer | payment_update |
-| Admin rejects payment | Customer | payment_update |
+| Admin rejects GCash payment (order auto-cancelled) | Customer | payment_update |
 | Stock falls below min_stock_level | Admin/Staff | inventory_alert |
 | Customer submits return request | Admin/Staff | order_update |
 | Admin approves or rejects return | Customer | order_update |
@@ -1501,10 +1530,16 @@ Aggregates `orders` and `order_items` data scoped to the admin's `station_id`.
 
 ### Data Returned per Period
 
-- Total revenue and total orders
-- Completed (delivered) order count
-- Per-period breakdown for the chart
-- Best-selling products by quantity and by revenue
+- **Total Revenue** — sum of `total_amount` for all non-cancelled, non-returned orders in the period.
+- **From delivered orders** — subset of total revenue from orders with `order_status = 4` (delivered and completed). This is the revenue that has actually been collected and fulfilled.
+- **Total Orders** — count of non-cancelled, non-returned orders.
+- **Delivered / Cancelled / Returned** — individual counts per status.
+- **Per-period chart rows** — one data point per day/week/month/year for the line chart.
+- **Top 5 products** — ranked by quantity sold, from delivered orders only.
+
+### Reports Are Not Affected by Deletion
+
+When an admin deletes orders from the history view, those rows are soft-deleted — `hidden_at` is set but the row remains in the database. The reports queries do **not** filter by `hidden_at`, so deleted orders are still counted. This is intentional: deleting display history should never alter financial records.
 
 The Inventory modal fetches separately from `inventory` and shows real-time stock with color-coded severity: red = at or below `min_stock_level`, amber = within 20% above min, green = healthy.
 
@@ -1518,10 +1553,15 @@ Handles walk-in customers at the counter — no customer account required.
 
 1. Staff opens `PointOfSale.tsx`. Active products shown as a clickable grid.
 2. Staff clicks products to add to cart. Quantity controls. Running total in React state.
-3. Staff selects Cash or GCash. Clicks Confirm.
-4. `POST /pos/transaction` sent. Server inserts `pos_transactions` row and decrements `inventory.quantity`.
-5. If stock drops below `min_stock_level`, an inventory alert notification is created.
-6. Cart resets. Success confirmation shown.
+3. Staff selects **Cash** or **GCash**, then selects a delivery type: **Pickup** or **Delivery**.
+4. `POST /pos/transaction` sent with `{ payment_method, delivery_type, items, ... }`.
+5. The server maps these two fields into the correct `payment_mode` for the order:
+   - GCash → `gcash` (payment_mode = 1)
+   - Cash + Delivery → `cash_on_delivery` (payment_mode = 3) — payment not yet collected; starts as `pending`
+   - Cash + Pickup → `cash_on_pickup` (payment_mode = 4) — cash taken at the counter; starts as `verified`
+6. Server inserts `orders`, `order_items`, `payments`, and `pos_transactions` rows and decrements `inventory.quantity`.
+7. If stock drops below `min_stock_level`, an inventory alert notification is created.
+8. Cart resets. Success confirmation shown.
 
 POS transactions count as station revenue and appear in reports data.
 
@@ -1603,20 +1643,22 @@ Statuses 4, 5, and 6 are **final** — `isFinalOrderStatus()` returns `true` and
 
 ### Payment Mode (`orders.payment_mode`)
 
-| Constant | Value | Meaning |
-| :--- | :--- | :--- |
-| PAYMENT_MODE.GCASH | 1 | GCash digital (requires receipt upload) |
-| PAYMENT_MODE.CASH | 2 | Upfront cash |
-| PAYMENT_MODE.CASH_ON_DELIVERY | 3 | Pay cash when order arrives |
-| PAYMENT_MODE.CASH_ON_PICKUP | 4 | Pay cash when picking up at station |
+| Constant | Value | Meaning | Initial Payment Status |
+| :--- | :--- | :--- | :--- |
+| PAYMENT_MODE.GCASH | 1 | GCash digital — requires receipt upload | pending |
+| PAYMENT_MODE.CASH | 2 | Upfront cash — paid at the time of placement | verified |
+| PAYMENT_MODE.CASH_ON_DELIVERY | 3 | Pay cash when the order arrives at the door | pending |
+| PAYMENT_MODE.CASH_ON_PICKUP | 4 | Pay cash when picking up at the station | pending |
+
+COD and COP are automatically set to `verified` when the admin marks the order as `delivered`. GCash requires manual admin verification.
 
 ### Payment Status (`payments.payment_status`)
 
 | Constant | Value | Meaning |
 | :--- | :--- | :--- |
-| PAYMENT_STATUS.PENDING | 1 | Awaiting admin verification |
-| PAYMENT_STATUS.VERIFIED | 2 | Admin confirmed payment received |
-| PAYMENT_STATUS.REJECTED | 3 | Admin rejected — customer must resubmit |
+| PAYMENT_STATUS.PENDING | 1 | Not yet collected or verified |
+| PAYMENT_STATUS.VERIFIED | 2 | Payment confirmed received |
+| PAYMENT_STATUS.REJECTED | 3 | GCash receipt rejected — order is automatically cancelled and stock is restored |
 
 ### Return Status (`order_returns.return_status`)
 

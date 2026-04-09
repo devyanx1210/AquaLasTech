@@ -4,31 +4,31 @@
 
 ---
 
-## Table of Contents
+### Table of Contents
 
-1. [[#Project Overview]]
-2. [[#Technology Stack]]
-3. [[#System Architecture]]
-4. [[#Project Folder Structure]]
-5. [[#Database Design]]
-6. [[#Server — Deep Dive]]
-7. [[#Client — Deep Dive]]
-8. [[#Authentication and Authorization Flow]]
-9. [[#Role-Based Access Control]]
-10. [[#API Endpoints Reference]]
-11. [[#Core Feature Walkthroughs]]
-12. [[#Maintenance Mode System]]
-13. [[#File Upload System]]
-14. [[#Notification System]]
-15. [[#Reports and Analytics]]
-16. [[#Point of Sale System]]
-17. [[#Environment Variables Reference]]
-18. [[#Enum Constants Reference]]
-19. [[#Deployment Guide]]
+1. [Project Overview](#project-overview)
+2. [Technology Stack](#technology-stack)
+3. [System Architecture](#system-architecture)
+4. [Project Folder Structure](#project-folder-structure)
+5. [Database Design](#database-design)
+6. [Server — Deep Dive](#server-deep-dive)
+7. [Client — Deep Dive](#client-deep-dive)
+8. [Authentication and Authorization Flow](#authentication-and-authorization-flow)
+9. [Role-Based Access Control](#role-based-access-control)
+10. [API Endpoints Reference](#api-endpoints-reference)
+11. [Core Feature Walkthroughs](#core-feature-walkthroughs)
+12. [Maintenance Mode System](#maintenance-mode-system)
+13. [File Upload System](#file-upload-system)
+14. [Notification System](#notification-system)
+15. [Reports and Analytics](#reports-and-analytics)
+16. [Point of Sale System](#point-of-sale-system)
+17. [Environment Variables Reference](#environment-variables-reference)
+18. [Enum Constants Reference](#enum-constants-reference)
+19. [Deployment Guide](#deployment-guide)
 
 ---
 
-## Project Overview
+### Project Overview
 
 **AquaLasTech** is a full-stack web application that digitizes and automates the operations of water refilling stations. Before a system like this, station owners managed orders by phone, tracked inventory on paper, handled payments manually, and had no way to see sales data at a glance. AquaLasTech replaces all of that with one platform.
 
@@ -43,13 +43,13 @@ The app runs as two separate processes — a **React frontend** served by Vercel
 
 ---
 
-## Technology Stack
+### Technology Stack
 
-### Why This Stack?
+#### Why This Stack?
 
 The stack was chosen to keep the entire codebase in one language (TypeScript) across both frontend and backend, minimize operational complexity, and use well-documented tools that any JavaScript developer can pick up quickly.
 
-### Backend
+#### Backend
 
 | Technology | Version | Purpose |
 | :--- | :--- | :--- |
@@ -75,7 +75,7 @@ The stack was chosen to keep the entire codebase in one language (TypeScript) ac
 
 **Why MySQL over NoSQL?** The data here is deeply relational: an order belongs to a customer and a station, has many items, each item references a product linked to inventory. These relationships are enforced with foreign keys. MySQL also supports transactions — if an order insert succeeds but the inventory deduction fails, everything rolls back atomically.
 
-### Frontend
+#### Frontend
 
 | Technology | Version | Purpose |
 | :--- | :--- | :--- |
@@ -95,13 +95,13 @@ The stack was chosen to keep the entire codebase in one language (TypeScript) ac
 
 **Why Tailwind?** Styles live directly in the component markup as class names. No separate `.css` files to hunt through. Every style decision is visible in the JSX.
 
-### Database
+#### Database
 
 | Technology | Purpose |
 | :--- | :--- |
 | MySQL 8.0+ | Relational database for all persistent data. Cloud-hosted on Aiven. |
 
-### Development Tools
+#### Development Tools
 
 | Tool | Purpose |
 | :--- | :--- |
@@ -111,7 +111,7 @@ The stack was chosen to keep the entire codebase in one language (TypeScript) ac
 
 ---
 
-## System Architecture
+### System Architecture
 
 AquaLasTech follows a **three-tier architecture**: a React frontend (presentation), an Express API (application logic), and a MySQL database (data). Each tier has one responsibility and talks to the adjacent tier over a defined interface.
 
@@ -149,7 +149,7 @@ AquaLasTech follows a **three-tier architecture**: a React frontend (presentatio
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### The Dual-Token Authentication Strategy
+#### The Dual-Token Authentication Strategy
 
 When the server issues a JWT after login, it does two things simultaneously: it sets the token as an **httpOnly cookie** in the response headers, and it also returns the raw token in the JSON response body.
 
@@ -159,9 +159,9 @@ On the server, `verifyToken` middleware accepts whichever arrives first — cook
 
 ---
 
-## Project Folder Structure
+### Project Folder Structure
 
-### Monorepo Layout
+#### Monorepo Layout
 
 The repository holds two completely independent projects: `client/` and `server/`. They have separate `package.json`, `node_modules`, TypeScript configs, and `.env` files. They share nothing except this git repository and the fact that the server is the API the client calls.
 
@@ -174,7 +174,7 @@ AquaLasTech/
 └── .gitattributes           ← Enforces LF line endings on Windows
 ```
 
-### `client/` — React Frontend
+#### `client/` — React Frontend
 
 All frontend code lives in `client/src/`. Vite serves it during development and bundles it into `client/dist/` for production deployment.
 
@@ -253,7 +253,7 @@ client/
 
 **`src/hooks/`** holds custom React hooks. A custom hook is a function built from React's built-in hooks (`useState`, `useEffect`) that encapsulates reusable stateful logic. Moving data-fetching logic into a hook keeps page components clean and readable.
 
-### `server/` — Express Backend
+#### `server/` — Express Backend
 
 ```
 server/
@@ -304,9 +304,9 @@ server/
 
 ---
 
-## Database Design
+### Database Design
 
-### Storage Strategy
+#### Storage Strategy
 
 Two key design decisions reduce storage usage significantly:
 
@@ -316,7 +316,7 @@ Status columns like `order_status`, `payment_status`, and `role` store a small s
 **2. VARCHAR(500) instead of TEXT for long strings.**
 MySQL stores TEXT columns off-page — in a separate location from the rest of the row. Any query that touches a TEXT column incurs an extra I/O read. VARCHAR(500) stays in-row, eliminating that overhead. 500 characters covers all addresses, notes, and descriptions used in this system.
 
-### Table Relationships
+#### Table Relationships
 
 - **`users`** — the central identity table. Every person has one row. The `role` TINYINT determines their interface.
 - **`admins`** — links a user to a station. Staff and store owners have one row here. The JWT carries `station_id` from this table, scoping all admin queries to their own station.
@@ -333,9 +333,9 @@ MySQL stores TEXT columns off-page — in a separate location from the rest of t
 - **`system_logs`** — immutable audit trail of significant system events.
 - **`password_reset_tokens`** — hashed one-time tokens for the forgot-password flow.
 
-### Table Reference
+#### Table Reference
 
-### `users`
+#### `users`
 
 Every account in the system has one row here regardless of role.
 
@@ -352,7 +352,7 @@ Every account in the system has one row here regardless of role.
 | created_at | DATETIME | Account creation timestamp |
 | updated_at | DATETIME | Last modification timestamp |
 
-### `admins`
+#### `admins`
 
 Links a staff or store owner user to their station. The `station_id` from this table is embedded in the JWT at login, which is how all admin API queries know which station's data to return.
 
@@ -362,7 +362,7 @@ Links a staff or store owner user to their station. The `station_id` from this t
 | user_id | INT FK → users | The admin user |
 | station_id | INT FK → stations | Their assigned station |
 
-### `customers`
+#### `customers`
 
 Extends the user record for customer-role users with delivery information.
 
@@ -375,7 +375,7 @@ Extends the user record for customer-role users with delivery information.
 | latitude | DECIMAL(10,8) | GPS latitude |
 | longitude | DECIMAL(11,8) | GPS longitude |
 
-### `stations`
+#### `stations`
 
 Each physical water refilling station in the network.
 
@@ -394,7 +394,7 @@ Each physical water refilling station in the network.
 | created_at | DATETIME | — |
 | updated_at | DATETIME | — |
 
-### `products`
+#### `products`
 
 Items a station sells. Belongs to one station.
 
@@ -410,7 +410,7 @@ Items a station sells. Belongs to one station.
 | image_path | VARCHAR(500) | Cloudinary URL of the product photo |
 | is_active | TINYINT(1) | 1=visible in catalog, 0=hidden |
 
-### `inventory`
+#### `inventory`
 
 Current stock level. One row per product per station. Updated every time an order is placed, a POS transaction occurs, or an admin manually adjusts stock.
 
@@ -423,7 +423,7 @@ Current stock level. One row per product per station. Updated every time an orde
 | min_stock_level | INT | Threshold — notifications created when quantity drops below this |
 | updated_at | DATETIME | Last stock change timestamp |
 
-### `inventory_transactions`
+#### `inventory_transactions`
 
 Append-only audit log. Every change to `inventory.quantity` creates one row here. Rows are never deleted — there is always a full history.
 
@@ -436,7 +436,7 @@ Append-only audit log. Every change to `inventory.quantity` creates one row here
 | notes | VARCHAR(500) | Reason for the change |
 | created_at | DATETIME | When it happened |
 
-### `orders`
+#### `orders`
 
 Online orders placed by customers.
 
@@ -456,7 +456,7 @@ Online orders placed by customers.
 | created_at | DATETIME | Order placement time |
 | updated_at | DATETIME | Last status change time |
 
-### `order_items`
+#### `order_items`
 
 One row per product in an order. Prices are captured at the time of ordering — they do not change if the product price is updated later.
 
@@ -469,7 +469,7 @@ One row per product in an order. Prices are captured at the time of ordering —
 | unit_price | DECIMAL(10,2) | Price per unit at time of order |
 | subtotal | DECIMAL(10,2) | quantity × unit_price |
 
-### `payments`
+#### `payments`
 
 Payment record per order. Stores GCash reference numbers and receipt screenshot URLs.
 
@@ -484,7 +484,7 @@ Payment record per order. Stores GCash reference numbers and receipt screenshot 
 | receipt_path | VARCHAR(500) | Cloudinary URL of the uploaded receipt screenshot |
 | verified_at | DATETIME | When the admin verified or rejected |
 
-### `pos_transactions`
+#### `pos_transactions`
 
 Walk-in counter sales. Does not require a customer account.
 
@@ -501,7 +501,7 @@ Walk-in counter sales. Does not require a customer account.
 | transaction_status | TINYINT | 1=completed, 2=cancelled |
 | created_at | DATETIME | Transaction time |
 
-### `notifications`
+#### `notifications`
 
 In-app alerts linked to a user. Always created server-side, never by the frontend.
 
@@ -514,7 +514,7 @@ In-app alerts linked to a user. Always created server-side, never by the fronten
 | is_read | TINYINT(1) | 0=unread, 1=read |
 | created_at | DATETIME | Creation time |
 
-### `system_logs`
+#### `system_logs`
 
 Immutable audit trail. Never updated. Only cleared by the system admin with password confirmation.
 
@@ -527,7 +527,7 @@ Immutable audit trail. Never updated. Only cleared by the system admin with pass
 | ip_address | VARCHAR(50) | Source IP address |
 | created_at | DATETIME | Event time |
 
-### `password_reset_tokens`
+#### `password_reset_tokens`
 
 Hashed one-time tokens for the forgot-password flow. The raw token is only in the email — only its hash is stored here, so a database breach cannot yield valid reset URLs.
 
@@ -542,9 +542,9 @@ Hashed one-time tokens for the forgot-password flow. The raw token is only in th
 
 ---
 
-## Server — Deep Dive
+### Server — Deep Dive
 
-### `server.ts` — Entry Point
+#### `server.ts` — Entry Point
 
 The first file Node.js executes on `npm run dev` or `npm start`. It loads environment variables, imports the Express app, and starts the HTTP listener.
 
@@ -560,7 +560,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 `dotenv.config()` must run first — before anything imports `db.ts` — otherwise `DB_HOST`, `DB_PASSWORD`, etc. are undefined when the connection pool is created. Separating `server.ts` from `app.ts` also means tests can import `app` without starting a real HTTP listener.
 
-### `app.ts` — Express Application Setup
+#### `app.ts` — Express Application Setup
 
 Every incoming request passes through the middleware registered here before reaching any route handler. Order matters.
 
@@ -621,7 +621,7 @@ app.use("/sysadmin",  sysadminRoutes);
 
 A request to `GET /orders` is handed to `ordersRoutes`. Within that file, `router.get("/")` handles it.
 
-### `config/db.ts` — MySQL Connection Pool
+#### `config/db.ts` — MySQL Connection Pool
 
 Uses the **singleton pattern** — one shared pool across the entire application.
 
@@ -662,7 +662,7 @@ const [rows]: any = await db.query(
 
 The `?` placeholder is critical for security. mysql2 sends the SQL and the value separately to the database engine — this prevents **SQL injection**. Never interpolate user input directly into a query string.
 
-### `config/cloudinary.ts` — Cloud Image Upload Factory
+#### `config/cloudinary.ts` — Cloud Image Upload Factory
 
 A factory function that returns a configured Multer middleware instance. Instead of saving files to local disk (which is ephemeral on Render), it streams them directly to Cloudinary.
 
@@ -706,7 +706,7 @@ router.post('/product', upload.single('image'), async (req, res) => {
 
 After Multer-Cloudinary processes the request, `req.file.path` contains the permanent Cloudinary URL (e.g. `https://res.cloudinary.com/yourcloud/image/upload/v1/aqualastech/products/file.jpg`). This is stored in the database and referenced directly by the frontend.
 
-### `constants/dbEnums.ts` — Type-Safe Status Codes
+#### `constants/dbEnums.ts` — Type-Safe Status Codes
 
 The central dictionary for all numeric status codes. Instead of scattering magic numbers like `WHERE order_status = 4` throughout the codebase, everything uses named constants:
 
@@ -754,7 +754,7 @@ export const ORDER_STATUS_NAMES: Record<number, string> = {
 
 The server uses these when returning orders so the frontend receives `'confirmed'` as a string rather than `1`.
 
-### `middleware/verifyToken.middleware.ts` — JWT Authentication Gate
+#### `middleware/verifyToken.middleware.ts` — JWT Authentication Gate
 
 The most important security file in the entire server. Every protected endpoint runs through this. It validates the JWT and populates `req.user` with the decoded token data.
 
@@ -794,9 +794,9 @@ const user = (req as any).user;
 // user.station_id → station the admin manages (null for customers and sys_admin)
 ```
 
-### Route Files
+#### Route Files
 
-#### `auth.routes.ts` — Authentication (`/auth/*`)
+##### `auth.routes.ts` — Authentication (`/auth/*`)
 
 Handles the full authentication lifecycle.
 
@@ -820,7 +820,7 @@ After the `users` insert, a second INSERT creates the `customers` profile row. T
 
 **`PUT /auth/change-password`** — Requires current password verification before accepting the new one.
 
-#### `order.routes.ts` — Order Lifecycle (`/orders/*`)
+##### `order.routes.ts` — Order Lifecycle (`/orders/*`)
 
 All routes use `router.use(verifyToken)` at the top — one line protects every endpoint in the file.
 
@@ -841,7 +841,7 @@ Has a self-healing startup block that adds missing columns to `orders` via `ALTE
 - **Password verification for delete:** `POST /orders/verify-password` accepts `{ password }` and compares it against the logged-in user's `password_hash` using `bcrypt.compare()`. The frontend calls this before executing bulk deletions in the history view. Returns `200` if correct, `401` if wrong.
 - **Return approval:** When an admin approves a return (`PUT /orders/:id/return`), the order status is set to `returned`. Inventory is **not** restocked — returned items are considered consumed. If the return is rejected, the order status reverts to `out_for_delivery`.
 
-#### `inventory.routes.ts` — Stock Management (`/inventory/*`)
+##### `inventory.routes.ts` — Stock Management (`/inventory/*`)
 
 Three stock change types, each appending a row to `inventory_transactions`:
 
@@ -851,7 +851,7 @@ Three stock change types, each appending a row to `inventory_transactions`:
 
 After every change, checks if the new quantity is below `min_stock_level`. If so, creates an inventory alert notification for the admin automatically.
 
-#### `settings.routes.ts` — Station Configuration (`/settings/*`)
+##### `settings.routes.ts` — Station Configuration (`/settings/*`)
 
 Demonstrates a **two-tier access control pattern within a single route file**:
 
@@ -869,7 +869,7 @@ router.post('/station/:id/upload-logo', upload, ...)   // store owner only
 
 The `maintenance-status` endpoint is placed before the `requireSuperAdmin` boundary deliberately. Customers call it through `MaintenanceGuard` on every page load — it must be accessible to any authenticated user.
 
-#### `sysadmin.routes.ts` — System-Wide Controls (`/sysadmin/*`)
+##### `sysadmin.routes.ts` — System-Wide Controls (`/sysadmin/*`)
 
 All routes check `req.user.role === 'sys_admin'` via an inline `requireSysAdmin` middleware. Every request must pass both JWT validation and this role check.
 
@@ -884,15 +884,15 @@ Requires password verification before executing. Logged to `system_logs`.
 
 Creating a new station runs inside a **database transaction** — if the super_admin INSERT fails after the station INSERT succeeds, everything rolls back and neither record exists.
 
-#### `reports.routes.ts` — Analytics (`/reports/*`)
+##### `reports.routes.ts` — Analytics (`/reports/*`)
 
 Accepts `?period=daily|weekly|monthly|annually` and returns aggregated sales data. All queries are scoped to `station_id` from the JWT — an admin can never see another station's data.
 
 ---
 
-## Client — Deep Dive
+### Client — Deep Dive
 
-### `main.tsx` — Entry Point and Axios Interceptor
+#### `main.tsx` — Entry Point and Axios Interceptor
 
 React starts here. Three things happen: a global Axios interceptor is registered, providers wrap the app, and React Router takes control.
 
@@ -921,7 +921,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
 `AuthProvider` makes `useAuth()` available everywhere. `RouterProvider` renders the matched page. `React.StrictMode` renders each component twice in development to expose side effects — no production effect.
 
-### `context/AuthContext.tsx` — Global Auth State
+#### `context/AuthContext.tsx` — Global Auth State
 
 React Context makes data available to any component in the tree without passing it as props through every level. `AuthContext` holds the logged-in user.
 
@@ -964,7 +964,7 @@ On mount, `AuthProvider` calls `/auth/me` to check for an existing session. The 
 
 If `/auth/me` returns a token, it is saved to `localStorage` — ensuring the iOS fallback path is populated even for users who logged in before the feature existed.
 
-### `routes/router.tsx` — Route Definitions
+#### `routes/router.tsx` — Route Definitions
 
 Uses `createBrowserRouter` to organize all routes into four groups by access level.
 
@@ -1012,7 +1012,7 @@ Three layers: must be a logged-in customer → station must not be in maintenanc
 
 **System admin routes (`/sysadmin/*`)** — `ProtectedRoute role="sys_admin"` then `SystemAdminLayout`. Only `sys_admin` users can enter.
 
-### `routes/ProtectedRoute.tsx` — Role Guard
+#### `routes/ProtectedRoute.tsx` — Role Guard
 
 ```typescript
 const ADMIN_ROLES = ["admin", "super_admin"]
@@ -1044,7 +1044,7 @@ export default function ProtectedRoute({ role, children }) {
 
 **`getRedirect`** sends wrong-role users to their correct dashboard instead of showing a blank error. A customer who visits `/admin` is redirected to `/customer/dashboard`, not kicked to an error page.
 
-### `components/SuperAdminRoute.tsx` — Store Owner Gate
+#### `components/SuperAdminRoute.tsx` — Store Owner Gate
 
 ```typescript
 export default function SuperAdminRoute() {
@@ -1060,7 +1060,7 @@ Used as a layout route in `router.tsx` — no `path` of its own, just a gate. Re
 
 `<Outlet />` renders the matched child route (the settings page) when access is granted.
 
-### `components/MaintenanceGuard.tsx` — Maintenance Check
+#### `components/MaintenanceGuard.tsx` — Maintenance Check
 
 ```typescript
 const MaintenanceGuard = ({ children }) => {
@@ -1084,7 +1084,7 @@ const MaintenanceGuard = ({ children }) => {
 
 When maintenance is active, this replaces `CustomerLayout` and all child routes with `MaintenancePage`. The customer cannot interact with anything. On API error, defaults to `false` — preventing a backend outage from locking out all customers permanently.
 
-### `hooks/useStation.ts` — Station Data with Refetch
+#### `hooks/useStation.ts` — Station Data with Refetch
 
 ```typescript
 export function useStation(stationId: number | null | undefined) {
@@ -1109,7 +1109,7 @@ export function useStation(stationId: number | null | undefined) {
 
 `tick` is the key pattern. A `useEffect` re-runs when its dependencies change. Since `fetchStation` only changes when `stationId` changes, there would be no way to manually trigger a re-fetch otherwise. Including `tick` in the dependency array and exposing `refetch()` (which increments `tick`) lets any component force a re-fetch. `AdminSettings.tsx` calls `refetch()` after uploading a new logo so the sidebar shows the updated image immediately.
 
-### Layouts
+#### Layouts
 
 **`AdminLayout.tsx`** — Shell for all staff and store owner pages. Sidebar with navigation: Dashboard, Orders, POS, Inventory, Settings (Settings link only visible to store owners). Displays the station name via `useStation(user?.station_id)`. Role badge shows **STORE OWNER** for super_admin or **STAFF** for admin. Notification bell with dropdown. Mobile hamburger drawer. Bottom tab bar for mobile.
 
@@ -1119,7 +1119,7 @@ export function useStation(stationId: number | null | undefined) {
 
 **`MainLayout.tsx`** — Minimal wrapper with a light background. No navigation. Used for public pages.
 
-### Pages — Admin
+#### Pages — Admin
 
 **`AdminDashboard.tsx`** — Period selector (daily / weekly / monthly / annually) drives the report data. Stats cards show total orders, revenue, pending count, and low-stock count. Chart shows revenue breakdown for the selected period. Daily Breakdown modal shows a day-by-day table. Inventory modal shows all products with stock levels color-coded: red = critical (at or below min), amber = warning (within 20% of min), green = healthy.
 
@@ -1131,7 +1131,7 @@ export function useStation(stationId: number | null | undefined) {
 
 **`AdminSettings.tsx`** — Store owner only. Station info form with GPS map. Logo upload. GCash QR upload. Admin account management (list, delete with password, create new). Calls `refetch()` from `useStation` after logo upload so the sidebar updates immediately.
 
-### Pages — Customer
+#### Pages — Customer
 
 **`CustomerOrder.tsx`** — Product catalog and checkout. Cart is React state only — no API calls until submit. GCash path shows station's QR code and receipt upload. Submits as `multipart/form-data` to `POST /orders`.
 
@@ -1139,13 +1139,13 @@ export function useStation(stationId: number | null | undefined) {
 
 **`CustomerSettings.tsx`** — Update name/email, change password, update address and GPS, upload profile picture.
 
-### Pages — System Admin
+#### Pages — System Admin
 
 **`SAStations.tsx`** — All stations in a card grid with status badge, contact info, and assigned store owner. New Station modal with Leaflet map and OpenStreetMap reverse geocoding. Delete station (password required, cascades to all data). Global maintenance toggle in the header (all stations, password required).
 
 **`SALogs.tsx`** — Read-only audit log. Last 200 system events with event type, description, actor, and timestamp. Clear Logs button (password required).
 
-### Pages — Public
+#### Pages — Public
 
 **`LoginPage.tsx`** — On success: stores token to `localStorage`, sets default Axios header, redirects to correct dashboard by role.
 
@@ -1161,9 +1161,9 @@ export function useStation(stationId: number | null | undefined) {
 
 ---
 
-## Authentication and Authorization Flow
+### Authentication and Authorization Flow
 
-### What the JWT Contains
+#### What the JWT Contains
 
 After login the server creates a JWT with this payload:
 
@@ -1179,7 +1179,7 @@ After login the server creates a JWT with this payload:
 
 The payload is **base64-encoded, not encrypted** — anyone with the token can decode it. However it is **signed** with `JWT_KEY`. The signature proves the server created it and that the contents have not been tampered with. Never put sensitive data (passwords, card numbers) in a JWT payload.
 
-### Login Flow
+#### Login Flow
 
 1. User submits email and password on `LoginPage.tsx`.
 2. `POST /auth/login` sent with `{ email, password }` as JSON.
@@ -1192,7 +1192,7 @@ The payload is **base64-encoded, not encrypted** — anyone with the token can d
 9. `AuthContext` updates `user` state.
 10. React Router redirects to the correct dashboard by role.
 
-### Session Restoration (Page Reload)
+#### Session Restoration (Page Reload)
 
 1. React remounts. `AuthProvider` starts with `loading = true`.
 2. `useEffect` fires `GET /auth/me`. Axios interceptor adds `Authorization: Bearer <token>` from `localStorage`. Browser also sends the cookie.
@@ -1201,7 +1201,7 @@ The payload is **base64-encoded, not encrypted** — anyone with the token can d
 5. `AuthContext` saves returned token to `localStorage` (keeps it fresh) and sets `user`.
 6. `loading` becomes `false`. `ProtectedRoute` renders the page.
 
-### Every Protected API Call
+#### Every Protected API Call
 
 1. Component calls `axios.get('/orders')`.
 2. Interceptor adds `Authorization: Bearer <token>`.
@@ -1211,14 +1211,14 @@ The payload is **base64-encoded, not encrypted** — anyone with the token can d
 6. `req.user = { id, role, station_id }` is populated.
 7. Route handler runs all queries scoped to `req.user.station_id`.
 
-### Logout Flow
+#### Logout Flow
 
 1. `POST /auth/logout` called.
 2. Server clears the cookie.
 3. Frontend calls `setUser(null)`, removes `authToken` from `localStorage`.
 4. React Router redirects to `/login`.
 
-### Password Reset Flow
+#### Password Reset Flow
 
 1. User submits email. Server generates a 32-byte random token, stores its SHA-256 hash with 15-minute expiry, emails the raw token in a reset URL.
 2. User clicks the link → `/reset-password?token=<raw>`.
@@ -1228,11 +1228,11 @@ The payload is **base64-encoded, not encrypted** — anyone with the token can d
 
 ---
 
-## Role-Based Access Control
+### Role-Based Access Control
 
 RBAC is enforced at three independent layers. Bypassing one layer still leaves two more.
 
-### Layer 1 — Frontend Route Guards
+#### Layer 1 — Frontend Route Guards
 
 Prevents navigating to the wrong pages. Not the final security line — JavaScript can be manipulated in a browser. These guards are for UX; backend guards enforce real security.
 
@@ -1244,7 +1244,7 @@ Prevents navigating to the wrong pages. Not the final security line — JavaScri
 | `SuperAdminRoute` | super_admin only; redirects staff to inventory | `SuperAdminRoute.tsx` |
 | `MaintenanceGuard` | blocks customers when maintenance is active | `MaintenanceGuard.tsx` |
 
-### Layer 2 — Backend Middleware and Role Checks
+#### Layer 2 — Backend Middleware and Role Checks
 
 Every protected endpoint runs `verifyToken`. Additional role checks:
 
@@ -1252,7 +1252,7 @@ Every protected endpoint runs `verifyToken`. Additional role checks:
 - `settings.routes.ts` — `requireSuperAdmin` middleware covers all configuration endpoints.
 - `order.routes.ts` — Cancel/return customer endpoints verify `req.user.id` matches the order's `customer_id`.
 
-### Layer 3 — Database Query Scoping
+#### Layer 3 — Database Query Scoping
 
 The deepest layer. Every admin query is scoped to `station_id` from the JWT:
 
@@ -1265,7 +1265,7 @@ const [rows]: any = await db.query(
 
 An admin cannot fake their `station_id` by modifying the request — it comes from a signature-verified JWT. They can only read and write data for their assigned station.
 
-### Role Reference
+#### Role Reference
 
 | Role | DB Value | Routes | Key Restrictions |
 | :--- | :--- | :--- | :--- |
@@ -1276,9 +1276,9 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 
 ---
 
-## API Endpoints Reference
+### API Endpoints Reference
 
-### Authentication — `/auth`
+#### Authentication — `/auth`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
@@ -1291,7 +1291,7 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 | POST | /auth/forgot-password | None | Send password reset email |
 | POST | /auth/reset-password | None | Apply new password using reset token |
 
-### Stations — `/stations`
+#### Stations — `/stations`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
@@ -1300,7 +1300,7 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 | POST | /stations | super_admin | Create a station |
 | PUT | /stations/:id | admin+ | Update station info |
 
-### Inventory — `/inventory`
+#### Inventory — `/inventory`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
@@ -1310,7 +1310,7 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 | POST | /inventory/adjustment | admin+ | Set stock to exact value |
 | GET | /inventory/transactions | admin+ | View stock movement history |
 
-### Orders — `/orders`
+#### Orders — `/orders`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
@@ -1326,14 +1326,14 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 | DELETE | /orders/history | admin+ | Soft-delete all history orders from the admin view |
 | DELETE | /orders/:id | admin+ | Soft-delete a single order from the admin view (any status) |
 
-### POS — `/pos`
+#### POS — `/pos`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
 | POST | /pos/transaction | admin+ | Process a walk-in sale |
 | GET | /pos/history | admin+ | View POS transaction history |
 
-### Settings — `/settings`
+#### Settings — `/settings`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
@@ -1345,7 +1345,7 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 | DELETE | /settings/admins/:id | super_admin | Delete an admin (password required) |
 | POST | /settings/create-admin | super_admin | Create a new staff account |
 
-### Customer — `/customer`
+#### Customer — `/customer`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
@@ -1353,13 +1353,13 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 | PUT | /customer/password | customer | Change password |
 | POST | /customer/avatar | customer | Upload profile picture |
 
-### Reports — `/reports`
+#### Reports — `/reports`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
 | GET | /reports/summary | admin+ | Sales summary (daily/weekly/monthly/annually) |
 
-### System Admin — `/sysadmin`
+#### System Admin — `/sysadmin`
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
@@ -1372,9 +1372,9 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 
 ---
 
-## Core Feature Walkthroughs
+### Core Feature Walkthroughs
 
-### A Customer Places an Order
+#### A Customer Places an Order
 
 1. Customer logs in. `POST /auth/login` returns JWT cookie + token. Token stored in `localStorage`.
 2. `ProtectedRoute role="customer"` passes. `MaintenanceGuard` checks status — not in maintenance. `CustomerLayout` renders.
@@ -1392,7 +1392,7 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 11. Server creates a notification for the admin.
 12. Frontend shows confirmation. Order appears in the customer's dashboard.
 
-### An Admin Processes an Order (GCash)
+#### An Admin Processes an Order (GCash)
 
 1. Staff sees notification bell with unread count. Notification: "New order from [customer]."
 2. Staff opens `AdminCustomerOrder.tsx`. New order shows status `Confirmed` with payment `Pending`.
@@ -1402,13 +1402,13 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 
 **If GCash is rejected:** Staff clicks "Reject" → `PUT /orders/:id/payment { payment_status: "rejected" }`. The server automatically cancels the order, restores stock to inventory, and sends the customer a notification that their order was cancelled.
 
-### An Admin Processes an Order (COD / COP)
+#### An Admin Processes an Order (COD / COP)
 
 1. New order arrives with payment status `Pending` — no receipt to verify.
 2. For **COD**: Staff advances through `Confirmed` → `Preparing` → `Out for Delivery` → `Delivered`. When marked delivered, the server automatically sets payment to `verified` (cash collected on delivery).
 3. For **COP**: The "Out for Delivery" step does not appear. Staff can only move `Confirmed` → `Delivered` or `Confirmed` → `Cancelled`. When marked delivered, payment is automatically set to `verified` (cash collected at pickup).
 
-### Deleting Order History
+#### Deleting Order History
 
 1. Staff switches to the History view in `AdminCustomerOrder.tsx`.
 2. Staff enters select mode and checks the orders to delete.
@@ -1416,7 +1416,7 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 4. Staff types their account password. The frontend calls `POST /orders/verify-password`.
 5. If correct, the selected orders are soft-deleted (hidden from view but kept in the database for reports).
 
-### System Admin Enables Maintenance
+#### System Admin Enables Maintenance
 
 1. System admin navigates to `/sysadmin/stations`. Maintenance toggle is off.
 2. Admin clicks toggle. Confirmation modal opens.
@@ -1428,11 +1428,11 @@ An admin cannot fake their `station_id` by modifying the request — it comes fr
 
 ---
 
-## Maintenance Mode System
+### Maintenance Mode System
 
 Four files coordinate to block customer access during maintenance.
 
-### 1. `sysadmin.routes.ts` — The Toggle
+#### 1. `sysadmin.routes.ts` — The Toggle
 
 `PUT /sysadmin/maintenance` requires `sys_admin` role and password confirmation. A single SQL statement updates all stations:
 
@@ -1443,25 +1443,25 @@ UPDATE stations SET status = 1  -- disable maintenance
 
 All-or-nothing by design — maintenance is a platform-wide event. Always logged to `system_logs`.
 
-### 2. `settings.routes.ts` — The Status Check
+#### 2. `settings.routes.ts` — The Status Check
 
 `GET /settings/maintenance-status` reads the customer's station's `status` column and returns `{ is_maintenance: boolean }`. Placed before the `requireSuperAdmin` boundary so any authenticated user — including customers — can call it.
 
-### 3. `MaintenanceGuard.tsx` — The Frontend Enforcer
+#### 3. `MaintenanceGuard.tsx` — The Frontend Enforcer
 
 Sits between `ProtectedRoute` and `CustomerLayout` in the router. Calls the status endpoint on mount. If `is_maintenance` is true, renders `MaintenancePage` — completely replacing the customer interface. On API error, defaults to false (allows customers through rather than locking everyone out).
 
-### 4. `MaintenancePage.tsx` — The Customer Screen
+#### 4. `MaintenancePage.tsx` — The Customer Screen
 
 Standalone page with no navigation. Animated water-drop icon, "Under Maintenance" heading, and a "Back to Home" link. Displayed whenever `MaintenanceGuard` intercepts.
 
 ---
 
-## File Upload System
+### File Upload System
 
 All uploads go to **Cloudinary** — a cloud media storage and CDN. The system migrated from local disk because Render's hosting uses an **ephemeral filesystem**: files written to disk are deleted when the server restarts or redeploys. Cloudinary images are permanent and served from a global CDN rather than from the Express server.
 
-### Complete Upload Flow
+#### Complete Upload Flow
 
 1. Client selects a file. Form submits as `multipart/form-data`.
 2. Express receives the request. `upload.single('fieldname')` (Multer) intercepts the file stream.
@@ -1471,7 +1471,7 @@ All uploads go to **Cloudinary** — a cloud media storage and CDN. The system m
 6. Route handler stores `req.file.path` in the database.
 7. Frontend loads images directly from Cloudinary URLs.
 
-### Upload Types
+#### Upload Types
 
 | Type | Cloudinary Folder | Database Column | Used In |
 | :--- | :--- | :--- | :--- |
@@ -1481,7 +1481,7 @@ All uploads go to **Cloudinary** — a cloud media storage and CDN. The system m
 | Payment receipt | aqualastech/receipts | payments.receipt_path | AdminCustomerOrder payment view |
 | Profile picture | aqualastech/avatars | users.profile_picture | Topbar, CustomerSettings |
 
-### Migration Script
+#### Migration Script
 
 `server/src/scripts/migrateImagesToCloudinary.ts` is a one-time utility that reads existing local image paths from the database, uploads each file to Cloudinary, and updates the database with the new CDN URL.
 
@@ -1493,11 +1493,11 @@ npx tsx src/scripts/migrateImagesToCloudinary.ts
 
 ---
 
-## Notification System
+### Notification System
 
 Notifications are stored in the `notifications` table linked to a `user_id`. Always created server-side at key events — never by the frontend.
 
-### When Notifications Are Created
+#### When Notifications Are Created
 
 | Event | Recipient | Type |
 | :--- | :--- | :--- |
@@ -1509,17 +1509,17 @@ Notifications are stored in the `notifications` table linked to a `user_id`. Alw
 | Customer submits return request | Admin/Staff | order_update |
 | Admin approves or rejects return | Customer | order_update |
 
-### How the Frontend Reads Them
+#### How the Frontend Reads Them
 
 `AdminLayout` and `CustomerLayout` fetch notifications on mount. They track an unread count and a recent notification list for the dropdown. Clicking "Mark all read" sends a bulk update: `UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0`.
 
 ---
 
-## Reports and Analytics
+### Reports and Analytics
 
 Aggregates `orders` and `order_items` data scoped to the admin's `station_id`.
 
-### Period Options
+#### Period Options
 
 | Period | Range | Grouping |
 | :--- | :--- | :--- |
@@ -1528,7 +1528,7 @@ Aggregates `orders` and `order_items` data scoped to the admin's `station_id`.
 | monthly | Last 12 months | One row per month |
 | annually | Last 5 years | One row per year |
 
-### Data Returned per Period
+#### Data Returned per Period
 
 - **Total Revenue** — sum of `total_amount` for all non-cancelled, non-returned orders in the period.
 - **From delivered orders** — subset of total revenue from orders with `order_status = 4` (delivered and completed). This is the revenue that has actually been collected and fulfilled.
@@ -1537,7 +1537,7 @@ Aggregates `orders` and `order_items` data scoped to the admin's `station_id`.
 - **Per-period chart rows** — one data point per day/week/month/year for the line chart.
 - **Top 5 products** — ranked by quantity sold, from delivered orders only.
 
-### Reports Are Not Affected by Deletion
+#### Reports Are Not Affected by Deletion
 
 When an admin deletes orders from the history view, those rows are soft-deleted — `hidden_at` is set but the row remains in the database. The reports queries do **not** filter by `hidden_at`, so deleted orders are still counted. This is intentional: deleting display history should never alter financial records.
 
@@ -1545,11 +1545,11 @@ The Inventory modal fetches separately from `inventory` and shows real-time stoc
 
 ---
 
-## Point of Sale System
+### Point of Sale System
 
 Handles walk-in customers at the counter — no customer account required.
 
-### POS Flow
+#### POS Flow
 
 1. Staff opens `PointOfSale.tsx`. Active products shown as a clickable grid.
 2. Staff clicks products to add to cart. Quantity controls. Running total in React state.
@@ -1567,9 +1567,9 @@ POS transactions count as station revenue and appear in reports data.
 
 ---
 
-## Environment Variables Reference
+### Environment Variables Reference
 
-### Server — `server/.env`
+#### Server — `server/.env`
 
 | Variable | Example | Description |
 | :--- | :--- | :--- |
@@ -1594,7 +1594,7 @@ POS transactions count as station revenue and appear in reports data.
 
 > **MAIL_PASS** must be a Gmail **App Password**, not your regular Gmail password. Generate one at: Google Account → Security → 2-Step Verification → App Passwords.
 
-### Client — `client/.env`
+#### Client — `client/.env`
 
 | Variable | Example | Description |
 | :--- | :--- | :--- |
@@ -1607,11 +1607,11 @@ POS transactions count as station revenue and appear in reports data.
 
 ---
 
-## Enum Constants Reference
+### Enum Constants Reference
 
 All numeric codes are defined in `server/src/constants/dbEnums.ts`.
 
-### User Roles (`users.role`)
+#### User Roles (`users.role`)
 
 | Constant | Value | Label in UI |
 | :--- | :--- | :--- |
@@ -1620,7 +1620,7 @@ All numeric codes are defined in `server/src/constants/dbEnums.ts`.
 | ROLE.SUPER_ADMIN | 3 | Store Owner |
 | ROLE.SYS_ADMIN | 4 | System Admin |
 
-### Station Status (`stations.status`)
+#### Station Status (`stations.status`)
 
 | Constant | Value | Meaning |
 | :--- | :--- | :--- |
@@ -1628,7 +1628,7 @@ All numeric codes are defined in `server/src/constants/dbEnums.ts`.
 | STATION_STATUS.CLOSED | 2 | Temporarily closed |
 | STATION_STATUS.MAINTENANCE | 3 | Maintenance active — customers blocked |
 
-### Order Status (`orders.order_status`)
+#### Order Status (`orders.order_status`)
 
 | Constant | Value | Meaning |
 | :--- | :--- | :--- |
@@ -1641,7 +1641,7 @@ All numeric codes are defined in `server/src/constants/dbEnums.ts`.
 
 Statuses 4, 5, and 6 are **final** — `isFinalOrderStatus()` returns `true` and the API rejects any attempt to change them.
 
-### Payment Mode (`orders.payment_mode`)
+#### Payment Mode (`orders.payment_mode`)
 
 | Constant | Value | Meaning | Initial Payment Status |
 | :--- | :--- | :--- | :--- |
@@ -1652,7 +1652,7 @@ Statuses 4, 5, and 6 are **final** — `isFinalOrderStatus()` returns `true` and
 
 COD and COP are automatically set to `verified` when the admin marks the order as `delivered`. GCash requires manual admin verification.
 
-### Payment Status (`payments.payment_status`)
+#### Payment Status (`payments.payment_status`)
 
 | Constant | Value | Meaning |
 | :--- | :--- | :--- |
@@ -1660,7 +1660,7 @@ COD and COP are automatically set to `verified` when the admin marks the order a
 | PAYMENT_STATUS.VERIFIED | 2 | Payment confirmed received |
 | PAYMENT_STATUS.REJECTED | 3 | GCash receipt rejected — order is automatically cancelled and stock is restored |
 
-### Return Status (`order_returns.return_status`)
+#### Return Status (`order_returns.return_status`)
 
 | Constant | Value | Meaning |
 | :--- | :--- | :--- |
@@ -1668,7 +1668,7 @@ COD and COP are automatically set to `verified` when the admin marks the order a
 | RETURN_STATUS.APPROVED | 2 | Admin approved — inventory unchanged |
 | RETURN_STATUS.REJECTED | 3 | Admin rejected — order reverts to Out for Delivery |
 
-### Inventory Transaction Type
+#### Inventory Transaction Type
 
 | Constant | Value | Meaning |
 | :--- | :--- | :--- |
@@ -1676,7 +1676,7 @@ COD and COP are automatically set to `verified` when the admin marks the order a
 | TRANSACTION_TYPE.DEDUCTION | 2 | Stock removed manually |
 | TRANSACTION_TYPE.ADJUSTMENT | 3 | Stock set to exact value |
 
-### Notification Type
+#### Notification Type
 
 | Constant | Value | Meaning |
 | :--- | :--- | :--- |
@@ -1685,7 +1685,7 @@ COD and COP are automatically set to `verified` when the admin marks the order a
 | NOTIFICATION_TYPE.INVENTORY_ALERT | 3 | Low stock warning |
 | NOTIFICATION_TYPE.SYSTEM_MESSAGE | 4 | General system notification |
 
-### System Log Event Types (`system_logs.event_type` — VARCHAR)
+#### System Log Event Types (`system_logs.event_type` — VARCHAR)
 
 `event_type` is a VARCHAR string, not a TINYINT, because log entries must be readable without a lookup table.
 
@@ -1707,11 +1707,11 @@ COD and COP are automatically set to `verified` when the admin marks the order a
 
 ---
 
-## Deployment Guide
+### Deployment Guide
 
 The production stack uses three cloud services: **Render** (backend), **Vercel** (frontend), and **Aiven** (MySQL). All have free tiers.
 
-### Part 1 — Database (Aiven)
+#### Part 1 — Database (Aiven)
 
 1. Create a free account at aiven.io.
 2. Create a new **MySQL** service on the free plan. Wait for provisioning (a few minutes).
@@ -1722,7 +1722,7 @@ The production stack uses three cloud services: **Render** (backend), **Vercel**
    ```
 5. Aiven enforces SSL by default. Set `DB_SSL=true` in your server environment variables.
 
-### Part 2 — Backend (Render)
+#### Part 2 — Backend (Render)
 
 1. Create a free account at render.com.
 2. Click **New → Web Service**. Connect your GitHub repository.
@@ -1736,7 +1736,7 @@ The production stack uses three cloud services: **Render** (backend), **Vercel**
 
 > **Free-tier note:** Render spins down the server after 15 minutes of inactivity. The first request after that takes ~30 seconds to wake up. Paid plans keep the server always-on.
 
-### Part 3 — Frontend (Vercel)
+#### Part 3 — Frontend (Vercel)
 
 1. Create a free account at vercel.com.
 2. Click **Add New → Project**. Import your GitHub repository.
@@ -1749,7 +1749,7 @@ The production stack uses three cloud services: **Render** (backend), **Vercel**
 7. Click **Deploy**. Copy the Vercel URL.
 8. Go back to Render → Environment Variables → set `CLIENT_URL` to the Vercel URL. Render redeploys automatically.
 
-### Part 4 — Push Frontend Changes to Vercel
+#### Part 4 — Push Frontend Changes to Vercel
 
 Vercel watches the `main` branch. Your active work is on the `final` branch. To update Vercel:
 
@@ -1759,7 +1759,7 @@ git push origin final:main
 
 This pushes your local `final` branch to the remote `main` branch — Vercel picks it up automatically.
 
-### Part 5 — Create the First System Admin
+#### Part 5 — Create the First System Admin
 
 The system admin account must be created with the CLI script — there is no signup page for this role:
 
@@ -1770,11 +1770,11 @@ npm run admin:create
 
 Interactive wizard prompts for name, email, and password. The account can log in at `/login` and will be redirected to `/sysadmin`.
 
-### Part 6 — Create the First Station
+#### Part 6 — Create the First Station
 
 From `/sysadmin/stations`, click **New Station** and fill in the details. This creates the station and its store owner account in a single database transaction. The store owner can then log in and configure the station (logo, QR code, products, staff accounts) from `/admin/settings`.
 
-### Redeployment Summary
+#### Redeployment Summary
 
 | What changed | Command | Who rebuilds |
 | :--- | :--- | :--- |

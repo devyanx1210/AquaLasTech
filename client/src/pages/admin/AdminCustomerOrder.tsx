@@ -7,7 +7,7 @@ import {
     Search, Eye, CheckCircle2, XCircle,
     Truck, RefreshCw, Loader2, ChevronDown,
     X, Droplets, ImageIcon, ExternalLink, RotateCcw,
-    History, ShoppingBag, ChevronRight, Printer, Trash2,
+    History, ShoppingBag, ChevronRight, Printer,
     Filter, CreditCard,
 } from 'lucide-react'
 import { FaMoneyBillWave, FaMobileAlt } from 'react-icons/fa'
@@ -339,8 +339,9 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
     const [busy, setBusy] = useState(false)
     const { datePart, timePart } = formatDateParts(order.created_at)
 
+    const isCOP = order.payment_mode === 'cash_on_pickup'
     const nextStatuses: Record<string, string[]> = {
-        confirmed: ['out_for_delivery', 'cancelled'],
+        confirmed: isCOP ? ['delivered', 'cancelled'] : ['out_for_delivery', 'cancelled'],
         preparing: ['out_for_delivery', 'cancelled'],
         out_for_delivery: ['delivered', 'cancelled'],
         delivered: [],
@@ -612,6 +613,8 @@ export default function AdminCustomerOrder() {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deletingSelected, setDeletingSelected] = useState(false)
+    const [deletePassword, setDeletePassword] = useState('')
+    const [deletePasswordError, setDeletePasswordError] = useState('')
     const [bulkUpdating, setBulkUpdating] = useState(false)
     const [toast, setToast] = useState<ToastData | null>(null)
     const showToast = (message: string, type: 'success' | 'error') => setToast({ message, type })
@@ -737,8 +740,14 @@ export default function AdminCustomerOrder() {
     }
 
     const handleDeleteSelected = async () => {
+        setDeletePasswordError('')
+        if (!deletePassword.trim()) {
+            setDeletePasswordError('Password is required')
+            return
+        }
         setDeletingSelected(true)
         try {
+            await axios.post(`${API}/orders/verify-password`, { password: deletePassword }, { withCredentials: true })
             await Promise.all(
                 Array.from(selectedIds).map(id =>
                     axios.delete(`${API}/orders/${id}`, { withCredentials: true })
@@ -746,10 +755,16 @@ export default function AdminCustomerOrder() {
             )
             setSelectedIds(new Set())
             setShowDeleteConfirm(false)
+            setDeletePassword('')
             await fetchOrders()
         } catch (err) {
             const e = err as { response?: { data?: { message?: string } } }
-            showToast(e.response?.data?.message ?? 'Failed to delete orders', 'error')
+            const msg = e.response?.data?.message ?? 'Failed to delete orders'
+            if (msg === 'Incorrect password') {
+                setDeletePasswordError('Incorrect password')
+            } else {
+                showToast(msg, 'error')
+            }
         } finally { setDeletingSelected(false) }
     }
 
@@ -975,35 +990,47 @@ export default function AdminCustomerOrder() {
                     onResolve={handleReturnResolve} />
             )}
 
-            {/* Delete Selected Confirm Modal */}
+            {/* Delete Password Confirm Modal */}
             {showDeleteConfirm && (
                 <div className="fixed inset-0 z-[999] flex items-center justify-center px-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
-                        onClick={() => !deletingSelected && setShowDeleteConfirm(false)} />
+                        onClick={() => { if (!deletingSelected) { setShowDeleteConfirm(false); setDeletePassword(''); setDeletePasswordError('') } }} />
                     <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 flex flex-col gap-4 animate-scale-in">
-                        <button onClick={() => setShowDeleteConfirm(false)} disabled={deletingSelected}
+                        <button onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeletePasswordError('') }}
+                            disabled={deletingSelected}
                             className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors disabled:opacity-40">
                             <X size={16} />
                         </button>
-                        <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-                                <Trash2 size={18} className="text-red-500" />
-                            </div>
-                            <div>
-                                <h2 className="text-gray-800 font-bold text-base">Delete {selectedIds.size} order{selectedIds.size !== 1 ? 's' : ''}?</h2>
-                                <p className="text-gray-500 text-xs mt-1 leading-relaxed">
-                                    This will permanently delete the selected orders. This cannot be undone.
-                                </p>
-                            </div>
+                        <div>
+                            <h2 className="text-gray-800 font-bold text-base">Delete {selectedIds.size} order{selectedIds.size !== 1 ? 's' : ''}?</h2>
+                            <p className="text-gray-500 text-xs mt-1 leading-relaxed">
+                                This cannot be undone. Enter your password to confirm.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <input
+                                type="password"
+                                placeholder="Enter your password"
+                                value={deletePassword}
+                                onChange={e => { setDeletePassword(e.target.value); setDeletePasswordError('') }}
+                                onKeyDown={e => e.key === 'Enter' && !deletingSelected && handleDeleteSelected()}
+                                disabled={deletingSelected}
+                                className="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm text-gray-800 outline-none focus:ring-2 focus:ring-gray-300 transition-all disabled:opacity-50"
+                                autoFocus
+                            />
+                            {deletePasswordError && (
+                                <p className="text-xs text-red-500 pl-1">{deletePasswordError}</p>
+                            )}
                         </div>
                         <div className="flex gap-3">
-                            <button onClick={() => setShowDeleteConfirm(false)} disabled={deletingSelected}
-                                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all disabled:opacity-50">
+                            <button onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeletePasswordError('') }}
+                                disabled={deletingSelected}
+                                className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium transition-all disabled:opacity-50">
                                 Cancel
                             </button>
                             <button onClick={handleDeleteSelected} disabled={deletingSelected}
                                 className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                                {deletingSelected ? <><Loader2 size={14} className="animate-spin" /> Deleting…</> : <><Trash2 size={14} /> Delete</>}
+                                {deletingSelected ? <><Loader2 size={14} className="animate-spin" /> Deleting…</> : 'Delete'}
                             </button>
                         </div>
                     </div>

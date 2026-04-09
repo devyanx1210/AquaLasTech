@@ -53,7 +53,7 @@ router.post('/transaction', async (req, res) => {
 
         // Map payment_method string to TINYINT for orders.payment_mode
         const payment_mode_num = payment_method === 'gcash' ? PAYMENT_MODE.GCASH :
-            delivery_type === 'delivery' ? PAYMENT_MODE.CASH_ON_DELIVERY : PAYMENT_MODE.CASH
+            delivery_type === 'delivery' ? PAYMENT_MODE.CASH_ON_DELIVERY : PAYMENT_MODE.CASH_ON_PICKUP
 
         // Map payment_method string to TINYINT for pos_transactions.payment_method
         const pos_payment_method_num = payment_method === 'gcash'
@@ -114,7 +114,8 @@ router.post('/transaction', async (req, res) => {
             [
                 order_id,
                 payment_mode_num,
-                payment_method === 'gcash' ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.VERIFIED,
+                // GCash → PENDING (verify receipt); COD → PENDING (not collected yet); cash pickup → VERIFIED (paid at counter)
+                (payment_method === 'gcash' || delivery_type === 'delivery') ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.VERIFIED,
                 gcash_receipt_url ?? null,
             ]
         )

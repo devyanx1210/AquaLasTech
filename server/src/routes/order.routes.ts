@@ -1,5 +1,6 @@
 ﻿// order.routes - /orders/* endpoints for placing and managing orders
 import express from 'express'
+import bcrypt from 'bcrypt'
 import { connectToDatabase } from '../config/db.js'
 import { verifyToken } from '../middleware/verifyToken.middleware.js'
 import {
@@ -243,6 +244,26 @@ router.delete('/notifications/:nid', async (req, res) => {
 })
 
 
+// POST /orders/verify-password — verify the current user's password (used before bulk delete)
+router.post('/verify-password', async (req, res) => {
+    const user = (req as any).user
+    const { password } = req.body
+    if (!password) return res.status(400).json({ message: 'Password is required' })
+    try {
+        const db = await connectToDatabase()
+        const [rows]: any = await db.query(
+            `SELECT password_hash FROM users WHERE user_id = ?`, [user.id]
+        )
+        if (!rows.length) return res.status(401).json({ message: 'Unauthorized' })
+        const match = await bcrypt.compare(password, rows[0].password_hash)
+        if (!match) return res.status(401).json({ message: 'Incorrect password' })
+        return res.json({ message: 'Verified' })
+    } catch (err) {
+        console.error('POST /orders/verify-password error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
 // GET /orders/:id — single order with items
 router.get('/:id', async (req, res) => {
     const { id } = req.params
@@ -433,6 +454,27 @@ router.put('/:id/payment', async (req, res) => {
             [payment_status, user.id, id]
         )
 
+        // When rejected: auto-cancel the order and restore stock
+        if (payment_status === PAYMENT_STATUS.REJECTED) {
+            await db.query(
+                `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
+                [ORDER_STATUS.CANCELLED, id]
+            )
+            const [items]: any = await db.query(
+                `SELECT oi.product_id, oi.quantity, p.station_id
+                 FROM order_items oi
+                 JOIN products p ON p.product_id = oi.product_id
+                 WHERE oi.order_id = ?`,
+                [id]
+            )
+            for (const item of items) {
+                await db.query(
+                    `UPDATE inventory SET quantity = quantity + ? WHERE product_id = ? AND station_id = ?`,
+                    [item.quantity, item.product_id, item.station_id]
+                )
+            }
+        }
+
         // Notify the customer about their payment status
         const [orderRows]: any = await db.query(
             `SELECT o.user_id, o.station_id FROM orders o WHERE o.order_id = ?`, [id]
@@ -441,7 +483,7 @@ router.put('/:id/payment', async (req, res) => {
             const { user_id, station_id } = orderRows[0]
             const message = payment_status === PAYMENT_STATUS.VERIFIED
                 ? 'Your GCash payment has been verified. Thank you!'
-                : 'Your GCash payment was rejected. Please contact the station for assistance.'
+                : 'Your GCash payment was rejected. Your order has been cancelled. Please contact the station for assistance.'
             await db.query(
                 `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
                  VALUES (?, ?, ?, ?, 0, NOW())`,
@@ -562,9 +604,6 @@ router.delete('/:id', async (req, res) => {
         )
         if (!rows.length) return res.status(404).json({ message: 'Order not found' })
         const order = rows[0]
-        const finalStatuses = [ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED, ORDER_STATUS.RETURNED]
-        if (!finalStatuses.includes(order.order_status))
-            return res.status(400).json({ message: 'Only completed orders can be deleted' })
         if (order.station_id !== user.station_id)
             return res.status(403).json({ message: 'Access denied' })
         await db.query(`UPDATE orders SET hidden_at = NOW() WHERE order_id = ?`, [id])

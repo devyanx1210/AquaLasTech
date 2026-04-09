@@ -277,9 +277,14 @@ router.post('/orders', uploadReceipt.single('receipt'), async (req, res) => {
         }
 
         // Insert payment record
-        // GCash needs manual verification → PENDING; COD/COP payment happens later → VERIFIED immediately
+        // GCash → PENDING (admin must verify receipt)
+        // COD/COP → PENDING (payment not collected yet; auto-verified when order is delivered)
+        // Cash (upfront) → VERIFIED immediately (paid at placement)
         const proof_image_path = req.file ? req.file.path : null
-        const initialPaymentStatus = paymentModeNum === PAYMENT_MODE.GCASH ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.VERIFIED
+        const isCashUpfront = paymentModeNum === PAYMENT_MODE.CASH
+        const initialPaymentStatus = (paymentModeNum === PAYMENT_MODE.GCASH || !isCashUpfront)
+            ? PAYMENT_STATUS.PENDING
+            : PAYMENT_STATUS.VERIFIED
         await conn.query(
             `INSERT INTO payments (order_id, payment_type, payment_status, proof_image_path, created_at)
              VALUES (?, ?, ?, ?, NOW())`,

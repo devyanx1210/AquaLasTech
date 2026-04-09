@@ -238,13 +238,11 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerPhone, cus
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-sm mx-4 mb-4 sm:mb-0 flex flex-col gap-3">
-                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                    <div className="bg-[#0d2a4a] px-5 pt-5 pb-5 text-center relative overflow-hidden">
-                        <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/5" />
-                        <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-[#38bdf8]/10" />
-                        <div className="w-11 h-11 rounded-full bg-emerald-400 flex items-center justify-center mx-auto mb-2.5 shadow-lg shadow-emerald-400/30">
-                            <CheckCircle2 size={22} className="text-white" />
+            <div className="relative z-10 w-full max-w-sm mx-4 mb-4 sm:mb-0 flex flex-col gap-2.5">
+                <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+                    <div className="bg-[#0d2a4a] px-5 pt-5 pb-5 text-center">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center mx-auto mb-2.5">
+                            <CheckCircle2 size={20} className="text-white" />
                         </div>
                         <p className="text-white font-black text-base tracking-wide">Order Placed!</p>
                         <p className="text-[#38bdf8] text-[11px] font-mono mt-0.5">{orderRef}</p>
@@ -288,13 +286,13 @@ const ReceiptModal = ({ orderRef, total, items, customerName, customerPhone, cus
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-2.5">
+                <div className="flex gap-2">
                     <button onClick={handlePrint}
-                        className="flex-1 py-3 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-sm border border-white/20 transition-all flex items-center justify-center gap-2 backdrop-blur-sm">
+                        className="flex-1 py-2.5 rounded-lg bg-white/15 hover:bg-white/25 text-white font-bold text-sm border border-white/20 transition-all flex items-center justify-center gap-2">
                         <Printer size={15} /> Print Receipt
                     </button>
                     <button onClick={onClose}
-                        className="flex-1 py-3 rounded-2xl bg-[#38bdf8] hover:bg-[#0ea5e9] text-[#0d2a4a] font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#38bdf8]/30">
+                        className="flex-1 py-2.5 rounded-lg bg-[#38bdf8] hover:bg-[#0ea5e9] text-[#0d2a4a] font-black text-sm transition-all flex items-center justify-center gap-2">
                         <ShoppingCart size={15} /> New Order
                     </button>
                 </div>

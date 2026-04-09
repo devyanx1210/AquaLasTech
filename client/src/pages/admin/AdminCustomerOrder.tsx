@@ -375,7 +375,6 @@ const OrderModal = ({ order, onClose, onStatusChange, onOpenGCash, onOpenReturn,
                             <button onClick={onOpenGCash}
                                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold text-white transition-all hover:opacity-80 ${payment.solidBg}`}>
                                 <FaMobileAlt size={10} /> GCash · {payment.label}
-                                {needsGcashVerify && <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse ml-0.5" />}
                             </button>
                         ) : (
                             <span className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold text-white ${payment.solidBg}`}>
@@ -542,8 +541,7 @@ const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0
                     {order.payment_mode === 'gcash' ? 'GCash'
                         : order.payment_mode === 'cash_on_delivery' ? 'Cash on Delivery'
                             : order.payment_mode === 'cash_on_pickup' ? 'Cash on Pickup'
-                                : order.payment_mode === 'cash' ? 'Cash'
-                                    : order.payment_mode}
+                                : 'Cash on Pickup'}
                 </span>
             </td>
 
@@ -555,8 +553,8 @@ const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0
             {/* Payment */}
             <td className="px-4 py-3.5 border-r border-gray-100 text-center">
                 {isGcashPending ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-amber-500 px-2 py-1 rounded-lg whitespace-nowrap">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse" /> Pending
+                    <span className="inline-flex text-[10px] font-bold text-white bg-amber-500 px-2 py-1 rounded-lg whitespace-nowrap">
+                        Pending
                     </span>
                 ) : (
                     <span className={`inline-flex text-[10px] font-bold text-white px-2 py-1 rounded-lg whitespace-nowrap ${payment.solidBg}`}>{payment.label}</span>
@@ -873,7 +871,6 @@ export default function AdminCustomerOrder() {
                                 { value: 'gcash', label: 'GCash' },
                                 { value: 'cash_on_delivery', label: 'Cash on Delivery' },
                                 { value: 'cash_on_pickup', label: 'Cash on Pickup' },
-                                { value: 'cash', label: 'Cash' },
                             ]}
                         />
                     </div>
@@ -936,7 +933,7 @@ export default function AdminCustomerOrder() {
                                                 className="w-4 h-4 rounded accent-[#0d2a4a] cursor-pointer" />
                                         </th>
                                     )}
-                                    {['Customer', 'Order', 'Date', 'Type', 'Total', 'Payment', 'Status', ''].map((h, i) => (
+                                    {['Customer', 'Order', 'Date', 'Order Type', 'Total', 'Pay Status', 'Status', ''].map((h, i) => (
                                         <th key={i} className={`px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-left whitespace-nowrap
                                             ${i < 7 ? 'border-r border-gray-200' : ''}`}>
                                             {h}

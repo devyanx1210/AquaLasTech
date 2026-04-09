@@ -6,7 +6,7 @@ import { verifyToken } from '../middleware/verifyToken.middleware.js'
 const router = express.Router()
 router.use(verifyToken)
 
-// GET /reports/summary?period=daily|weekly|monthly|yearly
+// GET /reports/summary?period=daily|weekly|monthly|annually
 router.get('/summary', async (req, res) => {
     const user = (req as any).user
     const station_id = user.station_id
@@ -25,7 +25,7 @@ router.get('/summary', async (req, res) => {
             daily: '%Y-%m-%d',
             weekly: '%x-W%v',
             monthly: '%Y-%m',
-            yearly: '%Y',
+            annually: '%Y',
         }
         const fmt = groupFormat[period as string] ?? '%Y-%m-%d'
 
@@ -34,7 +34,7 @@ router.get('/summary', async (req, res) => {
             daily: `AND DATE(o.created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`,
             weekly: `AND DATE(o.created_at) >= DATE_SUB(CURDATE(), INTERVAL 12 WEEK)`,
             monthly: `AND DATE(o.created_at) >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)`,
-            yearly: `AND DATE(o.created_at) >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)`,
+            annually: `AND DATE(o.created_at) >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)`,
         }
         const range = rangeClause[period as string] ?? rangeClause.daily
 
@@ -43,7 +43,7 @@ router.get('/summary', async (req, res) => {
             daily: `AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`,
             weekly: `AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 12 WEEK)`,
             monthly: `AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)`,
-            yearly: `AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)`,
+            annually: `AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)`,
         }
         const rangeNoAlias = rangeClauseNoAlias[period as string] ?? rangeClauseNoAlias.daily
 

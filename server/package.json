@@ -11,7 +11,8 @@
     "station:create": "tsx src/scripts/createStation.ts",
     "admin:create": "tsx src/scripts/createAdmin.ts",
     "admin:manage": "tsx src/scripts/manageAdmins.ts",
-    "station:manage": "tsx src/scripts/manageStations.ts"
+    "station:manage": "tsx src/scripts/manageStations.ts",
+    "migrate:images": "tsx src/scripts/migrateImagesToCloudinary.ts"
   },
   "keywords": [],
   "author": "",

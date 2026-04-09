@@ -445,12 +445,10 @@ export default function AdminLayout() {
                         </div>
                     )}
 
-                    {/* Role badge — shows super_admin label */}
-                    {isSuperAdmin && (
-                        <div className="mx-3 mt-2 px-3 py-1 rounded-lg bg-[#38bdf8]/10 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
-                            SUPER ADMIN
-                        </div>
-                    )}
+                    {/* Role badge */}
+                    <div className="mx-3 mt-2 px-3 py-1 rounded-lg bg-[#38bdf8]/10 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
+                        {isSuperAdmin ? 'STORE OWNER' : 'STAFF'}
+                    </div>
 
                     <nav className="flex flex-col gap-1 px-2 mt-3 flex-1 overflow-y-auto">
                         <NavLinks onClick={() => setDrawerOpen(false)} />
@@ -473,7 +471,7 @@ export default function AdminLayout() {
                             <div className="overflow-hidden">
                                 <p className="text-xs font-semibold text-white truncate">{user?.full_name ?? 'Admin'}</p>
                                 <p className="text-[10px] text-blue-300 truncate capitalize">
-                                    {user?.role === 'super_admin' ? 'Super Admin' : user?.role ?? 'admin'}
+                                    {user?.role === 'super_admin' ? 'Store Owner' : 'Staff'}
                                 </p>
                             </div>
                         </div>
@@ -552,10 +550,10 @@ export default function AdminLayout() {
                         </div>
                     )}
 
-                    {/* Super admin badge */}
-                    {!sidebarIconOnly && isSuperAdmin && (
+                    {/* Role badge */}
+                    {!sidebarIconOnly && (
                         <div className="mx-2 mb-3 px-3 py-1 rounded-lg bg-[#38bdf8]/10 text-[10px] text-[#38bdf8] font-semibold tracking-wide text-center">
-                            SUPER ADMIN
+                            {isSuperAdmin ? 'STORE OWNER' : 'STAFF'}
                         </div>
                     )}
 

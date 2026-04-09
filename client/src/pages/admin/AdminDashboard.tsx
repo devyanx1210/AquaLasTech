@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 
 // Types
-type Period = 'daily' | 'weekly' | 'monthly' | 'yearly'
+type Period = 'daily' | 'weekly' | 'monthly' | 'annually'
 
 interface SummaryRow {
     period_label: string
@@ -417,10 +417,10 @@ export default function AdminDashboard() {
         daily: 'Last 30 days',
         weekly: 'Last 12 weeks',
         monthly: 'Last 12 months',
-        yearly: 'Last 5 years',
+        annually: 'Last 5 years',
     }
 
-    const periods: Period[] = ['daily', 'weekly', 'monthly', 'yearly']
+    const periods: Period[] = ['daily', 'weekly', 'monthly', 'annually']
 
     return (
         <div className="flex flex-col gap-5 pb-10">

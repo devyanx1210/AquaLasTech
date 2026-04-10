@@ -193,7 +193,7 @@ function OrderDetailModal({ order, onClose, onCancel, onReturn, onDelete }: {
 }) {
     const displayStatus = getDisplayStatus(order)
     const cfg = STATUS_CFG[displayStatus] ?? STATUS_CFG.confirmed
-    const canCancel = displayStatus === 'pending'  // only while GCash payment is unverified
+    const canCancel = displayStatus === 'pending' || order.order_status === 'confirmed'
     const canReturn = order.order_status === 'delivered'
     const isReturned = order.order_status === 'returned'
     const isHistory = ['delivered', 'cancelled', 'returned'].includes(order.order_status)
@@ -399,8 +399,8 @@ function OrderCard({ order, onOpen, onDelete }: {
                 )}
             </div>
 
-            {/* Cancel hint when pending payment */}
-            {displayStatus === 'pending' && (
+            {/* Cancel hint — pending GCash or confirmed */}
+            {(displayStatus === 'pending' || order.order_status === 'confirmed') && (
                 <div className="mx-4 mb-3 flex items-center gap-1.5 text-[10px] text-red-400 font-semibold">
                     <XCircle size={10} /> Tap to view · Can still cancel
                 </div>

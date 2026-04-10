@@ -529,14 +529,35 @@ router.put('/orders/:id/cancel', async (req, res) => {
                 [item.quantity, item.product_id, item.station_id]
             )
         }
-        const cancelMsg = reason?.trim()
+        const station_id = rows[0].station_id
+
+        // Notify the customer
+        const customerMsg = reason?.trim()
             ? `Your order has been cancelled. Reason: ${reason.trim()}`
             : 'Your order has been cancelled successfully.'
         await pool.query(
             `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
              VALUES (?, ?, ?, ?, 0, NOW())`,
-            [userId, rows[0].station_id, cancelMsg, NOTIFICATION_TYPE.ORDER_UPDATE]
+            [userId, station_id, customerMsg, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
+
+        // Notify all admins of the station
+        const [admins]: any = await pool.query(
+            `SELECT u.user_id FROM users u
+             INNER JOIN admins a ON a.user_id = u.user_id
+             WHERE a.station_id = ? AND u.role IN (2, 3)`,
+            [station_id]
+        )
+        const adminMsg = reason?.trim()
+            ? `A customer cancelled their order. Reason: ${reason.trim()}`
+            : 'A customer cancelled their order.'
+        for (const admin of admins) {
+            await pool.query(
+                `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
+                 VALUES (?, ?, ?, ?, 0, NOW())`,
+                [admin.user_id, station_id, adminMsg, NOTIFICATION_TYPE.SYSTEM_MESSAGE]
+            )
+        }
 
         return res.json({ message: 'Order cancelled' })
     } catch (err) {

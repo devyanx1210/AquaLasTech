@@ -6,7 +6,7 @@
   code, pre, .cm-s-obsidian { font-size: 9pt; }
 </style>
 
-# AquaLasTech — System Documentation
+# AquaLasTech: System Documentation
 
 > This document is written so that anyone can read it from start to finish and walk away with a clear understanding of how this entire system works. Every concept is explained in plain language before any code is shown. Technical words are always defined the first time they appear. At the end of this document is a hands-on exercise that guides you through building a simple version of this system yourself, using the exact same tools and setup.
 
@@ -34,6 +34,7 @@
 19. [Status Code Reference](#status-code-reference)
 20. [Deployment Guide](#deployment-guide)
 21. [Beginner Exercise: Build Your Own Mini Version](#beginner-exercise-build-your-own-mini-version)
+22. [Glossary: All Terms Used in This Project](#glossary-all-terms-used-in-this-project)
 
 ---
 
@@ -234,7 +235,7 @@ users ──────────────── admins (one user can be o
 
 #### Table Reference
 
-##### `users` — Every account in the system
+##### `users`: Every account in the system
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -248,7 +249,7 @@ users ──────────────── admins (one user can be o
 | is_active | Yes/No | Whether this account is active |
 | deleted_at | Date/Time | If set, this account has been soft-deleted |
 
-##### `stations` — Each water refilling station
+##### `stations`: Each water refilling station
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -260,7 +261,7 @@ users ──────────────── admins (one user can be o
 | qr_code_path | Text | URL of the GCash QR code image |
 | status | Number | 1=open, 2=closed, 3=maintenance |
 
-##### `orders` — Every order placed
+##### `orders`: Every order placed
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -273,7 +274,7 @@ users ──────────────── admins (one user can be o
 | total_amount | Decimal | The total cost of the order |
 | hidden_at | Date/Time | If set, this order is hidden from the list but kept for reports |
 
-##### `order_items` — The products inside each order
+##### `order_items`: The products inside each order
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -283,7 +284,7 @@ users ──────────────── admins (one user can be o
 | quantity | Number | How many units |
 | price_snapshot | Decimal | The price at the time of ordering — saved so price changes don't affect past orders |
 
-##### `products` — Items available for sale
+##### `products`: Items available for sale
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -295,7 +296,7 @@ users ──────────────── admins (one user can be o
 | is_active | Yes/No | Whether this product is visible to customers |
 | image_url | Text | Product photo URL from Cloudinary |
 
-##### `inventory` — Stock levels per product per station
+##### `inventory`: Stock levels per product per station
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -305,7 +306,7 @@ users ──────────────── admins (one user can be o
 | quantity | Number | Current stock count |
 | min_stock_level | Number | Alert threshold — when stock falls below this, admins are notified |
 
-##### `payments` — Payment record for each order
+##### `payments`: Payment record for each order
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -315,7 +316,7 @@ users ──────────────── admins (one user can be o
 | payment_status | Number | 1=pending, 2=verified, 3=rejected |
 | proof_image_path | Text | URL of the GCash receipt image |
 
-##### `notifications` — Messages sent to users
+##### `notifications`: Messages sent to users
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -326,7 +327,7 @@ users ──────────────── admins (one user can be o
 | notification_type | Number | 1=order update, 2=payment update, 3=inventory alert, 4=system message |
 | is_read | Yes/No | Whether the user has read it |
 
-##### `admins` — Links user accounts to stations with admin roles
+##### `admins`: Links user accounts to stations with admin roles
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -334,7 +335,7 @@ users ──────────────── admins (one user can be o
 | user_id | Number | Which user account |
 | station_id | Number | Which station they manage |
 
-##### `pos_transactions` — Walk-in sales from the Point of Sale terminal
+##### `pos_transactions`: Walk-in sales from the Point of Sale terminal
 
 | Column | Type | What It Stores |
 | :--- | :--- | :--- |
@@ -1069,20 +1070,50 @@ This creates two tables. `users` stores accounts. `tasks` stores tasks, and each
 
 #### Part 2: Build the Backend
 
-Open your terminal and run these commands:
+The backend is the server that sits between the browser and the database. The browser never talks to the database directly. Every action, whether creating an account, logging in, fetching tasks, or deleting one, goes through the server first. The server checks who you are, decides if you are allowed, runs the logic, and talks to the database on your behalf.
+
+Open your terminal and run these commands to create the project folder and install all the tools:
 
 ```bash
+# Create a new folder for the server
 mkdir todo-server
 cd todo-server
+
+# Initialize a Node.js project (creates package.json)
 npm init -y
+
+# Install the tools the server needs to run
 npm install express mysql2 bcrypt jsonwebtoken dotenv cors cookie-parser
+
+# Install TypeScript and type definitions (used only during development, not in production)
 npm install -D typescript tsx @types/node @types/express @types/bcrypt @types/jsonwebtoken @types/cors @types/cookie-parser
+
+# Generate a TypeScript configuration file
 npx tsc --init
 ```
 
-Create a file called `src/server.ts`:
+Create a folder called `src` inside `todo-server`, then create a file called `src/server.ts`. This one file is the entire backend. Read the explanations below before you start writing it.
+
+**How this file is organized:**
+
+1. **Imports** — bring in the tools (Express, MySQL, bcrypt, etc.)
+2. **Middleware setup** — tell Express to allow cross-origin requests, parse JSON from requests, and read cookies
+3. **Database connection** — create a pool of reusable database connections
+4. **verifyToken function** — a reusable check that runs before any protected route to confirm the user is logged in
+5. **Auth routes** — signup, login, logout
+6. **Task routes** — create, read, update, delete tasks (these are the CRUD operations)
+7. **Start listening** — tell the server to open a port and wait for requests
 
 ```typescript
+// ─── IMPORTS ───────────────────────────────────────────────────────────────
+// Each import brings in a specific tool or library.
+// 'express' is the framework that handles incoming requests and routes.
+// 'cors' allows the browser (running on port 5173) to talk to this server (port 8080).
+// 'cookieParser' lets the server read cookies attached to requests.
+// 'dotenv' reads the .env file and makes variables like DB_HOST available in the code.
+// 'mysql2/promise' is the driver that connects to MySQL and runs SQL queries.
+// 'bcrypt' hashes passwords so the original can never be recovered.
+// 'jsonwebtoken' creates and verifies the signed identity token (JWT).
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
@@ -1091,36 +1122,68 @@ import mysql from 'mysql2/promise'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
+// Load values from the .env file into process.env
 dotenv.config()
 
+// ─── EXPRESS APP SETUP ──────────────────────────────────────────────────────
+// Create the Express application. Think of this as turning on the server machine.
 const app = express()
+
+// Allow requests from the frontend URL (http://localhost:5173 is where Vite runs).
+// 'credentials: true' allows cookies to be sent along with requests.
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
+
+// Parse incoming request bodies that contain JSON data.
+// Without this, req.body would always be undefined.
 app.use(express.json())
+
+// Parse cookies from incoming requests.
+// Without this, req.cookies would always be empty.
 app.use(cookieParser())
 
-// Database connection
+// ─── DATABASE CONNECTION ────────────────────────────────────────────────────
+// A connection pool keeps several database connections open and reuses them.
+// Opening a fresh database connection for every request is slow.
+// The pool manages this automatically — you just call db.query() and it handles the rest.
 const db = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+    host: process.env.DB_HOST,       // The address of the MySQL server (localhost for XAMPP)
+    user: process.env.DB_USER,       // MySQL username (root for XAMPP)
+    password: process.env.DB_PASSWORD, // MySQL password (empty for XAMPP by default)
+    database: process.env.DB_NAME,   // The database name (todo_app)
 })
 
+// Read the JWT secret key from .env. This string is used to sign and verify tokens.
+// If this key changes, all existing tokens become invalid.
 const JWT_KEY = process.env.JWT_KEY as string
 
-// Middleware: check if user is logged in
+// ─── VERIFY TOKEN MIDDLEWARE ────────────────────────────────────────────────
+// This is a guard function that runs before any protected route.
+// It checks whether the request includes a valid JWT.
+// If no token is found, or the token is invalid or expired, the request is rejected
+// and the route handler below never runs.
+// If the token is valid, the decoded user data (id, name) is attached to req.user
+// so the route handler can use it.
 function verifyToken(req: any, res: any, next: any) {
+    // Look for the token in two places: a cookie (for browsers) or the Authorization header
     const token = req.cookies.token || req.headers.authorization?.split(' ')[1]
     if (!token) return res.status(401).json({ message: 'Not logged in' })
     try {
+        // jwt.verify checks the signature. If tampered or expired, it throws an error.
         req.user = jwt.verify(token, JWT_KEY)
+        // next() tells Express to continue to the actual route handler
         next()
     } catch {
         res.status(401).json({ message: 'Session expired' })
     }
 }
 
-// SIGNUP
+// ─── SIGNUP ─────────────────────────────────────────────────────────────────
+// When a user submits the signup form, this route receives their name, email, and password.
+// The password is NEVER stored as plain text. bcrypt.hash() converts it into a
+// scrambled, one-way string. Even if someone reads the database, they cannot recover
+// the original password from the hash.
+// The number 10 is the "salt rounds" — how many times the hashing algorithm runs.
+// More rounds = harder to crack, but slightly slower.
 app.post('/auth/signup', async (req, res) => {
     const { full_name, email, password } = req.body
     if (!full_name || !email || !password)
@@ -1130,10 +1193,18 @@ app.post('/auth/signup', async (req, res) => {
         'INSERT INTO users (full_name, email, password_hash) VALUES (?, ?, ?)',
         [full_name, email, hash]
     )
+    // 201 means "Created" — a new resource was successfully created
     res.status(201).json({ message: 'Account created', user_id: result.insertId })
 })
 
-// LOGIN
+// ─── LOGIN ───────────────────────────────────────────────────────────────────
+// When a user submits the login form, this route:
+// 1. Looks up their account in the database by email
+// 2. Uses bcrypt.compare() to check if the submitted password matches the stored hash
+//    (bcrypt can verify without reversing the hash — that is the point of hashing)
+// 3. If it matches, creates a JWT containing the user's ID and name
+// 4. Sends the token back both as a cookie and in the response body
+//    (cookie for the browser, body for the frontend to save in localStorage)
 app.post('/auth/login', async (req, res) => {
     const { email, password } = req.body
     const [rows]: any = await db.query('SELECT * FROM users WHERE email = ?', [email])
@@ -1141,18 +1212,27 @@ app.post('/auth/login', async (req, res) => {
     const user = rows[0]
     const match = await bcrypt.compare(password, user.password_hash)
     if (!match) return res.status(401).json({ message: 'Invalid email or password' })
+    // jwt.sign() creates a signed token. '7d' means it expires after 7 days.
     const token = jwt.sign({ id: user.user_id, name: user.full_name }, JWT_KEY, { expiresIn: '7d' })
+    // httpOnly: true means JavaScript in the browser cannot read this cookie.
+    // This protects against XSS attacks.
     res.cookie('token', token, { httpOnly: true })
     res.json({ token, user: { id: user.user_id, name: user.full_name, email: user.email } })
 })
 
-// LOGOUT
+// ─── LOGOUT ──────────────────────────────────────────────────────────────────
+// Clears the cookie on the browser side.
+// The frontend will also delete the token from localStorage after calling this.
 app.post('/auth/logout', (req, res) => {
     res.clearCookie('token')
     res.json({ message: 'Logged out' })
 })
 
-// GET ALL TASKS (for the logged-in user only)
+// ─── GET ALL TASKS ───────────────────────────────────────────────────────────
+// Notice 'verifyToken' is the second argument before the route handler.
+// This means verifyToken runs first. If the user is not logged in, the request
+// stops there. If they are logged in, req.user is available with their ID.
+// The query filters by user_id so a user can only ever see their own tasks.
 app.get('/tasks', verifyToken, async (req: any, res) => {
     const [rows]: any = await db.query(
         'SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC',
@@ -1161,7 +1241,12 @@ app.get('/tasks', verifyToken, async (req: any, res) => {
     res.json(rows)
 })
 
-// CREATE A TASK
+// ─── CREATE A TASK ────────────────────────────────────────────────────────────
+// Receives the task title from the request body.
+// .trim() removes leading and trailing spaces.
+// The user_id is taken from the token (req.user.id), not from the request body.
+// This means a user cannot create tasks on behalf of someone else,
+// even if they try to send a different user_id in the body.
 app.post('/tasks', verifyToken, async (req: any, res) => {
     const { title } = req.body
     if (!title?.trim()) return res.status(400).json({ message: 'Title is required' })
@@ -1172,7 +1257,11 @@ app.post('/tasks', verifyToken, async (req: any, res) => {
     res.status(201).json({ message: 'Task created', task_id: result.insertId })
 })
 
-// MARK TASK AS DONE / UNDONE
+// ─── MARK TASK AS DONE OR UNDONE ────────────────────────────────────────────
+// ':id' in the path is a URL parameter. If the request is PUT /tasks/5,
+// then req.params.id is '5'.
+// The WHERE clause includes 'AND user_id = ?' to make sure a user can only
+// update their own tasks. Without this, any logged-in user could update anyone's task.
 app.put('/tasks/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params
     const { is_done } = req.body
@@ -1183,13 +1272,17 @@ app.put('/tasks/:id', verifyToken, async (req: any, res) => {
     res.json({ message: 'Task updated' })
 })
 
-// DELETE A TASK
+// ─── DELETE A TASK ────────────────────────────────────────────────────────────
+// Same pattern: the WHERE clause includes user_id so you can only delete your own tasks.
 app.delete('/tasks/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params
     await db.query('DELETE FROM tasks WHERE task_id = ? AND user_id = ?', [id, req.user.id])
     res.json({ message: 'Task deleted' })
 })
 
+// ─── START THE SERVER ─────────────────────────────────────────────────────────
+// Tell Express to listen on port 8080. Once this runs, the server is live
+// and waiting for requests at http://localhost:8080
 app.listen(8080, () => console.log('Server running at http://localhost:8080'))
 ```
 
@@ -1225,14 +1318,31 @@ You should see: `Server running at http://localhost:8080`
 
 #### Part 3: Build the Frontend
 
-Open a new terminal window and run:
+The frontend is what the user sees and interacts with in the browser. It is built with React, which lets you break the interface into small, reusable pieces called components. Each page (Login, Signup, Tasks) is its own component. When the user navigates between pages, React swaps the component being shown without reloading the entire browser tab.
+
+The frontend communicates with the backend through HTTP requests sent using Axios. Every request to a protected route automatically includes the JWT so the server knows who is sending it.
+
+Open a new terminal window (keep the backend terminal open and running) and run:
 
 ```bash
+# Create a new React + TypeScript project using Vite
 npm create vite@latest todo-client -- --template react-ts
+
 cd todo-client
+
+# Install the default dependencies Vite created
 npm install
+
+# Install Axios (for sending HTTP requests) and React Router (for navigation)
 npm install axios react-router-dom
 ```
+
+**`src/main.tsx` is the entry point of the frontend.** This is the very first file React reads. It does two things before rendering anything:
+
+1. It sets up Axios so that every HTTP request goes to the backend at `http://localhost:8080`. Instead of writing the full URL every time (`http://localhost:8080/tasks`), you just write `/tasks`.
+2. It registers an interceptor. An interceptor is a function that runs automatically before every request. This one reads the JWT from localStorage and adds it to every outgoing request as an `Authorization` header. This is why you do not need to manually include the token on every request — it happens automatically, every time.
+
+After setup, it defines the routes: which URL shows which page component. React Router handles navigation. When you click a link or call `navigate('/login')`, the URL in the browser changes and the matching component is rendered, without a full page reload.
 
 Replace the contents of `src/main.tsx` with:
 
@@ -1244,26 +1354,35 @@ import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import TasksPage from './pages/TasksPage'
 
+// Tell Axios where the backend server is. Every request will go to this base URL.
 axios.defaults.baseURL = 'http://localhost:8080'
+// Allow cookies to be sent with cross-origin requests.
 axios.defaults.withCredentials = true
 
-// Also send token from localStorage as Authorization header
+// This interceptor runs before EVERY Axios request this app makes.
+// It reads the JWT from localStorage and attaches it as an Authorization header.
+// This is how the server knows which user is sending the request.
 axios.interceptors.request.use((config) => {
     const token = localStorage.getItem('token')
     if (token) config.headers['Authorization'] = `Bearer ${token}`
     return config
 })
 
+// Define the routes. Each path maps to a component.
+// React Router watches the browser URL and renders the matching component.
 const router = createBrowserRouter([
-    { path: '/', element: <TasksPage /> },
-    { path: '/login', element: <LoginPage /> },
-    { path: '/signup', element: <SignupPage /> },
+    { path: '/', element: <TasksPage /> },       // The task list (protected)
+    { path: '/login', element: <LoginPage /> },   // The login form
+    { path: '/signup', element: <SignupPage /> },  // The signup form
 ])
 
+// Mount the React app inside the <div id="root"> element in index.html.
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <RouterProvider router={router} />
 )
 ```
+
+**`src/pages/SignupPage.tsx`** is the signup form. It holds the form data in React state using `useState`. When the user types, the state updates. When the form is submitted, Axios sends the data to `POST /auth/signup` on the server. If successful, the user is navigated to the login page. If the server returns an error (like "email already taken"), it is displayed below the form.
 
 Create `src/pages/SignupPage.tsx`:
 
@@ -1306,6 +1425,8 @@ export default function SignupPage() {
 }
 ```
 
+**`src/pages/LoginPage.tsx`** works the same way as SignupPage but sends to `POST /auth/login`. When the server responds with a token, the frontend saves it to `localStorage` so it persists across page refreshes. It then navigates the user to `/` where the tasks are.
+
 Create `src/pages/LoginPage.tsx`:
 
 ```typescript
@@ -1345,6 +1466,10 @@ export default function LoginPage() {
     )
 }
 ```
+
+**`src/pages/TasksPage.tsx`** is the main page of the app. When it first loads, it calls `fetchTasks()` inside a `useEffect` hook. A `useEffect` with an empty dependency array (`[]`) runs once when the component mounts on screen — this is the standard way to load data when a page opens. If the server rejects the request (the user is not logged in), it redirects to `/login`.
+
+The tasks are stored in React state as an array. Every time the user adds, toggles, or deletes a task, the frontend calls `fetchTasks()` again to refresh the list from the server. This keeps the UI in sync with the database.
 
 Create `src/pages/TasksPage.tsx`:
 
@@ -1452,3 +1577,332 @@ Open `http://localhost:5173` in your browser.
 | Axios interceptor | Axios interceptor | Automatic token attachment |
 
 Every pattern in this exercise is the same pattern used in the real system. The only difference is scale — AquaLasTech has more tables, more routes, more roles, and more features, but every one of them follows this same structure.
+
+---
+
+### Glossary: All Terms Used in This Project
+
+This section defines every technical term used throughout this document. Definitions are written for someone reading about these concepts for the first time.
+
+---
+
+#### A
+
+**API (Application Programming Interface)**
+A set of rules that allows two programs to communicate. In this project, the API is the collection of routes on the server (like `POST /auth/login` or `GET /tasks`) that the frontend uses to send and receive data. Think of it as a menu of actions the server is willing to perform.
+
+**async / await**
+A way to write code that waits for a slow operation (like a database query or a network request) to finish before moving to the next line. Without it, the code would skip past the query before the result arrived. The word `async` marks a function as one that contains waiting operations. The word `await` is placed before the slow operation to pause execution until it completes.
+
+**Authentication**
+The process of proving who you are. In this system, you authenticate by submitting your email and password. The server checks them and, if correct, issues a token that acts as your identity proof.
+
+**Authorization**
+The process of deciding what you are allowed to do. After you are authenticated (identity confirmed), authorization determines your permissions. In AquaLasTech, a Customer is authorized to place orders but not to view the admin panel. The distinction: authentication says "you are Ian," authorization says "Ian can do X but not Y."
+
+**Axios**
+A JavaScript library used in the frontend to send HTTP requests to the server. It handles the low-level details of forming the request and parsing the response. It also supports interceptors (see below).
+
+---
+
+#### B
+
+**Backend**
+The part of the system that runs on the server, not in the browser. It contains the business logic, communicates with the database, enforces permissions, and sends responses. In this project, the backend is an Express.js application written in TypeScript running on Node.js.
+
+**bcrypt**
+A password hashing tool. When a user creates an account, their password is passed through bcrypt which produces a long scrambled string called a hash. The original password is not stored anywhere. When the user logs in again, bcrypt can verify if a submitted password matches the stored hash without ever reversing the hash. This means even if the database is leaked, the actual passwords remain protected.
+
+**Body (HTTP)**
+The data included inside an HTTP request or response. When a user submits a signup form, the form values (name, email, password) are sent in the request body as JSON. The server reads `req.body` to access this data.
+
+**Build**
+The process of converting source code written in TypeScript and React into files the browser can actually run. Vite handles this. The output is plain JavaScript and CSS files. The command `npm run build` produces these files in a `dist` folder.
+
+**Bundle**
+The single (or small group of) JavaScript files produced by the build process. Vite combines all the separate source files into an optimized bundle that loads efficiently in the browser.
+
+---
+
+#### C
+
+**Cloudinary**
+A cloud service that stores and serves images. When a user uploads a profile photo, station logo, or GCash receipt, the file is sent directly to Cloudinary. Cloudinary returns a permanent URL (a web address) for that image. The server saves this URL in the database. The browser then loads images directly from Cloudinary, not from the application server.
+
+**Column**
+A field in a database table. Every row in a table has the same set of columns. For example, the `users` table has columns: `user_id`, `full_name`, `email`, `password_hash`, `role`. Each column stores one specific type of information.
+
+**Component (React)**
+A reusable piece of the user interface written as a TypeScript function. A button, a form, a page, a modal, or a layout wrapper can all be components. Components can be combined to build complex interfaces. For example, the `AdminLayout` component wraps every admin page and provides the sidebar and header.
+
+**Connection Pool**
+A set of database connections that stay open and ready to be reused. Opening a new database connection every time a request arrives is slow. A pool keeps several connections open and hands one out when a query needs to run, then returns it to the pool when done. MySQL2's `createPool()` manages this automatically.
+
+**Context (React)**
+A built-in React feature that makes data available to every component in the application without passing it manually through each level. `AuthContext` in this project holds the logged-in user's information. Any component anywhere in the app can read the current user by calling `useAuth()`.
+
+**Cookie**
+A small piece of data that the server stores on the browser. Unlike localStorage, cookies are automatically sent with every request to the same domain. In this project, the JWT is stored as an `httpOnly` cookie (which JavaScript cannot read, protecting it from theft) and also in localStorage (for iOS compatibility).
+
+**CORS (Cross-Origin Resource Sharing)**
+A browser security rule that blocks requests from one website to a different website. Since the frontend runs on `localhost:5173` and the backend runs on `localhost:8080`, they are technically different origins. CORS configuration on the server tells the browser it is safe to allow requests from the frontend's address.
+
+**CRUD**
+An acronym for the four fundamental database operations: Create (INSERT), Read (SELECT), Update (UPDATE), Delete (DELETE). Every data-driven feature in this project is built from some combination of these four operations.
+
+---
+
+#### D
+
+**Database**
+A structured system for storing data permanently. Even if the server restarts or crashes, data in the database survives. In this project, MySQL is used. Data is organized into tables (like spreadsheets), and tables are linked to each other through foreign keys.
+
+**Deployment**
+The process of making the application accessible to users on the internet. This project deploys the frontend to Vercel, the backend to Render, and uses Aiven for the database.
+
+**dotenv**
+A tool that reads a file called `.env` and makes its contents available as environment variables in the code. It keeps sensitive values (database passwords, API keys) out of the source code and out of version control.
+
+---
+
+#### E
+
+**Endpoint**
+A specific URL on the server that accepts a particular type of request. For example, `POST /auth/login` is an endpoint that accepts login requests. `GET /tasks` is an endpoint that returns the task list. Together, all endpoints form the API.
+
+**Environment Variable**
+A named configuration value stored outside the code. Instead of writing `password: "mysecret123"` directly in the code (which would be visible to anyone who reads the file), you write `password: process.env.DB_PASSWORD` and store the actual value in a `.env` file that is never shared or committed to version control.
+
+**Express.js**
+A framework built on top of Node.js that makes it easier to define routes, apply middleware, and handle HTTP requests and responses. Without Express, you would need to write the low-level HTTP parsing code yourself.
+
+---
+
+#### F
+
+**Foreign Key**
+A column in one table that stores the ID of a row in another table. This creates a link between tables. For example, the `tasks` table has a `user_id` column that stores the ID of the user who created the task. This links each task to its owner in the `users` table.
+
+**Frontend**
+The part of the system that runs in the browser. It is what the user sees and interacts with. In this project, the frontend is a React application built with Vite. It communicates with the backend by sending HTTP requests through Axios.
+
+---
+
+#### H
+
+**Hash / Hashing**
+A one-way mathematical transformation of data. Hashing takes an input (like a password) and produces a fixed-length scrambled output. The same input always produces the same hash. But you cannot reverse the process to get the original input from the hash. Bcrypt is the hashing algorithm used in this project for passwords.
+
+**Headers (HTTP)**
+Extra information sent alongside an HTTP request or response. In this project, the `Authorization` header carries the JWT token: `Authorization: Bearer eyJ...`. The server's middleware reads this header to identify the user.
+
+**Helmet**
+An Express middleware that sets security-related HTTP response headers. It protects against common attacks like clickjacking, cross-site scripting injection through MIME-type sniffing, and others, by configuring the browser's built-in security features.
+
+**Hook (React)**
+A built-in React function that adds functionality to a component. The most common ones used in this project are `useState` (stores a value that, when changed, causes the component to re-render) and `useEffect` (runs code after the component renders, used for fetching data). Custom hooks like `useStation` package reusable logic into a single function.
+
+**HTTP (HyperText Transfer Protocol)**
+The communication standard used between browsers and web servers. Every time a user interacts with the app — loading a page, submitting a form, clicking a button — an HTTP request is sent to the server and an HTTP response comes back.
+
+**HTTP Status Code**
+A number included in every HTTP response that tells the browser whether the request succeeded. Common codes: 200 = OK, 201 = Created, 400 = Bad Request (client sent wrong data), 401 = Unauthorized (not logged in), 403 = Forbidden (logged in but not allowed), 404 = Not Found, 500 = Server Error.
+
+---
+
+#### I
+
+**Interceptor (Axios)**
+A function that runs automatically before every request (or after every response) that Axios makes. In this project, a request interceptor reads the JWT from localStorage and attaches it to every outgoing request as an Authorization header. This means the token is included automatically and does not need to be added manually each time.
+
+**Interface (TypeScript)**
+A TypeScript definition that describes the shape of a data object — what fields it has and what type each field is. For example, `interface Task { task_id: number; title: string; is_done: number }` means any variable typed as `Task` must have those three fields with those types.
+
+---
+
+#### J
+
+**JavaScript**
+The programming language that runs in web browsers. It is also the language Node.js uses to run server-side code. TypeScript is a superset of JavaScript — all valid JavaScript is valid TypeScript, but TypeScript adds type checking on top.
+
+**JSON (JavaScript Object Notation)**
+A standard text format for sending structured data between a browser and a server. It looks like: `{ "name": "Juan", "age": 25 }`. The server sends JSON responses. The browser receives them and reads the values. Express parses incoming JSON bodies automatically when `app.use(express.json())` is set up.
+
+**JWT (JSON Web Token)**
+A small signed text string that proves who a user is after they log in. It contains a payload (user ID, role, station ID) encoded as base64, plus a cryptographic signature that proves the payload was not tampered with. The server creates it at login. On every subsequent request, the browser sends it back. The server verifies the signature and trusts the payload. No session storage is needed on the server side.
+
+---
+
+#### L
+
+**Leaflet**
+An open-source JavaScript library for interactive maps. Used in the customer settings page to let users drop a pin on their delivery location. The pin coordinates (latitude and longitude) are saved to the database.
+
+**localhost**
+A special address that means "this computer." When you run the server on your machine, it is accessible at `http://localhost:8080`. Only your machine can reach it — it is not on the internet.
+
+**localStorage**
+A storage area in the browser that persists data even after the browser is closed. Unlike cookies, localStorage values are not automatically sent with HTTP requests. In this project, the JWT is stored in localStorage so the Axios interceptor can read it and add it to request headers manually.
+
+---
+
+#### M
+
+**Middleware**
+A function that runs on every incoming request before the route handler. Middleware can modify the request, check conditions, or stop the request entirely. Examples: `express.json()` parses request bodies; `verifyToken` checks for a valid JWT; `helmet()` adds security headers. Middleware is the mechanism that makes cross-cutting concerns (security, parsing, logging) apply to all routes without repeating code in each route.
+
+**Monorepo**
+A single version control repository that contains multiple separate projects. In AquaLasTech, the `client` folder and the `server` folder are two independent applications that happen to live in the same repository. This makes it easier to manage them together.
+
+**Multer**
+An Express middleware for handling file uploads. When a user submits a form that includes an image, Multer intercepts the file before it reaches the route handler. In this project, Multer is configured to hand the file directly to Cloudinary instead of saving it to disk.
+
+**MySQL**
+A relational database management system. Data is stored in tables. Tables can be related to each other. SQL (Structured Query Language) is used to interact with it — for example, `SELECT * FROM tasks WHERE user_id = 5` fetches all tasks belonging to user 5.
+
+---
+
+#### N
+
+**Node.js**
+A runtime environment that lets JavaScript run on a server, outside of a browser. Before Node.js, JavaScript could only run inside browsers. Node.js made it possible to use JavaScript for backend development.
+
+**Nodemailer**
+A Node.js library for sending emails. Used in this project for the password reset feature — it sends a reset link to the user's email address.
+
+**npm (Node Package Manager)**
+The tool that installs JavaScript libraries (packages) and manages project dependencies. When you run `npm install express`, npm downloads the Express library and saves it in the `node_modules` folder. The `package.json` file lists all the packages a project depends on.
+
+---
+
+#### P
+
+**package.json**
+A configuration file in every Node.js project that lists the project name, version, all dependencies (libraries needed to run), dev dependencies (libraries only needed during development), and scripts (commands like `npm run dev` or `npm run build`).
+
+**Payload (JWT)**
+The data encoded inside a JWT. In this project, the payload contains `{ id, role, station_id }`. The server reads this after verifying the token to know who is making the request and what they are allowed to do.
+
+**Polling**
+A technique where the browser repeatedly asks the server for updates at fixed intervals. In this project, the admin order list refreshes every 30 seconds by re-sending the same request. This is simpler than WebSockets but means updates are never instant — there is always up to a 30-second delay.
+
+**Port**
+A number that identifies a specific communication channel on a computer. A server can run on any port. Port 8080 is commonly used for development backends. Port 5173 is the default for Vite. Port 3306 is the default for MySQL. When you write `http://localhost:8080`, the `:8080` tells the computer which port to connect to.
+
+**Primary Key**
+A column in a database table that uniquely identifies each row. No two rows can have the same primary key value. In this project, every table has a primary key named after the table (e.g., `user_id`, `task_id`, `order_id`). Primary keys are typically auto-incrementing integers that the database assigns automatically.
+
+**Promise**
+A JavaScript object that represents the eventual result of an asynchronous operation. A promise is either pending (still waiting), fulfilled (completed successfully), or rejected (failed). `async/await` is a cleaner way to work with promises without writing `.then()` chains.
+
+**Props (React)**
+Short for properties. Data passed from a parent component to a child component. For example, a `Button` component might accept a `label` prop and an `onClick` prop. Props are how components communicate downward through the component tree.
+
+**PWA (Progressive Web App)**
+A web application that can be installed on a device and behaves like a native app. AquaLasTech can be installed from Chrome on Android. The `site.webmanifest` file defines the app name, icons, and splash screen colors. When the user opens the installed app, it shows an icon and a splash screen before loading.
+
+---
+
+#### R
+
+**React**
+A JavaScript library for building user interfaces. React breaks the UI into components. When data (state) changes, React automatically re-renders only the parts of the interface that depend on that data. The key idea is that the UI is a function of the data: change the data, the UI updates.
+
+**React Router**
+A library that handles navigation inside a React app. It maps URL paths to components. When the user navigates to `/login`, React Router renders the `LoginPage` component without reloading the browser tab. The URL in the browser changes, but the page does not fully reload.
+
+**Render (hosting)**
+A cloud hosting platform where the backend server is deployed. When code is pushed to the correct git branch, Render automatically rebuilds and redeploys the server.
+
+**Repository**
+A folder tracked by version control software (Git). It contains the complete history of every file change, every commit, and every branch. AquaLasTech's repository is hosted on GitHub.
+
+**Role**
+A label assigned to a user account that determines what they are allowed to do. AquaLasTech has four roles: Customer (1), Staff (2), Store Owner (3), System Admin (4). The role is stored in the database and included in the JWT so the server can check it on every request.
+
+**Route**
+In the backend: a specific combination of HTTP method and path that the server responds to (e.g., `GET /tasks` or `POST /auth/login`). In the frontend: a mapping from a URL to a React component (e.g., `/login` shows `LoginPage`).
+
+**Row**
+A single record in a database table. A row in the `users` table represents one user account. A row in the `tasks` table represents one task.
+
+---
+
+#### S
+
+**Salt Rounds (bcrypt)**
+A number that controls how many times bcrypt runs its hashing algorithm internally. A value of 10 means the algorithm runs 2^10 = 1024 times. Higher values are more secure but take longer. 10 is a standard starting value that balances security and speed.
+
+**Soft Delete**
+Marking a record as deleted without actually removing it from the database. In AquaLasTech, when an admin "deletes" an order from the history view, the `hidden_at` column is set to the current timestamp. The order still exists in the database and is still counted in all reports. The display query just filters out rows where `hidden_at` is not null.
+
+**SQL (Structured Query Language)**
+The language used to interact with relational databases. The four core operations: `SELECT` (read data), `INSERT` (add a row), `UPDATE` (change a row), `DELETE` (remove a row). SQL queries are what the server sends to MySQL whenever it needs to read or write data.
+
+**SSL (Secure Sockets Layer)**
+An encryption protocol for protecting data in transit. When the server connects to the cloud database on Aiven, SSL encrypts the connection so data cannot be intercepted. In modern usage, the term TLS (Transport Layer Security) is technically more accurate, but SSL is commonly used for both.
+
+**State (React)**
+Data stored inside a component that, when changed, causes the component to re-render and update the UI. `useState` is the hook used to create state. For example, `const [tasks, setTasks] = useState([])` creates a `tasks` variable and a `setTasks` function. Calling `setTasks(newList)` updates the variable and causes the component to re-render with the new list.
+
+**Station**
+A water refilling station registered in the system. Each station has its own products, inventory, admins, orders, and settings. All data is scoped to a station — an admin of Station A cannot see Station B's data.
+
+---
+
+#### T
+
+**Table**
+A collection of rows and columns in a relational database. Each table represents one type of data. The `users` table stores users. The `orders` table stores orders. Tables are linked through foreign keys.
+
+**TailwindCSS**
+A CSS framework that provides utility classes you apply directly in the HTML (or JSX). Instead of writing a separate CSS file with custom class names, you write class names like `bg-blue-500 text-white rounded-lg px-4 py-2` directly on the element. Tailwind converts these into the corresponding CSS at build time.
+
+**TINYINT**
+A MySQL data type that stores a small integer (0 to 255 using 1 byte). AquaLasTech uses TINYINT to store status codes and role numbers instead of text strings, because numbers are more storage-efficient and faster to compare.
+
+**Token**
+A piece of data that proves identity or grants access. In this project, the JWT is the token. After login, the token is stored in the browser and sent with every request so the server knows who is making it.
+
+**tsconfig.json**
+The TypeScript configuration file. It tells the TypeScript compiler what version of JavaScript to output, which folders to include, what strictness rules to apply, and other settings. `npx tsc --init` generates a default version of this file.
+
+**TypeScript**
+A superset of JavaScript that adds static type checking. You declare what type each variable holds (number, string, object with specific fields), and TypeScript warns you at compile time if you use them incorrectly. TypeScript code is compiled into regular JavaScript before it runs.
+
+---
+
+#### U
+
+**useEffect (React Hook)**
+A hook that runs code after a component renders. Commonly used to fetch data when a page loads. An empty dependency array (`[]`) means "run this once when the component first appears on screen." Adding variables to the array means "run this again whenever those variables change."
+
+**useState (React Hook)**
+A hook that creates a reactive variable. When you call the setter function, React re-renders the component with the new value. This is how the UI stays in sync with the data — changing the state triggers a visual update automatically.
+
+---
+
+#### V
+
+**Vercel**
+A cloud hosting platform for frontend applications. When code is pushed to the `main` branch, Vercel automatically builds the React app with Vite and deploys it to a public URL.
+
+**Vite**
+A build tool and development server for frontend JavaScript projects. It converts TypeScript and React code into browser-compatible files. During development, it runs a local server with instant hot-reload on save. For production, it bundles and optimizes the code.
+
+**VARCHAR**
+A MySQL data type for variable-length text. `VARCHAR(100)` stores up to 100 characters. Unlike `TEXT`, which can store arbitrary amounts of text, VARCHAR has a defined limit that makes queries and indexing more efficient.
+
+---
+
+#### W
+
+**WebSocket**
+A communication protocol that keeps a persistent connection open between the browser and server, allowing the server to push updates to the browser instantly without the browser asking first. AquaLasTech uses polling (repeated requests on a timer) instead of WebSockets for simplicity. Real-time order updates currently have up to a 30-second delay.
+
+---
+
+#### X
+
+**XSS (Cross-Site Scripting)**
+A type of attack where malicious JavaScript is injected into a web page and executed in another user's browser. Storing the JWT as an `httpOnly` cookie instead of in regular localStorage protects against this, because `httpOnly` cookies cannot be accessed by JavaScript — only by the browser itself when sending requests.

@@ -1,23 +1,30 @@
+<style>
+  p, li, td, th, blockquote, .callout-content { font-size: 10pt; }
+  h3 { font-size: 15pt; }
+  h4 { font-size: 13pt; }
+  h5 { font-size: 11pt; }
+  code, pre, .cm-s-obsidian { font-size: 9pt; }
+</style>
+
 # AquaLasTech — System Documentation
 
-> This document is written so that anyone — even someone with no prior coding experience — can read it from start to finish and walk away with a clear understanding of how this entire system works. Every concept is explained in plain language before any code is shown. Technical words are always defined the first time they appear. At the end of this document is a hands-on exercise that guides you through building a simple version of this system yourself, using the exact same tools and setup.
+> This document is written so that anyone can read it from start to finish and walk away with a clear understanding of how this entire system works. Every concept is explained in plain language before any code is shown. Technical words are always defined the first time they appear. At the end of this document is a hands-on exercise that guides you through building a simple version of this system yourself, using the exact same tools and setup.
 
----
 
 ### Table of Contents
 
 1. [What Is AquaLasTech?](#what-is-aqualastech)
 2. [How the System Is Structured](#how-the-system-is-structured)
-3. [The Technology Stack — What Each Tool Does and Why](#the-technology-stack--what-each-tool-does-and-why)
+3. [The Technology Stack: What Each Tool Does and Why](#the-technology-stack-what-each-tool-does-and-why)
 4. [How the Three Layers Talk to Each Other](#how-the-three-layers-talk-to-each-other)
 5. [Project Folder Structure](#project-folder-structure)
-6. [The Database — How Data Is Stored](#the-database--how-data-is-stored)
-7. [The Server — Every File Explained](#the-server--every-file-explained)
-8. [The Client — Every File Explained](#the-client--every-file-explained)
+6. [The Database: How Data Is Stored](#the-database-how-data-is-stored)
+7. [The Server: Every File Explained](#the-server-every-file-explained)
+8. [The Client: Every File Explained](#the-client-every-file-explained)
 9. [How Login and Identity Work](#how-login-and-identity-work)
-10. [Who Can Do What — Roles and Permissions](#who-can-do-what--roles-and-permissions)
+10. [Who Can Do What: Roles and Permissions](#who-can-do-what-roles-and-permissions)
 11. [All API Endpoints](#all-api-endpoints)
-12. [Core Features — How They Actually Work](#core-features--how-they-actually-work)
+12. [Core Features: How They Actually Work](#core-features-how-they-actually-work)
 13. [The Notification System](#the-notification-system)
 14. [The Reports System](#the-reports-system)
 15. [The Point of Sale System](#the-point-of-sale-system)
@@ -26,7 +33,7 @@
 18. [Environment Variables](#environment-variables)
 19. [Status Code Reference](#status-code-reference)
 20. [Deployment Guide](#deployment-guide)
-21. [Beginner Exercise — Build Your Own Mini Version](#beginner-exercise--build-your-own-mini-version)
+21. [Beginner Exercise: Build Your Own Mini Version](#beginner-exercise-build-your-own-mini-version)
 
 ---
 
@@ -36,78 +43,74 @@ AquaLasTech is a web application — a program that runs inside a browser — bu
 
 The system serves four types of people, called **roles**:
 
-- **Customer** — a person who buys water. They browse products, place orders, pay online or with cash, and track their order in real time.
+- **Customer** — a person who buys water containers. They browse products, place orders, pay online or with cash, and track their order in real time.
 - **Staff** — the station employee who processes orders, manages stock, verifies payments, and handles walk-in customers using the built-in cashier terminal.
-- **Store Owner** — the station owner. They can do everything Staff can do, plus configure the station's details: name, address, logo, GCash QR code, and which staff accounts belong to their station.
+- **Store Owner** — the station owner. They can do everything Staff can do, plus view the sales and revenue report and configure the station's details: name, address, logo, GCash QR code, and which staff accounts belong to their station.
 - **System Admin** — the platform operator who manages all stations across the entire network. They can create stations, delete stations, and trigger a system-wide maintenance mode.
-
----
 
 ### How the System Is Structured
 
-Think of this system like a restaurant. The **customer** sits at a table and sees only the menu (the frontend). The **kitchen** (the server/backend) receives the order, processes it, and sends the food back. The **pantry** (the database) is where all the ingredients — meaning all the data — are stored.
+Think of this system like a restaurant. The **customer** sits at a table and sees only the menu (the frontend). The **kitchen** (the server/backend) receives the order, processes it, and sends the food back. The **pantry** (the database) is where all the ingredients, meaning all the data are stored.
 
 These three parts have a technical name: a **three-tier architecture**.
 
 ```
 BROWSER (what the user sees)
     ↕  sends requests and receives responses
-SERVER (the brain — processes all logic)
+SERVER (the brain which processes all logic)
     ↕  reads and writes data
-DATABASE (the storage — holds everything permanently)
+DATABASE (the storage which holds everything permanently)
 ```
 
 Each part has exactly one job:
 - The **browser** shows the user interface and collects input from the user.
 - The **server** decides what the user is allowed to do, runs the logic, and talks to the database.
-- The **database** stores everything permanently — users, orders, inventory, payments, notifications.
+- The **database** stores everything permanently (users, orders, inventory, payments, notifications).
 
-The browser and server communicate through **HTTP requests** — the same technology that loads a web page. When a customer clicks "Place Order," the browser sends a message to the server. The server processes it, saves the order to the database, and sends a response back. The browser then updates what the customer sees.
+The browser and server communicate through **HTTP requests**, the same technology that loads a web page. When a customer clicks "Place Order," the browser sends a message to the server. The server processes it, saves the order to the database, and sends a response back. The browser then updates what the customer sees.
 
 ---
 
-### The Technology Stack — What Each Tool Does and Why
+### The Technology Stack: What Each Tool Does and Why
 
 A **technology stack** is the collection of tools used to build a system. Every tool has a specific job.
 
 #### The Language: TypeScript
 
-Both the server and the browser code are written in **TypeScript**. TypeScript is an extension of JavaScript — the language that runs in browsers and on servers. The key difference is that TypeScript requires you to say what type of data a variable holds: a number, a piece of text, a list, or a more complex object. This catches mistakes early. For example, if a function expects a number and you accidentally pass text, TypeScript will warn you before the program even runs.
+Both the server and the browser code are written in **TypeScript**. TypeScript is an extension of JavaScript which is the language that runs in browsers and on servers. The key difference is that TypeScript requires you to say what type of data a variable holds: a number, a piece of text, a list, or a more complex object. This catches mistakes early. For example, if a function expects a number and you accidentally pass text, TypeScript will warn you before the program even runs.
 
 #### Backend (Server) Tools
 
-| Tool | Plain Language Explanation |
-| :--- | :--- |
-| Node.js | Lets JavaScript run on a server, not just in a browser |
-| Express.js | A framework that makes it easy to define what the server should do when it receives different types of requests |
-| MySQL 2 | The tool that lets the server read and write data in the MySQL database |
-| bcrypt | Takes a plain password and converts it into a scrambled string. The original password can never be recovered from the scrambled version — this is called hashing |
-| JSON Web Tokens (JWT) | A small, signed piece of text that proves who you are after you log in. It works like a wristband at an event — you show it to get access |
-| Multer | Handles file uploads — when a user submits a photo, Multer intercepts it before it reaches the main logic |
-| Cloudinary | A cloud service where all uploaded images are stored permanently. Images uploaded here can be viewed from anywhere in the world via a URL |
-| Nodemailer | Sends emails — used for password reset links |
-| Helmet | Adds security headers to every server response to protect against common web attacks |
-| CORS | Controls which websites are allowed to talk to this server. Without this, any website on the internet could send requests to the server |
-| dotenv | Reads a secret configuration file (.env) and makes its values available to the server code |
+| Tool                  | Plain Language Explanation                                                                                                                                      |
+| :-------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node.js               | Lets JavaScript run on a server, not just in a browser                                                                                                          |
+| Express.js            | A framework that makes it easy to define what the server should do when it receives different types of requests                                                 |
+| MySQL 2               | The tool that lets the server read and write data in the MySQL database                                                                                         |
+| bcrypt                | Takes a plain password and converts it into a scrambled string. The original password can never be recovered from the scrambled version, this is called hashing |
+| JSON Web Tokens (JWT) | A small, signed piece of text that proves who you are after you log in. It works like a wristband at an event, you show it to get access                        |
+| Multer                | Handles file uploads when a user submits a photo, Multer intercepts it before it reaches the main logic                                                         |
+| Cloudinary            | A cloud service where all uploaded images are stored permanently. Images uploaded here can be viewed from anywhere in the world via a URL                       |
+| Nodemailer            | Sends emails, used for password reset links                                                                                                                     |
+| Helmet                | Adds security headers to every server response to protect against common web attacks                                                                            |
+| CORS                  | Controls which websites are allowed to talk to this server. Without this, any website on the internet could send requests to the server                         |
+| dotenv                | Reads a secret configuration file (.env) and makes its values available to the server code                                                                      |
 
 #### Frontend (Browser) Tools
 
-| Tool | Plain Language Explanation |
-| :--- | :--- |
-| React | A library for building user interfaces. Instead of writing one giant HTML page, you build small reusable pieces called components — a button, a card, a form — and compose them together |
-| Vite | The tool that takes your React code and turns it into files a browser can understand. It also runs a local development server with instant refresh on save |
-| React Router | Handles navigation inside the app. When you click "Orders," the URL changes and the correct page component is shown — without the browser reloading the entire page |
-| Axios | The tool the browser uses to send HTTP requests to the server. Think of it as the messenger between the frontend and backend |
-| TailwindCSS | A way of styling the app by adding class names directly to elements. Instead of writing a separate CSS file, you write `bg-blue-500 text-white rounded-lg` directly in the component |
-| Leaflet | An interactive map library. Used in the customer settings page to let users drop a pin on their location |
+| Tool         | Plain Language Explanation                                                                                                                                                                  |
+| :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| React        | A library for building user interfaces. Instead of writing one giant HTML page, you build small reusable pieces called components (a button, a card, a form), and compose them together     |
+| Vite         | The tool that takes your React code and turns it into files a browser can understand. It also runs a local development server with instant refresh on save                                  |
+| React Router | Handles navigation inside the app. When you click "Orders," the URL changes and the correct page component is shown, without the browser reloading the entire page                          |
+| Axios        | The tool the browser uses to send HTTP requests to the server. Think of it as the messenger between the frontend and backend                                                                |
+| TailwindCSS  | A way of styling the app by adding class names directly to elements. Instead of writing a separate CSS file, you write `bg-blue-500 text-white rounded-lg` directly in the react component. |
+| Leaflet      | An interactive map library. Used in the customer settings page to let users drop a pin on their location                                                                                    |
 
 #### Database
 
-| Tool | Plain Language Explanation |
-| :--- | :--- |
-| MySQL | A relational database. Data is stored in tables, like spreadsheets. Each table has rows (individual records) and columns (fields). Tables can be linked to each other — for example, an order row links to a customer row and a station row |
-
----
+| Tool  | Plain Language Explanation                                                                                                                                                                                                                 |
+| :---- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MySQL | A relational database. Data is stored in tables, like spreadsheets. Each table has rows (individual records) and columns (fields). Tables can be linked to each other, for example, an order row links to a customer row and a station row |
 
 ### How the Three Layers Talk to Each Other
 
@@ -134,8 +137,8 @@ This is the most important concept to understand. Every action in the app follow
 
 1. Customer fills in their order form and taps "Place Order"
 2. The browser collects all the form data and sends it to `POST /customer/orders` on the server
-3. The server checks the JWT (the identity wristband) — is this a real logged-in customer?
-4. The server checks inventory — does each product have enough stock?
+3. The server checks the JWT (the identity wristband), is this a real logged-in customer?
+4. The server checks inventory, does each product have enough stock?
 5. The server saves a new row in the `orders` table, saves rows in `order_items`, deducts quantities from `inventory`, and saves a row in `payments`
 6. The server sends back `{ message: "Order placed", order_id: 42 }`
 7. The browser shows the customer a success screen and redirects to My Orders
@@ -152,8 +155,7 @@ An HTTP request is a structured message from the browser to the server. It has:
 The server reads all of this, processes it, and sends back a **response** with a status code (200 = success, 400 = bad request, 401 = not logged in, 403 = not allowed, 404 = not found, 500 = server error) and usually some JSON data.
 
 #### What Is JSON?
-
-JSON is a text format for passing data between the browser and server. It looks like this:
+Javascript Object Notation (JSON) is a text format for passing data between the browser and server. It looks like this:
 
 ```json
 {
@@ -166,11 +168,9 @@ JSON is a text format for passing data between the browser and server. It looks 
 
 The server sends JSON. The browser receives it and uses the data to update the screen.
 
----
-
 ### Project Folder Structure
 
-The project is a **monorepo** — one repository that contains two completely independent sub-projects: `client` (the browser app) and `server` (the backend). They have separate dependencies and are deployed to separate hosting services.
+The project is a **monorepo**, one repository that contains two completely independent sub-projects: `client` (the browser app) and `server` (the backend). They have separate dependencies and are deployed to separate hosting services.
 
 ```
 AquaLasTech/
@@ -209,7 +209,7 @@ AquaLasTech/
 
 ---
 
-### The Database — How Data Is Stored
+### The Database: How Data Is Stored
 
 The database is a collection of **tables**. Think of each table as a spreadsheet tab. Each row is one record. Each column is one field. Tables are connected to each other through **foreign keys** — a column in one table that holds the ID of a row in another table.
 
@@ -351,9 +351,9 @@ Storing the word "confirmed" takes 9 bytes of storage. Storing the number 1 take
 
 ---
 
-### The Server — Every File Explained
+### The Server: Every File Explained
 
-#### `server.ts` — The Starting Point
+#### `server.ts`: The Starting Point
 
 This is the first file that runs when the server starts. It imports the assembled Express app from `app.ts` and tells it to listen on a port number — the "door" the server opens to accept incoming requests.
 
@@ -365,7 +365,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 
 When you run `npm run dev`, Node.js executes this file. Port 8080 means the server is reachable at `http://localhost:8080` during development.
 
-#### `app.ts` — Assembling the Server
+#### `app.ts`: Assembling the Server
 
 This file creates the Express application and plugs in all the pieces. Think of it as the control panel. Middleware is registered here — middleware is code that runs on every incoming request before it reaches the specific route handler.
 
@@ -383,7 +383,7 @@ app.use('/inventory', inventoryRoutes)
 
 The order matters. `cookieParser()` must run before any route that reads cookies. `express.json()` must run before any route that reads the request body.
 
-#### `config/db.ts` — The Database Connection
+#### `config/db.ts`: The Database Connection
 
 This file creates one shared connection pool to the MySQL database. A **connection pool** is a set of reusable database connections that are kept open rather than opened and closed for every request — opening a database connection is slow, so reusing them is much faster.
 
@@ -401,7 +401,7 @@ SSL (Secure Sockets Layer) is enabled for the cloud database on Aiven to encrypt
 
 Every route file calls `connectToDatabase()` to get this shared pool and then runs SQL queries through it.
 
-#### `config/cloudinary.ts` — Image Upload Setup
+#### `config/cloudinary.ts`: Image Upload Setup
 
 Cloudinary is the cloud service where all images are stored. This file configures the connection to Cloudinary using API credentials from the `.env` file and exports a factory function that creates an upload handler for a specific folder.
 
@@ -417,7 +417,7 @@ export function createUpload(folder: string) {
 
 When a route needs to handle an image upload, it calls `createUpload('receipts')` to get a Multer middleware configured to stream files directly to the `aqualastech/receipts` folder on Cloudinary. The file never touches the server's disk.
 
-#### `constants/dbEnums.ts` — All Numeric Codes in One Place
+#### `constants/dbEnums.ts`: All Numeric Codes in One Place
 
 Instead of scattering magic numbers like `1`, `2`, `3` throughout the code, they are all defined here with readable names.
 
@@ -440,7 +440,7 @@ export const PAYMENT_STATUS = {
 
 Every route file imports these constants. This means if the number for "delivered" ever needed to change, you change it in one place and every route immediately uses the new value.
 
-#### `middleware/verifyToken.middleware.ts` — The Identity Check
+#### `middleware/verifyToken.middleware.ts`:  The Identity Check
 
 This middleware runs on every protected route. It reads the JWT from either the cookie or the Authorization header, verifies it is genuine and not expired, and attaches the decoded user information to the request so the route handler can use it.
 
@@ -456,7 +456,7 @@ req.user.station_id  // 3
 
 If the token is missing, expired, or tampered with, the server immediately responds with `401 Unauthorized` and the route handler never runs.
 
-#### `routes/auth.routes.ts` — Login, Logout, and Passwords
+#### `routes/auth.routes.ts`: Login, Logout, and Passwords
 
 Handles all account-related actions.
 
@@ -467,14 +467,12 @@ Handles all account-related actions.
 4. If they match, create a JWT with the user's ID, role, and station_id
 5. Set the JWT as a cookie and also return it in the response body
 
-**Why two copies of the token?** Because iOS Safari blocks cookies sent between different domains. The frontend is on Vercel, the backend is on Render — different domains. The cookie works on desktop browsers; the body token (stored in localStorage and sent as an Authorization header) works on iOS. Both paths are verified by `verifyToken`.
-
-#### `routes/order.routes.ts` — The Order Lifecycle
+#### `routes/order.routes.ts`: The Order Lifecycle
 
 This is the most complex route file. It handles every state an order passes through.
 
 **When a new order arrives:**
-- All items are checked against inventory — if any item has insufficient stock, the entire request is rejected
+- All items are checked against inventory, if any item has insufficient stock, the entire request is rejected
 - The order, items, and payment are saved in a single database transaction (meaning if any step fails, none of them are saved)
 - Inventory quantities are deducted immediately
 - The station admins receive a notification
@@ -483,7 +481,7 @@ This is the most complex route file. It handles every state an order passes thro
 - GCash → pending (admin must verify the uploaded receipt)
 - Cash on Delivery → pending (payment not yet collected)
 - Cash on Pickup → pending (payment not yet collected)
-- Cash upfront → verified immediately
+
 
 **When delivery is confirmed:**
 - The server automatically marks COD and COP payments as verified (cash has been collected)
@@ -494,9 +492,9 @@ This is the most complex route file. It handles every state an order passes thro
 - Stock is restored to inventory
 - The customer is notified
 
-**Soft delete:** When an admin deletes orders from the history view, the row is not actually removed from the database. Instead, a `hidden_at` timestamp is set. The order list query filters out rows where `hidden_at` is not null. Reports never filter by `hidden_at` — so deleted orders still count in all sales figures.
+**Soft delete:** When an admin deletes orders from the history view, the row is not actually removed from the database. Instead, a `hidden_at` timestamp is set. The order list query filters out rows where `hidden_at` is not null. Reports never filter by `hidden_at`, so deleted orders still count in all sales figures.
 
-#### `routes/customer.routes.ts` — Customer-Side Actions
+#### `routes/customer.routes.ts`: Customer-Side Actions
 
 Handles order placement from the customer's perspective, profile management, and customer-initiated cancellations.
 
@@ -507,16 +505,16 @@ When a customer cancels an order, the server:
 4. Notifies the customer
 5. Notifies all station admins
 
-#### `routes/pos.routes.ts` — Walk-In Sales Terminal
+#### `routes/pos.routes.ts`: Walk-In Sales Terminal
 
 The Point of Sale handles customers who come to the station in person. No customer account is needed. The staff enters the items, the customer's name, and the payment method.
 
 The system maps the two form inputs into the correct payment mode:
 - GCash → `gcash`
 - Cash + Delivery → `cash_on_delivery` (pending payment)
-- Cash + Pickup → `cash_on_pickup` (verified immediately — paid at counter)
+- Cash + Pickup → `cash_on_pickup` (verified immediately, paid at counter)
 
-#### `routes/inventory.routes.ts` — Stock Management
+#### `routes/inventory.routes.ts`: Stock Management
 
 Three operations change stock levels:
 - **Restock** — adds quantity (new stock arrived)
@@ -525,31 +523,31 @@ Three operations change stock levels:
 
 Every change is recorded in `inventory_transactions` for a full audit trail. After every change, if the new quantity is below `min_stock_level`, an inventory alert notification is sent to all admins of that station.
 
-#### `routes/reports.routes.ts` — Sales Analytics
+#### `routes/reports.routes.ts`: Sales Analytics
 
 Accepts a `period` parameter (daily, weekly, monthly, annually) and returns aggregated sales data scoped to the admin's station. The queries use `DATE_FORMAT` and `GROUP BY` to bucket orders into the correct time periods.
 
-Reports intentionally include soft-deleted orders — deleting from the order list view should never alter financial history.
+Reports intentionally include soft-deleted orders, deleting from the order list view should never alter financial history.
 
-#### `routes/settings.routes.ts` — Station Configuration
+#### `routes/settings.routes.ts`: Station Configuration
 
 Store Owners can update their station details, upload a logo, upload a GCash QR code, create staff accounts, and delete staff accounts (password required for deletion).
 
-There is also one endpoint accessible to all users — `GET /settings/maintenance-status` — which reads the station's current status so the frontend can show or hide the maintenance page.
+There is also one endpoint accessible to all users, `GET /settings/maintenance-status`,  which reads the station's current status so the frontend can show or hide the maintenance page.
 
-#### `routes/sysadmin.routes.ts` — Platform-Wide Administration
+#### `routes/sysadmin.routes.ts`: Platform-Wide Administration
 
 Only System Admins can access these routes. Handles creation and deletion of stations, the maintenance mode toggle (updates all stations simultaneously), and viewing the system audit log.
 
 ---
 
-### The Client — Every File Explained
+### The Client: Every File Explained
 
-#### `main.tsx` — Where React Starts
+#### `main.tsx`: Where React Starts
 
 This is the entry point of the frontend. Two important things happen here:
 
-**1. An Axios interceptor is registered.** An interceptor is a function that runs automatically before every HTTP request the app sends. This one reads the JWT from localStorage and adds it to the request as an Authorization header — so every request the app makes automatically identifies the logged-in user.
+**1. An Axios interceptor is registered.** An interceptor is a function that runs automatically before every HTTP request the app sends. This one reads the JWT from localStorage and adds it to the request as an Authorization header, so every request the app makes automatically identifies the logged-in user.
 
 ```typescript
 axios.interceptors.request.use((config) => {
@@ -561,7 +559,7 @@ axios.interceptors.request.use((config) => {
 
 **2. The app is rendered.** React is told to take over a `<div id="root">` in the HTML file and render the full application inside it.
 
-#### `context/AuthContext.tsx` — The Global Login State
+#### `context/AuthContext.tsx`: The Global Login State
 
 React **context** is a way to share data across all components in the app without passing it through every level manually. `AuthContext` holds the logged-in user's information.
 
@@ -572,7 +570,7 @@ When a component anywhere in the app calls `useAuth()`, it gets access to:
 
 On page load, the context automatically calls `GET /auth/me` to restore the session. The server reads the JWT, verifies it, and returns the user's data. This is why you stay logged in even after refreshing the browser.
 
-#### `routes/router.tsx` — Page Routing
+#### `routes/router.tsx`: Page Routing
 
 This file defines which URL shows which page component. React Router intercepts navigation (clicking links, typing URLs) and renders the matching component without reloading the browser.
 
@@ -585,23 +583,23 @@ This file defines which URL shows which page component. React Router intercepts 
 /sysadmin/stations  → SAStations (system admin only)
 ```
 
-#### `routes/ProtectedRoute.tsx` — The Page Guard
+#### `routes/ProtectedRoute.tsx`: The Page Guard
 
-Before showing a protected page, this component checks the user's role. If the role does not match what the route requires, the user is redirected to the login page. This prevents a customer from navigating to `/admin/orders` by typing it in the URL.
+Before showing a protected page, this component checks the user's role. If the role does not match what the route requires, the user is redirected to the login page. This prevents a customer from navigating to `/admin/orders` by just typing it in the URL.
 
-#### `components/MaintenanceGuard.tsx` — Maintenance Check
+#### `components/MaintenanceGuard.tsx`: Maintenance Check
 
-This component wraps the entire customer interface. On every page load, it calls `GET /settings/maintenance-status`. If the station is under maintenance, it shows the maintenance page instead of the normal interface — customers cannot bypass this by navigating to a different URL.
+This component wraps the entire customer interface. On every page load, it calls `GET /settings/maintenance-status`. If the station is under maintenance, it shows the maintenance page instead of the normal interface, customers cannot bypass this by navigating to a different URL.
 
-#### `hooks/useStation.ts` — Station Data with Refresh
+#### `hooks/useStation.ts`: Station Data with Refresh
 
 A custom hook that fetches the current station's data. It exposes a `tick` counter that other components can increment to force a data refresh without reloading the page.
 
-#### `layout/AdminLayout.tsx` — The Admin Shell
+#### `layout/AdminLayout.tsx`: The Admin Shell
 
 The persistent sidebar and top bar that wraps every admin page. Shows the station name, the logged-in user's name, their role badge (Store Owner or Staff), and navigation links. The logo and station logo are loaded from Cloudinary URLs stored in the database.
 
-#### `layout/CustomerLayout.tsx` — The Customer Shell
+#### `layout/CustomerLayout.tsx`: The Customer Shell
 
 The navigation bar at the top and bottom of the customer interface. Includes links to Order, My Orders, Notifications, and Settings.
 
@@ -636,7 +634,7 @@ The navigation bar at the top and bottom of the customer interface. Includes lin
 
 This section walks through exactly what happens when a user logs in and how the system knows who they are on every subsequent request.
 
-#### Step 1 — Login
+#### Step 1: Login
 
 The user fills in their email and password and clicks Log In. The browser sends:
 
@@ -653,11 +651,11 @@ The server finds the user record in the database. It uses bcrypt to check if the
 
 This token is signed with a secret key only the server knows. The server sends it back in two ways: as a cookie (for desktop browsers) and in the response body (for iOS, which blocks cross-site cookies).
 
-#### Step 2 — Storing the Token
+#### Step 2: Storing the Token
 
-The frontend receives the token in the response body and saves it to `localStorage` — a small storage area in the browser that persists until the user logs out.
+The frontend receives the token in the response body and saves it to `localStorage` which is a small storage area in the browser that persists until the user logs out.
 
-#### Step 3 — Every Request After Login
+#### Step 3: Every Request After Login
 
 Before every HTTP request, the Axios interceptor reads the token from localStorage and adds it to the request:
 
@@ -667,13 +665,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 The server's `verifyToken` middleware reads this header, verifies the signature, and extracts the user's ID, role, and station_id. The route handler then uses this information to decide what data to return.
 
-#### Step 4 — Logout
+#### Step 4: Logout
 
 The server clears the cookie. The frontend deletes the token from localStorage and resets the auth context to null. The next page load finds no token and shows the login page.
 
----
-
-### Who Can Do What — Roles and Permissions
+### Who Can Do What: Roles and Permissions
 
 Access control works at three levels:
 
@@ -685,45 +681,42 @@ Access control works at three levels:
 
 #### Role Reference
 
-| Role | Number in DB | What They Can Access |
-| :--- | :--- | :--- |
-| Customer | 1 | Customer pages only — orders, notifications, settings |
-| Staff | 2 | Admin pages — orders, inventory, POS, dashboard |
-| Store Owner | 3 | All Staff access plus station settings and staff management |
-| System Admin | 4 | System admin pages — all stations, maintenance, audit logs |
-
----
+| Role         | Number in DB | What They Can Access                                                                |
+| :----------- | :----------- | :---------------------------------------------------------------------------------- |
+| Customer     | 1            | Customer pages only  (orders, notifications, settings)                              |
+| Staff        | 2            | Admin pages (orders, inventory, POS)                                                |
+| Store Owner  | 3            | All Staff access plus sales report dashboard, station settings and staff management |
+| System Admin | 4            | System admin pages  (all stations, maintenance, audit logs)                         |
 
 ### All API Endpoints
 
-An **endpoint** is a specific address on the server that accepts requests. The format is: `METHOD /path`.
+An **endpoint** is a specific address on the server that accepts requests. The format is: `METHOD /path`
+#### Authentication: `/auth`
 
-#### Authentication — `/auth`
+| Method | Path                  | Who Can Use It | What It Does                            |
+| :----- | :-------------------- | :------------- | :-------------------------------------- |
+| POST   | /auth/login           | Anyone         | Log in, returns JWT                     |
+| POST   | /auth/signup          | Anyone         | Create a customer account               |
+| POST   | /auth/logout          | Logged in      | Clear the session cookie                |
+| GET    | /auth/me              | Logged in      | Return current user data; refresh token |
+| PUT    | /auth/change-password | Logged in      | Update password                         |
+| POST   | /auth/forgot-password | Anyone         | Send reset link by email                |
+| POST   | /auth/reset-password  | Anyone         | Apply a new password via reset token    |
 
-| Method | Path | Who Can Use It | What It Does |
-| :--- | :--- | :--- | :--- |
-| POST | /auth/login | Anyone | Log in — returns JWT |
-| POST | /auth/signup | Anyone | Create a customer account |
-| POST | /auth/logout | Logged in | Clear the session cookie |
-| GET | /auth/me | Logged in | Return current user data; refresh token |
-| PUT | /auth/change-password | Logged in | Update password |
-| POST | /auth/forgot-password | Anyone | Send reset link by email |
-| POST | /auth/reset-password | Anyone | Apply a new password via reset token |
+#### Orders: `/orders`
 
-#### Orders — `/orders`
+| Method | Path                    | Who Can Use It     | What It Does                             |
+| :----- | :---------------------- | :----------------- | :--------------------------------------- |
+| GET    | /orders                 | Staff, Store Owner | List orders for the station              |
+| GET    | /orders/:id             | Staff, Store Owner | Single order with all items              |
+| PUT    | /orders/:id/status      | Staff, Store Owner | Advance order status                     |
+| PUT    | /orders/:id/payment     | Staff, Store Owner | Verify or reject a GCash payment         |
+| POST   | /orders/verify-password | Staff, Store Owner | Verify admin password before bulk delete |
+| PUT    | /orders/:id/return      | Staff, Store Owner | Approve or reject a return               |
+| DELETE | /orders/history         | Staff, Store Owner | Soft-delete all history orders           |
+| DELETE | /orders/:id             | Staff, Store Owner | Soft-delete one order                    |
 
-| Method | Path | Who Can Use It | What It Does |
-| :--- | :--- | :--- | :--- |
-| GET | /orders | Staff+ | List orders for the station |
-| GET | /orders/:id | Staff+ | Single order with all items |
-| PUT | /orders/:id/status | Staff+ | Advance order status |
-| PUT | /orders/:id/payment | Staff+ | Verify or reject a GCash payment |
-| POST | /orders/verify-password | Staff+ | Verify admin password before bulk delete |
-| PUT | /orders/:id/return | Staff+ | Approve or reject a return |
-| DELETE | /orders/history | Staff+ | Soft-delete all history orders |
-| DELETE | /orders/:id | Staff+ | Soft-delete one order |
-
-#### Customer — `/customer`
+#### Customer: `/customer`
 
 | Method | Path | Who Can Use It | What It Does |
 | :--- | :--- | :--- | :--- |
@@ -736,17 +729,17 @@ An **endpoint** is a specific address on the server that accepts requests. The f
 | PUT | /customer/password | Customer | Change password |
 | POST | /customer/avatar | Customer | Upload profile picture |
 
-#### Inventory — `/inventory`
+#### Inventory: `/inventory`
 
-| Method | Path | Who Can Use It | What It Does |
-| :--- | :--- | :--- | :--- |
-| GET | /inventory | Staff+ | Current stock levels |
-| POST | /inventory/restock | Staff+ | Add stock |
-| POST | /inventory/deduction | Staff+ | Remove stock |
-| POST | /inventory/adjustment | Staff+ | Set exact stock value |
-| GET | /inventory/transactions | Staff+ | Full stock movement history |
+| Method | Path                    | Who Can Use It     | What It Does                |
+| :----- | :---------------------- | :----------------- | :-------------------------- |
+| GET    | /inventory              | Staff, Store Owner | Current stock levels        |
+| POST   | /inventory/restock      | Staff, Store Owner | Add stock                   |
+| POST   | /inventory/deduction    | Staff, Store Owner | Remove stock                |
+| POST   | /inventory/adjustment   | Staff, Store Owner | Set exact stock value       |
+| GET    | /inventory/transactions | Staff, Store Owner | Full stock movement history |
 
-#### Settings — `/settings`
+#### Settings: `/settings`
 
 | Method | Path | Who Can Use It | What It Does |
 | :--- | :--- | :--- | :--- |
@@ -758,22 +751,22 @@ An **endpoint** is a specific address on the server that accepts requests. The f
 | POST | /settings/create-admin | Store Owner | Create a staff account |
 | DELETE | /settings/admins/:id | Store Owner | Delete a staff account (password required) |
 
-#### POS — `/pos`
+#### POS: `/pos`
 
-| Method | Path | Who Can Use It | What It Does |
-| :--- | :--- | :--- | :--- |
-| POST | /pos/transaction | Staff+ | Process a walk-in sale |
-| POST | /pos/upload-receipt | Staff+ | Upload a GCash receipt for a POS sale |
-| GET | /pos/transactions | Staff+ | View POS transaction history |
+| Method | Path                | Who Can Use It      | What It Does                          |
+| :----- | :------------------ | :------------------ | :------------------------------------ |
+| POST   | /pos/transaction    | Staff,, Store Owner | Process a walk-in sale                |
+| POST   | /pos/upload-receipt | Staff,, Store Owner | Upload a GCash receipt for a POS sale |
+| GET    | /pos/transactions   | Staff,, Store Owner | View POS transaction history          |
 
-#### Reports — `/reports`
+#### Reports: `/reports`
 
-| Method | Path | Who Can Use It | What It Does |
-| :--- | :--- | :--- | :--- |
-| GET | /reports/summary | Staff+ | Sales summary by period |
-| GET | /reports/day/:date | Staff+ | Full order breakdown for one day |
+| Method | Path               | Who Can Use It | What It Does                     |
+| :----- | :----------------- | :------------- | :------------------------------- |
+| GET    | /reports/summary   | Store Owner    | Sales summary by period          |
+| GET    | /reports/day/:date | Store Owner    | Full order breakdown for one day |
 
-#### System Admin — `/sysadmin`
+#### System Admin:`/sysadmin`
 
 | Method | Path | Who Can Use It | What It Does |
 | :--- | :--- | :--- | :--- |
@@ -783,31 +776,30 @@ An **endpoint** is a specific address on the server that accepts requests. The f
 | PUT | /sysadmin/maintenance | System Admin | Toggle maintenance mode for all stations |
 | GET | /sysadmin/logs | System Admin | View audit logs |
 
----
 
-### Core Features — How They Actually Work
+### Core Features: How They Actually Work
 
-#### A Customer Places an Order
+#### Customer Places an Order
 
 1. The customer browses products on the `CustomerOrder.tsx` page. Products are fetched from `GET /customer/products/:station_id`.
-2. Items are added to a cart. The cart is stored in React state — it exists only in the browser's memory and is not saved to the server until checkout.
+2. Items are added to a cart. The cart is stored in React state, it exists only in the browser's memory and is not saved to the server until checkout.
 3. The customer selects a payment method and taps Place Order.
 4. The browser sends `POST /customer/orders` with the cart items, total, payment mode, and an optional GCash receipt photo.
 5. The server validates the JWT, checks inventory stock, saves the order, deducts inventory, saves the payment record, and notifies the admins.
 6. The browser shows a confirmation and redirects to My Orders.
 
-#### An Admin Processes an Order
+#### Admin Processes an Order
 
 1. The admin sees a notification: "New order received."
 2. In `AdminCustomerOrder.tsx`, the new order appears in the Active tab.
 3. For GCash: the admin reviews the receipt image and clicks Verify Payment → `PUT /orders/:id/payment`.
-4. For COD/COP: no payment verification needed — it is automatically verified when delivered.
+4. For COD/COP: no payment verification needed, it is automatically verified when delivered.
 5. The admin advances the order status: Confirmed → Preparing → Out for Delivery → Delivered → `PUT /orders/:id/status`.
 6. The customer receives a notification at each status change.
 
-#### A Customer Cancels an Order
+#### Customer Cancels an Order
 
-1. In My Orders, the customer sees a "Can still cancel" hint below confirmed orders.
+1. In "My Orders", the customer sees a "Can still cancel" hint below confirmed orders.
 2. They tap the order, then tap "Cancel Order" and provide a reason.
 3. The browser sends `PUT /customer/orders/:id/cancel`.
 4. The server cancels the order, restores inventory, notifies the customer, and notifies all station admins.
@@ -831,7 +823,6 @@ Every significant event creates a notification row in the database, targeted at 
 | Return request submitted | All station admins |
 | Return approved or rejected | The customer |
 
----
 
 ### The Reports System
 
@@ -844,11 +835,10 @@ The dashboard shows sales data aggregated over a selected time period.
 | Monthly | Last 12 months | One data point per month |
 | Annually | Last 5 years | One data point per year |
 
-**Total Revenue** counts all non-cancelled, non-returned orders. The sub-label "from delivered orders" shows only the subset that has been fully delivered — the revenue that has definitively been collected and fulfilled.
+**Total Revenue** counts all non-cancelled, non-returned orders. The sub-label "from delivered orders" shows only the subset that has been fully delivered, the revenue that has definitively been collected and fulfilled.
 
-**Reports are never affected by deleting orders from the history view.** Deleting only sets `hidden_at` on the order row. The reports queries do not filter by `hidden_at`. This is intentional — the financial record must never change just because an admin cleaned up the display.
+**Reports are never affected by deleting orders from the history view.** Deleting only sets `hidden_at` on the order row. The reports queries do not filter by `hidden_at`. This is intentional , the financial record must never change just because an admin cleaned up the display.
 
----
 
 ### The Point of Sale System
 
@@ -861,11 +851,10 @@ Payment mode assignment:
 - Cash + Pickup → cash_on_pickup (verified immediately — paid at counter)
 - Cash + Delivery → cash_on_delivery (pending — payment collected on arrival)
 
----
 
 ### File Uploads and Images
 
-All images are stored on **Cloudinary** — a cloud image hosting service. The server never saves image files to its own disk, because cloud hosting services like Render have temporary file systems — files saved locally are deleted when the server restarts.
+All images are stored on **Cloudinary**, a cloud image hosting service. The server never saves image files to its own disk, because cloud hosting services like Render have temporary file systems, files saved locally are deleted when the server restarts.
 
 When an image is uploaded:
 1. The browser sends the file as part of a form submission
@@ -882,13 +871,9 @@ Images stored:
 - GCash receipts → `aqualastech/receipts/`
 - Profile pictures → `aqualastech/avatars/`
 
----
-
 ### Maintenance Mode
 
 When a System Admin enables maintenance mode, a single SQL statement updates all station rows to `status = 3`. Every customer page is wrapped in `MaintenanceGuard.tsx`, which calls `GET /settings/maintenance-status` on load. If the response says maintenance is active, the maintenance page is shown and the normal interface is completely hidden. No URL trick can bypass this because the check happens inside the component, not just at the route level.
-
----
 
 ### Environment Variables
 
@@ -922,12 +907,11 @@ Environment variables are secret configuration values that are never written dir
 | VITE_CONTACT_EMAIL | Contact email shown on the landing page |
 | VITE_CONTACT_PHONE | Contact phone shown on the landing page |
 
-> All client variables must start with `VITE_`. Vite bakes them into the JavaScript bundle at build time — they become part of the code the browser downloads. Never put secret values (passwords, API keys) in client environment variables.
+> All client variables must start with `VITE_`. Vite bakes them into the JavaScript bundle at build time, they become part of the code the browser downloads. Never put secret values (passwords, API keys) in client environment variables.
 
 ---
 
 ### Status Code Reference
-
 #### Order Status
 
 | Number | Name | Meaning |
@@ -968,14 +952,14 @@ Environment variables are secret configuration values that are never written dir
 | Backend (Express) | Render | Auto-deploys when `final` branch is pushed |
 | Database (MySQL) | Aiven | Always running, no deployment needed |
 
-#### Step 1 — Set Up the Database on Aiven
+#### Step 1: Set Up the Database on Aiven
 
 1. Create an account at aiven.io
 2. Create a new MySQL service
 3. Copy the connection details (host, port, user, password, database name)
 4. Run your SQL schema file to create all tables
 
-#### Step 2 — Deploy the Backend on Render
+#### Step 2: Deploy the Backend on Render
 
 1. Create an account at render.com
 2. Create a new Web Service, connect your GitHub repository
@@ -983,7 +967,7 @@ Environment variables are secret configuration values that are never written dir
 4. Add all server environment variables in the Render dashboard
 5. Deploy — Render gives you a URL like `https://aqualastech.onrender.com`
 
-#### Step 3 — Deploy the Frontend on Vercel
+#### Step 3: Deploy the Frontend on Vercel
 
 1. Create an account at vercel.com
 2. Import your GitHub repository
@@ -1002,24 +986,60 @@ git push origin final:main     # updates Vercel (frontend)
 
 ---
 
-### Beginner Exercise — Build Your Own Mini Version
+### Beginner Exercise: Build Your Own Mini Version
 
-This exercise guides you through building a simple task management system using the exact same tools and structure as AquaLasTech. By the end you will have a working full-stack app with a database, a backend API, and a frontend — all connected together.
+This exercise guides you through building a simple task management system using the exact same tools and structure as AquaLasTech. By the end you will have a working full-stack app with a database, a backend API, and a frontend all connected together.
 
 The system you will build: **a simple To-Do list** where users can log in, create tasks, mark them complete, and delete them.
 
 #### What You Will Need
 
-- Node.js installed (download from nodejs.org)
-- A code editor (VS Code is recommended — download from code.visualstudio.com)
-- A MySQL database (XAMPP for local, or a free account on Aiven for cloud)
+- Node.js (the tool that runs JavaScript on your computer, outside the browser)
+- A code editor (VS Code is recommended)
+- XAMPP (a program that runs a local MySQL database on your machine)
 - A terminal (the built-in terminal in VS Code works fine)
 
 ---
 
-#### Part 1 — Set Up the Database
+#### Step 0: Install Everything First
 
-Open your MySQL tool (phpMyAdmin if using XAMPP, or the Aiven query console) and run this SQL to create the database and tables:
+Follow these steps in order before writing any code.
+
+##### Install Node.js
+
+1. Go to [nodejs.org](https://nodejs.org)
+2. Download the **LTS** version (the one labeled "Recommended For Most Users")
+3. Run the installer and follow the prompts — leave all default settings as they are
+4. To confirm it installed correctly, open a terminal and type:
+   ```bash
+   node -v
+   ```
+   You should see a version number like `v20.11.0`. If you do, Node.js is ready.
+
+##### Install VS Code
+
+1. Go to [code.visualstudio.com](https://code.visualstudio.com)
+2. Download the installer for your operating system (Windows, Mac, or Linux)
+3. Run the installer — leave all default settings
+4. After installation, open VS Code. You will use the built-in terminal by going to **Terminal → New Terminal** in the menu bar
+
+##### Install XAMPP (for Local MySQL Database)
+
+XAMPP is a free program that gives you a MySQL database running on your own computer. You do not need an internet connection.
+
+1. Go to [apachefriends.org](https://www.apachefriends.org)
+2. Download **XAMPP** for your operating system
+3. Run the installer. When asked which components to install, make sure **MySQL** and **phpMyAdmin** are checked. You do not need Apache if you prefer, but having it does not cause problems
+4. After installation, open the **XAMPP Control Panel**
+5. Click **Start** next to **MySQL** — the status will turn green when it is running
+6. Click **Admin** next to MySQL to open **phpMyAdmin** in your browser. This is the visual database tool where you will create tables and run SQL queries
+7. By default, the MySQL username is `root` and the password is empty (no password)
+
+---
+
+#### Part 1: Set Up the Database
+
+Open phpMyAdmin in your browser (click **Admin** in the XAMPP Control Panel next to MySQL), click the **SQL** tab at the top, paste the code below, and click **Go**:
 
 ```sql
 CREATE DATABASE todo_app;
@@ -1047,7 +1067,7 @@ This creates two tables. `users` stores accounts. `tasks` stores tasks, and each
 
 ---
 
-#### Part 2 — Build the Backend
+#### Part 2: Build the Backend
 
 Open your terminal and run these commands:
 
@@ -1183,6 +1203,8 @@ DB_NAME=todo_app
 JWT_KEY=make_this_a_long_random_string
 ```
 
+> If you are using XAMPP, the default username is `root` and the password is blank (leave `DB_PASSWORD` empty). If you set a password in phpMyAdmin, enter it here.
+
 Add this to `package.json` scripts:
 
 ```json
@@ -1201,7 +1223,7 @@ You should see: `Server running at http://localhost:8080`
 
 ---
 
-#### Part 3 — Build the Frontend
+#### Part 3: Build the Frontend
 
 Open a new terminal window and run:
 
@@ -1413,7 +1435,7 @@ Open `http://localhost:5173` in your browser.
 
 ---
 
-#### What You Just Built — And How It Mirrors AquaLasTech
+#### What You Just Built: And How It Mirrors AquaLasTech
 
 | AquaLasTech | Your To-Do App | Concept |
 | :--- | :--- | :--- |
@@ -1430,7 +1452,3 @@ Open `http://localhost:5173` in your browser.
 | Axios interceptor | Axios interceptor | Automatic token attachment |
 
 Every pattern in this exercise is the same pattern used in the real system. The only difference is scale — AquaLasTech has more tables, more routes, more roles, and more features, but every one of them follows this same structure.
-
----
-
-*AquaLasTech — Built for water stations, designed for people.*

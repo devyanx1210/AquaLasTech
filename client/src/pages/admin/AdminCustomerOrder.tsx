@@ -817,7 +817,7 @@ export default function AdminCustomerOrder() {
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d2a4a] hover:bg-[#1a4a7a] text-white text-xs font-bold transition-all shadow-sm whitespace-nowrap">
                         <Printer size={13} /> Print List
                     </button>
-                    <button onClick={fetchOrders} className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 transition-all">
+                    <button onClick={() => fetchOrders()} className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 transition-all">
                         <RefreshCw size={15} className="text-gray-500" />
                     </button>
                 </div>

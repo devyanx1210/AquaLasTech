@@ -626,8 +626,8 @@ export default function AdminCustomerOrder() {
         }
     }, [user])
 
-    const fetchOrders = useCallback(async () => {
-        setLoading(true)
+    const fetchOrders = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true)
         try {
             const params: Record<string, string> = { view }
             // 'returned_cancelled' and 'pending' are client-side pseudo-filters; don't send to backend
@@ -637,14 +637,14 @@ export default function AdminCustomerOrder() {
             const res = await axios.get(`${API}/orders`, { params, withCredentials: true })
             setOrders(res.data)
         } catch {
-            showToast('Failed to load orders', 'error')
-        } finally { setLoading(false) }
+            if (!silent) showToast('Failed to load orders', 'error')
+        } finally { if (!silent) setLoading(false) }
     }, [API, view, filterStatus, filterPayment, search])
 
     useEffect(() => { fetchOrders() }, [fetchOrders])
 
     useEffect(() => {
-        const timer = setInterval(fetchOrders, 5000)
+        const timer = setInterval(() => fetchOrders(true), 5000)
         return () => clearInterval(timer)
     }, [fetchOrders])
 

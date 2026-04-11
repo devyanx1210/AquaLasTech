@@ -178,13 +178,13 @@ export default function AdminInventory() {
         }
     }
 
-    const fetchProducts = useCallback(async () => {
-        setLoading(true)
+    const fetchProducts = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true)
         try {
             const res = await axios.get(`${API}/inventory`, { withCredentials: true })
             setProducts(res.data)
-        } catch { showToast('Failed to load inventory', 'error') }
-        finally { setLoading(false) }
+        } catch { if (!silent) showToast('Failed to load inventory', 'error') }
+        finally { if (!silent) setLoading(false) }
     }, [API])
 
     const handleRefresh = useCallback(async () => {
@@ -198,7 +198,7 @@ export default function AdminInventory() {
 
     useEffect(() => {
         fetchProducts()
-        const timer = setInterval(fetchProducts, 5000)
+        const timer = setInterval(() => fetchProducts(true), 5000)
         return () => clearInterval(timer)
     }, [fetchProducts])
 

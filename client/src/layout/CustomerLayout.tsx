@@ -220,7 +220,7 @@ export default function CustomerLayout() {
 
     useEffect(() => {
         fetchNotifications()
-        const t = setInterval(fetchNotifications, 10000)
+        const t = setInterval(fetchNotifications, 5000)
         return () => clearInterval(t)
     }, [fetchNotifications])
 

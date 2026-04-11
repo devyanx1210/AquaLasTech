@@ -154,6 +154,7 @@ export default function AdminInventory() {
     const [uploadingImage, setUploadingImage] = useState(false)
     const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
     const [filterOpen, setFilterOpen] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
 
     // Upload image to server
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,6 +186,15 @@ export default function AdminInventory() {
         } catch { showToast('Failed to load inventory', 'error') }
         finally { setLoading(false) }
     }, [API])
+
+    const handleRefresh = useCallback(async () => {
+        setRefreshing(true)
+        try {
+            const res = await axios.get(`${API}/inventory`, { withCredentials: true })
+            setProducts(res.data)
+        } catch { showToast('Failed to refresh', 'error') }
+        finally { setRefreshing(false) }
+    }, [API, showToast])
 
     useEffect(() => { fetchProducts() }, [fetchProducts])
 
@@ -258,9 +268,19 @@ export default function AdminInventory() {
         <div className="flex flex-col gap-4 pb-10">
 
             {/* Header */}
-            <div>
-                <h1 className="text-xl font-bold text-gray-800">Products</h1>
-                <p className="text-xs text-gray-400 mt-0.5">Manage your water refilling products and stock</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-800">Products</h1>
+                    <p className="text-xs text-gray-400 mt-0.5">Manage your water refilling products and stock</p>
+                </div>
+                <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700 shadow-sm transition-all disabled:opacity-50"
+                    title="Refresh inventory"
+                >
+                    <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                </button>
             </div>
 
             {/* Tabs — mobile/tablet only */}

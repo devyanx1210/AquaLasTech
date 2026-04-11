@@ -636,8 +636,9 @@ export default function AdminCustomerOrder() {
             if (search) params.search = search
             const res = await axios.get(`${API}/orders`, { params, withCredentials: true })
             setOrders(res.data)
-        } catch {
+        } catch (err) {
             if (!silent) showToast('Failed to load orders', 'error')
+            else console.error('[orders poll]', err)
         } finally { if (!silent) setLoading(false) }
     }, [API, view, filterStatus, filterPayment, search])
 

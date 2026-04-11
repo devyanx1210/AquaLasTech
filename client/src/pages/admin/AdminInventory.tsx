@@ -183,9 +183,9 @@ export default function AdminInventory() {
         try {
             const res = await axios.get(`${API}/inventory`, { withCredentials: true })
             setProducts(res.data)
-        } catch { if (!silent) showToast('Failed to load inventory', 'error') }
+        } catch (err) { if (!silent) showToast('Failed to load inventory', 'error'); else console.error('[inventory poll]', err) }
         finally { if (!silent) setLoading(false) }
-    }, [API])
+    }, [API, showToast])
 
     const handleRefresh = useCallback(async () => {
         setRefreshing(true)

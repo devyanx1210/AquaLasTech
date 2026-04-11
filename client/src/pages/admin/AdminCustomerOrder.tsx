@@ -644,10 +644,9 @@ export default function AdminCustomerOrder() {
     useEffect(() => { fetchOrders() }, [fetchOrders])
 
     useEffect(() => {
-        if (view !== 'active') return
-        const timer = setInterval(fetchOrders, 30000)
+        const timer = setInterval(fetchOrders, 5000)
         return () => clearInterval(timer)
-    }, [view, fetchOrders])
+    }, [fetchOrders])
 
     const openOrder = async (order: Order) => {
         setLoadingDetail(true)

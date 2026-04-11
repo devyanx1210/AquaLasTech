@@ -192,11 +192,15 @@ export default function AdminInventory() {
         try {
             const res = await axios.get(`${API}/inventory`, { withCredentials: true })
             setProducts(res.data)
-        } catch { showToast('Failed to refresh', 'error') }
+        } catch { /* silent — polling will retry */ }
         finally { setRefreshing(false) }
-    }, [API, showToast])
+    }, [API])
 
-    useEffect(() => { fetchProducts() }, [fetchProducts])
+    useEffect(() => {
+        fetchProducts()
+        const timer = setInterval(fetchProducts, 5000)
+        return () => clearInterval(timer)
+    }, [fetchProducts])
 
     useEffect(() => {
         if (products.length === 0) return

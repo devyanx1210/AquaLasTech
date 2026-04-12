@@ -8,7 +8,7 @@ import {
     RotateCcw, Loader2, X, RefreshCw,
     ReceiptText, Clock, Truck, CheckCircle2, Package,
     LineChart, BarChart2, CalendarDays, Boxes,
-    Award, PieChart,
+    Award, PieChart, ArrowUpDown,
 } from 'lucide-react'
 
 // Types
@@ -378,6 +378,10 @@ export default function AdminDashboard() {
     const [topProducts, setTopProducts] = useState<TopProduct[]>([])
     const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
+    const [sortAmountDir, setSortAmountDir] = useState<'desc' | 'asc'>('desc')
+    const [sortAmountOpen, setSortAmountOpen] = useState(false)
+    const sortAmountRef = useRef<HTMLDivElement>(null)
+
     const [inventory, setInventory] = useState<InventoryItem[]>([])
     const [inventoryLoading, setInventoryLoading] = useState(true)
     const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null)
@@ -431,6 +435,38 @@ export default function AdminDashboard() {
                     <p className="text-xs text-gray-400 mt-0.5">{periodDesc[period]} · Click any bar or row to see daily breakdown</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    {/* Sort by Amount — icon only dropdown */}
+                    <div className="relative" ref={sortAmountRef}>
+                        <button
+                            onClick={() => setSortAmountOpen(o => !o)}
+                            title={sortAmountDir === 'desc' ? 'Sorted: High → Low' : 'Sorted: Low → High'}
+                            className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 shadow-sm transition-all text-gray-500 hover:text-gray-700"
+                        >
+                            <ArrowUpDown size={15} />
+                        </button>
+                        {sortAmountOpen && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setSortAmountOpen(false)} />
+                                <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden min-w-[148px]">
+                                    {([
+                                        { value: 'desc', label: 'High → Low' },
+                                        { value: 'asc',  label: 'Low → High' },
+                                    ] as const).map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => { setSortAmountDir(opt.value); setSortAmountOpen(false) }}
+                                            className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors
+                                                ${sortAmountDir === opt.value ? 'bg-[#0d2a4a] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Period selector */}
                     <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
                         {periods.map(p => (
                             <button key={p} onClick={() => setPeriod(p)}
@@ -512,14 +548,21 @@ export default function AdminDashboard() {
                                 <Award size={15} className="text-gray-800 shrink-0" />
                                 <p className="text-sm font-bold text-gray-800">Top Products</p>
                             </div>
-                            <p className="text-[10px] text-gray-400 mb-4">By quantity sold (delivered orders only)</p>
+                            <p className="text-[10px] text-gray-400 mb-4">
+                                By revenue · {sortAmountDir === 'desc' ? 'Highest to Lowest' : 'Lowest to Highest'}
+                            </p>
                             {topProducts.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-28 text-gray-300 gap-2">
                                     <Package size={24} /><p className="text-xs">No product data yet</p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-2">
-                                    {topProducts.map((p, i) => {
+                                    {[...topProducts]
+                                        .sort((a, b) => sortAmountDir === 'desc'
+                                            ? num(b.total_revenue) - num(a.total_revenue)
+                                            : num(a.total_revenue) - num(b.total_revenue)
+                                        )
+                                        .map((p, i) => {
                                         const maxQty = topProducts[0].total_qty
                                         const pct = Math.round(num(p.total_qty) / maxQty * 100)
                                         return (

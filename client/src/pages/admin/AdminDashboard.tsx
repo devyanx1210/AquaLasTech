@@ -432,7 +432,8 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
-                    <p className="text-xs text-gray-400 mt-0.5">{periodDesc[period]} · Click any bar or row to see daily breakdown</p>
+                    <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{periodDesc[period]} · Click any bar or row to see daily breakdown</p>
+                    <p className="text-xs text-gray-400 mt-0.5 sm:hidden">{periodDesc[period]}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     {/* Sort by Amount — icon only dropdown */}
@@ -447,7 +448,7 @@ export default function AdminDashboard() {
                         {sortAmountOpen && (
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setSortAmountOpen(false)} />
-                                <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden min-w-[148px]">
+                                <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden min-w-[136px]">
                                     {([
                                         { value: 'desc', label: 'High → Low' },
                                         { value: 'asc',  label: 'Low → High' },
@@ -470,9 +471,10 @@ export default function AdminDashboard() {
                     <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
                         {periods.map(p => (
                             <button key={p} onClick={() => setPeriod(p)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize
+                                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all
                                     ${period === p ? 'bg-[#0d2a4a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                                {p}
+                                <span className="sm:hidden capitalize">{p.slice(0, 1).toUpperCase()}</span>
+                                <span className="hidden sm:inline capitalize">{p}</span>
                             </button>
                         ))}
                     </div>

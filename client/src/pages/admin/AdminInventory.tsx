@@ -155,6 +155,7 @@ export default function AdminInventory() {
     const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
     const [filterOpen, setFilterOpen] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
+    const [sortPrice, setSortPrice] = useState<'none' | 'asc' | 'desc'>('none')
 
     // Upload image to server
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,11 +208,17 @@ export default function AdminInventory() {
         axios.post(`${API}/inventory/check-low-stock`, {}, { withCredentials: true }).catch(() => { })
     }, [products, API])
 
-    const filtered = products.filter(p => {
-        const matchSearch = p.product_name.toLowerCase().includes(search.toLowerCase())
-        const matchFilter = activeFilter === 'all' || (activeFilter === 'active' ? p.is_active : !p.is_active)
-        return matchSearch && matchFilter
-    })
+    const filtered = products
+        .filter(p => {
+            const matchSearch = p.product_name.toLowerCase().includes(search.toLowerCase())
+            const matchFilter = activeFilter === 'all' || (activeFilter === 'active' ? p.is_active : !p.is_active)
+            return matchSearch && matchFilter
+        })
+        .sort((a, b) => {
+            if (sortPrice === 'asc') return Number(a.price) - Number(b.price)
+            if (sortPrice === 'desc') return Number(b.price) - Number(a.price)
+            return 0
+        })
 
     const openAdd = () => { setForm(emptyForm); setFormErrors({}); setSelected(null); setModal('add') }
     const openEdit = (p: Product) => {
@@ -316,6 +323,16 @@ export default function AdminInventory() {
                         className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-[#38bdf8] focus:ring-2 focus:ring-[#38bdf8]/15 transition-all shadow-sm"
                     />
                 </div>
+                {/* Sort by Price */}
+                <button
+                    onClick={() => setSortPrice(s => s === 'none' ? 'desc' : s === 'desc' ? 'asc' : 'none')}
+                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-medium shadow-sm transition-all whitespace-nowrap
+                        ${sortPrice !== 'none' ? 'bg-[#0d2a4a] text-white border-[#0d2a4a]' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                    title="Sort by price"
+                >
+                    {sortPrice === 'desc' ? '₱ High → Low' : sortPrice === 'asc' ? '₱ Low → High' : '₱ Sort'}
+                </button>
+
                 {/* Filter dropdown */}
                 <div className="relative">
                     <button

@@ -496,10 +496,16 @@ router.delete('/notifications/:id', async (req, res) => {
 
 // PUT /customer/orders/:id/cancel
 // Customer can only cancel when status is 'confirmed'
+// Body: { reason, items: [{ order_item_id, product_name, quantity, price_snapshot }] }
+// If all items cancelled → whole order cancelled. If some → order stays, total adjusted.
 router.put('/orders/:id/cancel', async (req, res) => {
     const userId = (req as any).user.id
     const { id } = req.params
-    const { reason } = req.body
+    const { reason, items } = req.body
+    if (!reason?.trim()) return res.status(400).json({ message: 'Reason is required' })
+    if (!Array.isArray(items) || items.length === 0)
+        return res.status(400).json({ message: 'Select at least one item to cancel' })
+
     try {
         const pool = await connectToDatabase()
         const [rows]: any = await pool.query(
@@ -510,35 +516,65 @@ router.put('/orders/:id/cancel', async (req, res) => {
         if (rows[0].order_status !== ORDER_STATUS.CONFIRMED)
             return res.status(400).json({ message: 'Order can no longer be cancelled' })
 
-        await pool.query(
-            `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
-            [ORDER_STATUS.CANCELLED, id]
-        )
-
-        // Restore stock for each item back to inventory
-        const [items]: any = await pool.query(
-            `SELECT oi.product_id, oi.quantity, p.station_id
-             FROM order_items oi
-             JOIN products p ON p.product_id = oi.product_id
-             WHERE oi.order_id = ?`,
-            [id]
-        )
-        for (const item of items) {
-            await pool.query(
-                `UPDATE inventory SET quantity = quantity + ? WHERE product_id = ? AND station_id = ?`,
-                [item.quantity, item.product_id, item.station_id]
-            )
-        }
         const station_id = rows[0].station_id
 
+        // Process each selected item: restore stock, reduce/remove order_item
+        for (const item of items) {
+            const [oi]: any = await pool.query(
+                `SELECT oi.order_item_id, oi.product_id, oi.quantity, p.station_id AS prod_station_id
+                 FROM order_items oi JOIN products p ON p.product_id = oi.product_id
+                 WHERE oi.order_item_id = ? AND oi.order_id = ?`,
+                [item.order_item_id, id]
+            )
+            if (!oi.length) continue
+            const cancelQty = Math.min(Number(item.quantity), oi[0].quantity)
+            // Restore inventory
+            await pool.query(
+                `UPDATE inventory SET quantity = quantity + ? WHERE product_id = ? AND station_id = ?`,
+                [cancelQty, oi[0].product_id, oi[0].prod_station_id]
+            )
+            if (cancelQty >= oi[0].quantity) {
+                // Full item cancelled — remove the row
+                await pool.query(`DELETE FROM order_items WHERE order_item_id = ?`, [item.order_item_id])
+            } else {
+                // Partial — reduce quantity
+                await pool.query(
+                    `UPDATE order_items SET quantity = quantity - ? WHERE order_item_id = ?`,
+                    [cancelQty, item.order_item_id]
+                )
+            }
+        }
+
+        // Deduct cancelled amount from order total
+        const cancelledAmount = items.reduce((sum: number, i: any) => sum + Number(i.price_snapshot) * Number(i.quantity), 0)
+        await pool.query(
+            `UPDATE orders SET total_amount = GREATEST(0, total_amount - ?), updated_at = NOW() WHERE order_id = ?`,
+            [cancelledAmount, id]
+        )
+
+        // Check if any items remain
+        const [remaining]: any = await pool.query(
+            `SELECT COUNT(*) AS cnt FROM order_items WHERE order_id = ?`, [id]
+        )
+        const allCancelled = remaining[0].cnt === 0
+        if (allCancelled) {
+            await pool.query(
+                `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
+                [ORDER_STATUS.CANCELLED, id]
+            )
+        }
+
+        // Build item summary for notifications
+        const itemSummary = items.map((i: any) => `${i.quantity}x ${i.product_name}`).join(', ')
+        const partialNote = allCancelled ? '' : ' (partial cancellation)'
+
         // Notify the customer
-        const customerMsg = reason?.trim()
-            ? `Your order has been cancelled. Reason: ${reason.trim()}`
-            : 'Your order has been cancelled successfully.'
         await pool.query(
             `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
              VALUES (?, ?, ?, ?, 0, NOW())`,
-            [userId, station_id, customerMsg, NOTIFICATION_TYPE.ORDER_UPDATE]
+            [userId, station_id,
+                `${allCancelled ? 'Your order has been cancelled' : 'Items removed from your order'}: ${itemSummary}. Reason: ${reason.trim()}`,
+                NOTIFICATION_TYPE.ORDER_UPDATE]
         )
 
         // Notify all admins of the station
@@ -548,18 +584,17 @@ router.put('/orders/:id/cancel', async (req, res) => {
              WHERE a.station_id = ? AND u.role IN (2, 3)`,
             [station_id]
         )
-        const adminMsg = reason?.trim()
-            ? `A customer cancelled their order. Reason: ${reason.trim()}`
-            : 'A customer cancelled their order.'
         for (const admin of admins) {
             await pool.query(
                 `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)
                  VALUES (?, ?, ?, ?, 0, NOW())`,
-                [admin.user_id, station_id, adminMsg, NOTIFICATION_TYPE.SYSTEM_MESSAGE]
+                [admin.user_id, station_id,
+                    `Customer cancelled${partialNote}: ${itemSummary}. Reason: ${reason.trim()}`,
+                    NOTIFICATION_TYPE.SYSTEM_MESSAGE]
             )
         }
 
-        return res.json({ message: 'Order cancelled' })
+        return res.json({ message: allCancelled ? 'Order cancelled' : 'Items cancelled' })
     } catch (err) {
         console.error('PUT /customer/orders/:id/cancel error:', err)
         return res.status(500).json({ message: 'Server error' })

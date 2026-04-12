@@ -614,8 +614,8 @@ export default function CustomerSettings() {
                         </div>
                     </div>
 
-                    {/* New + Confirm — side by side */}
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* New + Confirm — side by side on sm+, stacked on mobile */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">New Password</label>
                             <div className="relative">

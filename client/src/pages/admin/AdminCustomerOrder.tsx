@@ -30,6 +30,8 @@ interface Order {
     return_reason: string | null
     return_status: 'pending' | 'approved' | 'rejected' | null
     return_id: number | null
+    return_items_json: string | null
+    refund_amount: number | null
     item_count: number
     created_at: string
     profile_picture: string | null
@@ -267,7 +269,7 @@ const GCashModal = ({ order, onClose, onVerify, API }: {
     )
 }
 
-// Return Modal 
+// Return Modal
 const ReturnModal = ({ order, onClose, onResolve }: {
     order: OrderDetail; onClose: () => void
     onResolve: (id: number, status: 'approved' | 'rejected') => Promise<void>
@@ -277,42 +279,77 @@ const ReturnModal = ({ order, onClose, onResolve }: {
         setBusy(true); await onResolve(order.order_id, status); setBusy(false); onClose()
     }
     const isResolved = order.return_status === 'approved' || order.return_status === 'rejected'
+
+    const returnItems: { order_item_id: number; product_name: string; quantity: number; price_snapshot: number }[] =
+        order.return_items_json ? (() => { try { return JSON.parse(order.return_items_json!) } catch { return [] } })() : []
+
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
                     <div>
                         <p className="text-xs text-gray-400">{order.order_reference}</p>
                         <h3 className="text-sm font-bold text-gray-800">Return Request</h3>
                     </div>
                     <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={15} /></button>
                 </div>
-                <div className="p-5 flex flex-col gap-4">
+
+                <div className="overflow-y-auto flex-1 p-5 flex flex-col gap-4">
+                    {/* Items being returned */}
+                    {returnItems.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Items to Return</p>
+                            <div className="flex flex-col rounded-xl border border-gray-200 overflow-hidden">
+                                {returnItems.map(item => (
+                                    <div key={item.order_item_id} className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 last:border-0 bg-white">
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-800">{item.product_name}</p>
+                                            <p className="text-[10px] text-gray-400">Qty: {item.quantity} × {fmt(Number(item.price_snapshot))}</p>
+                                        </div>
+                                        <p className="text-xs font-black text-[#0d2a4a]">{fmt(item.quantity * Number(item.price_snapshot))}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Refund amount */}
+                    {order.refund_amount != null && Number(order.refund_amount) > 0 && (
+                        <div className="flex justify-between items-center bg-orange-50 border border-orange-100 rounded-xl px-4 py-2.5 text-xs">
+                            <span className="text-orange-600 font-semibold">Refund Amount</span>
+                            <span className="font-black text-orange-600">{fmt(Number(order.refund_amount))}</span>
+                        </div>
+                    )}
+
+                    {/* Reason */}
                     <div className="flex flex-col gap-1.5">
                         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Customer's Reason</p>
                         <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 text-sm text-gray-700 leading-relaxed">
                             {order.return_reason || 'No reason provided'}
                         </div>
                     </div>
-                    <div className="flex justify-between items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 text-xs">
+
+                    {/* Order total for reference */}
+                    <div className="flex justify-between items-center bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100 text-xs">
                         <span className="text-gray-500">Order Total</span>
                         <span className="font-black text-[#0d2a4a]">{fmt(order.total_amount)}</span>
                     </div>
+
                     {isResolved ? (
                         <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold border
                             ${order.return_status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-500 border-red-200'}`}>
                             {order.return_status === 'approved'
-                                ? <><CheckCircle2 size={13} /> Return approved</>
+                                ? <><CheckCircle2 size={13} /> Return approved · refund deducted from sales</>
                                 : <><XCircle size={13} /> Return rejected — order restored to delivering</>}
                         </div>
                     ) : (
                         <div className="flex flex-col gap-2">
-                            <p className="text-[10px] text-gray-400">Approving confirms the return. Rejecting restores the order to delivering.</p>
+                            <p className="text-[10px] text-gray-400">Approving deducts the refund amount from sales. Rejecting restores the order to delivering.</p>
                             <div className="flex gap-2">
                                 <button onClick={() => handle('rejected')} disabled={busy}
                                     className="flex-1 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold border border-red-100 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60">
-                                    <XCircle size={13} /> Reject Return
+                                    <XCircle size={13} /> Reject
                                 </button>
                                 <button onClick={() => handle('approved')} disabled={busy}
                                     className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-60">

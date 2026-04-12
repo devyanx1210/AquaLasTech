@@ -50,6 +50,8 @@ router.use(verifyToken)
             `ALTER TABLE orders ADD COLUMN full_address VARCHAR(500) NULL`,
             `ALTER TABLE orders ADD COLUMN hidden_at DATETIME NULL`,
             `ALTER TABLE order_returns ADD COLUMN processed_by INT NULL`,
+            `ALTER TABLE order_returns ADD COLUMN return_items_json TEXT NULL`,
+            `ALTER TABLE order_returns ADD COLUMN refund_amount DECIMAL(10,2) NULL DEFAULT 0`,
         ]) { try { await db.query(sql) } catch { /* already exists */ } }
     })()
 
@@ -294,6 +296,7 @@ router.get('/:id', async (req, res) => {
                 r.reason AS return_reason, r.return_id,
                 r.processed_by AS return_processed_by,
                 rbu.full_name AS return_processed_by_name,
+                r.return_items_json, r.refund_amount,
                 CASE r.return_status
                     WHEN 1 THEN 'pending' WHEN 2 THEN 'approved' WHEN 3 THEN 'rejected' ELSE NULL
                 END AS return_status,
@@ -560,6 +563,16 @@ router.put('/:id/return', async (req, res) => {
             `UPDATE order_returns SET return_status = ?, processed_by = ?, updated_at = NOW() WHERE order_id = ?`,
             [return_status, user.id, id]
         )
+
+        // If approved: deduct the refund amount from the order total (reflects in sales reports)
+        if (return_status === RETURN_STATUS.APPROVED) {
+            await db.query(
+                `UPDATE orders SET total_amount = GREATEST(0, total_amount - COALESCE(
+                    (SELECT refund_amount FROM order_returns WHERE order_id = ?), 0
+                )), updated_at = NOW() WHERE order_id = ?`,
+                [id, id]
+            )
+        }
 
         // If rejected: move order back to out_for_delivery (no stock change)
         if (return_status === RETURN_STATUS.REJECTED) {

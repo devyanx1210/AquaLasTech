@@ -480,59 +480,135 @@ function CancelModal({ order, onClose, onConfirm }: {
     )
 }
 
-// Return Modal
+// Return Modal — per-item selection
+interface ReturnItemSelection {
+    order_item_id: number
+    product_name: string
+    quantity: number
+    price_snapshot: number
+    maxQty: number
+    selected: boolean
+}
+
 function ReturnModal({ order, onClose, onConfirm }: {
     order: CustomerOrder
     onClose: () => void
-    onConfirm: (reason: string) => Promise<void>
+    onConfirm: (reason: string, items: Omit<ReturnItemSelection, 'maxQty' | 'selected'>[]) => Promise<void>
 }) {
     const [reason, setReason] = useState('')
     const [busy, setBusy] = useState(false)
+    const [selections, setSelections] = useState<ReturnItemSelection[]>(() =>
+        (order.items ?? []).map(item => ({
+            order_item_id: item.order_item_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            price_snapshot: Number(item.price_snapshot),
+            maxQty: item.quantity,
+            selected: false,
+        }))
+    )
+
+    const toggle = (id: number) =>
+        setSelections(prev => prev.map(s => s.order_item_id === id ? { ...s, selected: !s.selected } : s))
+
+    const setQty = (id: number, qty: number) =>
+        setSelections(prev => prev.map(s => s.order_item_id === id ? { ...s, quantity: Math.min(Math.max(1, qty), s.maxQty) } : s))
+
+    const selected = selections.filter(s => s.selected)
+    const refundTotal = selected.reduce((sum, s) => sum + s.price_snapshot * s.quantity, 0)
+    const fmt = (n: number) => `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+    const canSubmit = reason.trim().length > 0 && selected.length > 0
 
     return (
         <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full sm:max-w-sm bg-white sm:rounded-2xl rounded-t-3xl shadow-2xl p-6 flex flex-col gap-4">
-                <div className="flex justify-center -mt-2 mb-1 sm:hidden">
+            <div className="relative z-10 w-full sm:max-w-sm bg-white sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[90vh]">
+                <div className="flex justify-center pt-3 pb-1 sm:hidden">
                     <div className="w-10 h-1 bg-gray-300 rounded-full" />
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-orange-50 flex items-center justify-center shrink-0">
-                        <RotateCcw size={20} className="text-orange-500" />
+                {/* Header */}
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                    <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center shrink-0">
+                        <RotateCcw size={18} className="text-orange-500" />
                     </div>
                     <div>
                         <h3 className="text-sm font-black text-gray-800">Request Return</h3>
                         <p className="text-[11px] text-gray-400 font-mono">{order.order_reference}</p>
                     </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                        Reason for return <span className="text-orange-400">*</span>
-                    </label>
-                    <textarea
-                        value={reason}
-                        onChange={e => setReason(e.target.value)}
-                        placeholder="Describe why you want to return this order..."
-                        rows={3}
-                        className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-orange-300 outline-none text-sm resize-none transition-all"
-                    />
+
+                {/* Scrollable body */}
+                <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
+                    {/* Item selection */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                            Select items to return <span className="text-orange-400">*</span>
+                        </label>
+                        <div className="flex flex-col rounded-xl border border-gray-200 overflow-hidden">
+                            {selections.map(s => (
+                                <div key={s.order_item_id}
+                                    className={`flex items-center gap-3 px-3 py-3 border-b border-gray-100 last:border-0 transition-colors ${s.selected ? 'bg-orange-50' : 'bg-white'}`}>
+                                    <input type="checkbox" checked={s.selected}
+                                        onChange={() => toggle(s.order_item_id)}
+                                        className="w-4 h-4 accent-orange-500 shrink-0 cursor-pointer" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-semibold text-gray-800 truncate">{s.product_name}</p>
+                                        <p className="text-[10px] text-gray-400">{fmt(s.price_snapshot)} each · max {s.maxQty}</p>
+                                    </div>
+                                    {s.selected && (
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button onClick={() => setQty(s.order_item_id, s.quantity - 1)}
+                                                className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center">−</button>
+                                            <span className="w-6 text-center text-xs font-bold text-gray-800">{s.quantity}</span>
+                                            <button onClick={() => setQty(s.order_item_id, s.quantity + 1)}
+                                                className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center">+</button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Refund preview */}
+                    {selected.length > 0 && (
+                        <div className="flex justify-between items-center bg-orange-50 border border-orange-100 rounded-xl px-4 py-2.5 text-xs">
+                            <span className="text-orange-600 font-semibold">{selected.length} item{selected.length > 1 ? 's' : ''} selected · Refund</span>
+                            <span className="font-black text-orange-600">{fmt(refundTotal)}</span>
+                        </div>
+                    )}
+
+                    {/* Reason */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                            Reason <span className="text-orange-400">*</span>
+                        </label>
+                        <textarea value={reason} onChange={e => setReason(e.target.value)}
+                            placeholder="Describe the defect or reason for return..."
+                            rows={3}
+                            className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-orange-300 outline-none text-sm resize-none transition-all" />
+                    </div>
+                    <p className="text-[10px] text-gray-400 -mt-2">Stock will not be restocked — returned items are considered defective.</p>
                 </div>
-                <p className="text-[10px] text-gray-400 -mt-2">
-                    Your return request will be reviewed by the station admin.
-                </p>
-                <div className="flex gap-3">
+
+                {/* Footer */}
+                <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0">
                     <button onClick={onClose} disabled={busy}
                         className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all">
                         Back
                     </button>
                     <button
                         onClick={async () => {
-                            if (!reason.trim()) return
+                            if (!canSubmit) return
                             setBusy(true)
-                            await onConfirm(reason)
+                            await onConfirm(reason, selected.map(s => ({
+                                order_item_id: s.order_item_id,
+                                product_name: s.product_name,
+                                quantity: s.quantity,
+                                price_snapshot: s.price_snapshot,
+                            })))
                             setBusy(false)
                         }}
-                        disabled={busy || !reason.trim()}
+                        disabled={busy || !canSubmit}
                         className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60">
                         {busy ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                         Submit Return
@@ -744,11 +820,11 @@ export default function CustomerOrder() {
     }
 
     // Return request
-    const handleReturn = async (reason: string) => {
+    const handleReturn = async (reason: string, items: { order_item_id: number; product_name: string; quantity: number; price_snapshot: number }[]) => {
         if (!returnTarget) return
         try {
             await axios.post(`${API}/customer/orders/${returnTarget.order_id}/return`,
-                { reason }, { withCredentials: true })
+                { reason, items }, { withCredentials: true })
             showToast('Return request submitted', 'success')
             setReturnTarget(null)
             await fetchOrders()

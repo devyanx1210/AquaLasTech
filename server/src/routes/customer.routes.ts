@@ -568,11 +568,20 @@ router.put('/orders/:id/cancel', async (req, res) => {
 
 // POST /customer/orders/:id/return
 // Customer can request return only when status is 'delivered'
+// Body: { reason: string, items: [{ order_item_id, product_name, quantity, price_snapshot }] }
 router.post('/orders/:id/return', async (req, res) => {
     const userId = (req as any).user.id
     const { id } = req.params
-    const { reason } = req.body
+    const { reason, items } = req.body
     if (!reason?.trim()) return res.status(400).json({ message: 'Reason is required' })
+    if (!Array.isArray(items) || items.length === 0)
+        return res.status(400).json({ message: 'Select at least one item to return' })
+
+    // Calculate refund amount from selected items
+    const refundAmount = items.reduce((sum: number, item: any) => {
+        return sum + (Number(item.price_snapshot) * Number(item.quantity))
+    }, 0)
+
     try {
         const pool = await connectToDatabase()
         const [rows]: any = await pool.query(
@@ -589,8 +598,9 @@ router.post('/orders/:id/return', async (req, res) => {
         if (existing.length) return res.status(409).json({ message: 'Return already requested' })
 
         await pool.query(
-            `INSERT INTO order_returns (order_id, reason, return_status, created_at) VALUES (?, ?, ?, NOW())`,
-            [id, reason.trim(), RETURN_STATUS.PENDING]
+            `INSERT INTO order_returns (order_id, reason, return_items_json, refund_amount, return_status, created_at)
+             VALUES (?, ?, ?, ?, ?, NOW())`,
+            [id, reason.trim(), JSON.stringify(items), refundAmount, RETURN_STATUS.PENDING]
         )
         await pool.query(
             `UPDATE orders SET order_status = ?, updated_at = NOW() WHERE order_id = ?`,
@@ -603,7 +613,7 @@ router.post('/orders/:id/return', async (req, res) => {
             [userId, rows[0].station_id, NOTIFICATION_TYPE.ORDER_UPDATE]
         )
 
-        // Notify station admins about the return request
+        // Notify station admins with item details
         const [customerRow]: any = await pool.query(
             `SELECT COALESCE(o.customer_name, u.full_name) AS customer_name, o.order_reference
              FROM orders o JOIN users u ON u.user_id = o.user_id WHERE o.order_id = ?`, [id]
@@ -612,7 +622,8 @@ router.post('/orders/:id/return', async (req, res) => {
             `SELECT u.user_id FROM admins a JOIN users u ON u.user_id = a.user_id WHERE a.station_id = ? AND u.role IN (2, 3)`,
             [rows[0].station_id]
         )
-        const returnMsg = `Return requested for order ${customerRow[0]?.order_reference} by ${customerRow[0]?.customer_name}.`
+        const itemSummary = items.map((i: any) => `${i.quantity}x ${i.product_name}`).join(', ')
+        const returnMsg = `Return requested for order ${customerRow[0]?.order_reference} by ${customerRow[0]?.customer_name}: ${itemSummary}.`
         for (const admin of stationAdmins) {
             await pool.query(
                 `INSERT INTO notifications (user_id, station_id, message, notification_type, is_read, created_at)

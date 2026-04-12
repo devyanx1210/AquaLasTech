@@ -597,20 +597,18 @@ export default function CustomerSettings() {
             >
                 <div className="flex flex-col gap-4">
 
-                    {/* Current Password — one third width */}
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Password</label>
-                            <div className="relative">
-                                <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input type={showPw ? 'text' : 'password'}
-                                    value={currentPw} onChange={e => setCurrentPw(e.target.value)}
-                                    className={`${inputCls} pl-9 pr-10`} placeholder="Enter current password" />
-                                <button onClick={() => setShowPw(s => !s)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                                    {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                                </button>
-                            </div>
+                    {/* Current Password — full width */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Password</label>
+                        <div className="relative">
+                            <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input type={showPw ? 'text' : 'password'}
+                                value={currentPw} onChange={e => setCurrentPw(e.target.value)}
+                                className={`${inputCls} pl-9 pr-10`} placeholder="Enter current password" />
+                            <button onClick={() => setShowPw(s => !s)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
                         </div>
                     </div>
 

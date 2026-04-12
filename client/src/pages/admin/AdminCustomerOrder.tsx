@@ -84,7 +84,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
 }
 
 const PAY_CFG: Record<string, { label: string; color: string; bg: string; border: string; solidBg: string }> = {
-    pending: { label: 'Unpaid', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', solidBg: 'bg-amber-500' },
+    pending: { label: 'Pending', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', solidBg: 'bg-amber-500' },
     verified: { label: 'Paid', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', solidBg: 'bg-emerald-600' },
     rejected: { label: 'Unpaid', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', solidBg: 'bg-red-500' },
     not_required: { label: 'N/A', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200', solidBg: 'bg-gray-500' },

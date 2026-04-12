@@ -447,6 +447,7 @@ function CancelModal({ order, onClose, onConfirm }: {
 }) {
     const [reason, setReason] = useState('')
     const [busy, setBusy] = useState(false)
+    const [loadingItems, setLoadingItems] = useState(false)
     const [selections, setSelections] = useState<CancelItemSelection[]>(() =>
         (order.items ?? []).map(item => ({
             order_item_id: item.order_item_id,
@@ -457,6 +458,26 @@ function CancelModal({ order, onClose, onConfirm }: {
             selected: false,
         }))
     )
+
+    // Fetch items if not already loaded (e.g. user opened cancel before detail fully loaded)
+    useEffect(() => {
+        if (selections.length > 0) return
+        setLoadingItems(true)
+        axios.get(`${API}/customer/orders/${order.order_id}`, { withCredentials: true })
+            .then(res => {
+                const items: OrderItem[] = res.data.items ?? []
+                setSelections(items.map(item => ({
+                    order_item_id: item.order_item_id,
+                    product_name: item.product_name,
+                    quantity: item.quantity,
+                    price_snapshot: Number(item.price_snapshot),
+                    maxQty: item.quantity,
+                    selected: false,
+                })))
+            })
+            .catch(() => {})
+            .finally(() => setLoadingItems(false))
+    }, [order.order_id, selections.length])
 
     const toggle = (id: number) =>
         setSelections(prev => prev.map(s => s.order_item_id === id ? { ...s, selected: !s.selected } : s))
@@ -496,7 +517,11 @@ function CancelModal({ order, onClose, onConfirm }: {
                             Select items to cancel <span className="text-red-400">*</span>
                         </label>
                         <div className="flex flex-col rounded-xl border border-gray-200 overflow-hidden">
-                            {selections.map(s => (
+                            {loadingItems ? (
+                                <div className="flex items-center justify-center gap-2 py-6 text-xs text-gray-400">
+                                    <Loader2 size={14} className="animate-spin" /> Loading items…
+                                </div>
+                            ) : selections.map(s => (
                                 <div key={s.order_item_id}
                                     className={`flex items-center gap-3 px-3 py-3 border-b border-gray-100 last:border-0 transition-colors ${s.selected ? 'bg-red-50' : 'bg-white'}`}>
                                     <input type="checkbox" checked={s.selected}
@@ -518,7 +543,7 @@ function CancelModal({ order, onClose, onConfirm }: {
                                 </div>
                             ))}
                         </div>
-                        {selected.length > 0 && selected.length === selections.length && (
+                        {!loadingItems && selected.length > 0 && selected.length === selections.length && (
                             <p className="text-[10px] text-red-400 font-semibold">All items selected — the entire order will be cancelled.</p>
                         )}
                     </div>
@@ -592,6 +617,7 @@ function ReturnModal({ order, onClose, onConfirm }: {
 }) {
     const [reason, setReason] = useState('')
     const [busy, setBusy] = useState(false)
+    const [loadingItems, setLoadingItems] = useState(false)
     const [selections, setSelections] = useState<ReturnItemSelection[]>(() =>
         (order.items ?? []).map(item => ({
             order_item_id: item.order_item_id,
@@ -602,6 +628,26 @@ function ReturnModal({ order, onClose, onConfirm }: {
             selected: false,
         }))
     )
+
+    // Fetch items if not already loaded
+    useEffect(() => {
+        if (selections.length > 0) return
+        setLoadingItems(true)
+        axios.get(`${API}/customer/orders/${order.order_id}`, { withCredentials: true })
+            .then(res => {
+                const items: OrderItem[] = res.data.items ?? []
+                setSelections(items.map(item => ({
+                    order_item_id: item.order_item_id,
+                    product_name: item.product_name,
+                    quantity: item.quantity,
+                    price_snapshot: Number(item.price_snapshot),
+                    maxQty: item.quantity,
+                    selected: false,
+                })))
+            })
+            .catch(() => {})
+            .finally(() => setLoadingItems(false))
+    }, [order.order_id, selections.length])
 
     const toggle = (id: number) =>
         setSelections(prev => prev.map(s => s.order_item_id === id ? { ...s, selected: !s.selected } : s))
@@ -640,7 +686,11 @@ function ReturnModal({ order, onClose, onConfirm }: {
                             Select items to return <span className="text-orange-400">*</span>
                         </label>
                         <div className="flex flex-col rounded-xl border border-gray-200 overflow-hidden">
-                            {selections.map(s => (
+                            {loadingItems ? (
+                                <div className="flex items-center justify-center gap-2 py-6 text-xs text-gray-400">
+                                    <Loader2 size={14} className="animate-spin" /> Loading items…
+                                </div>
+                            ) : selections.map(s => (
                                 <div key={s.order_item_id}
                                     className={`flex items-center gap-3 px-3 py-3 border-b border-gray-100 last:border-0 transition-colors ${s.selected ? 'bg-orange-50' : 'bg-white'}`}>
                                     <input type="checkbox" checked={s.selected}

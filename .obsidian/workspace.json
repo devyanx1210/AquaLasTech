@@ -185,10 +185,10 @@
   },
   "active": "4ee282fd547fb70b",
   "lastOpenFiles": [
+    "scripts/diff.js",
     "scripts/front.js",
     "output/right.txt",
     "output/left.txt",
-    "scripts/diff.js",
     "scripts",
     "output",
     "server/output",

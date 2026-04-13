@@ -1,1 +1,1 @@
-﻿const ram = "asdasssssssssssssssssssssssss";
+﻿

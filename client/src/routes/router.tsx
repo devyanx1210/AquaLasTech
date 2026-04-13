@@ -55,7 +55,7 @@ const router = createBrowserRouter([
             </ProtectedRoute>
         ),
         children: [
-            { index: true, element: <Navigate to="inventory" replace /> },
+            { index: true, element: <Navigate to="dashboard" replace /> },
             { path: "dashboard", element: <AdminDashboard /> },
             { path: "orders", element: <AdminCustomerOrder /> },  // ← no children
             { path: "pos", element: <PointOfSale /> },         // ← sibling, not child

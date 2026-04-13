@@ -220,9 +220,10 @@ export default function AdminLayout() {
 
     // Build nav items based on role
     const isSuperAdmin = user?.role === 'super_admin'
-    // Regular admins (staff) only see Inventory, Orders, POS — no Home or Settings
+    // Store owner: Dashboard + Settings only (read-only, matches DFD)
+    // Staff: Inventory, Orders, POS only (all operations, no Dashboard or Settings)
     const navItems = isSuperAdmin
-        ? [...baseNavItems, settingsNavItem]
+        ? [baseNavItems[0], settingsNavItem]
         : baseNavItems.filter(item => item.label !== 'Home')
 
     const handleLogout = async () => {
@@ -355,33 +356,35 @@ export default function AdminLayout() {
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-                {/* Notification Bell */}
-                <div className="relative">
-                    <button
-                        onClick={() => { setNotifOpen(o => !o); fetchNotifications() }}
-                        className="relative p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-all"
-                    >
-                        <Bell size={18} />
-                        {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center leading-none">
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
+                {/* Notification Bell — staff only */}
+                {!isSuperAdmin && (
+                    <div className="relative">
+                        <button
+                            onClick={() => { setNotifOpen(o => !o); fetchNotifications() }}
+                            className="relative p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-all"
+                        >
+                            <Bell size={18} />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center leading-none">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                        {notifOpen && (
+                            <AdminNotifPanel
+                                notifications={notifications}
+                                unreadCount={unreadCount}
+                                onClose={() => setNotifOpen(false)}
+                                onMarkAllRead={markAllRead}
+                                onMarkOne={markOneRead}
+                                onDelete={deleteNotif}
+                                onMouseMove={resetNotifTimer}
+                                panelRef={notifPanelRef}
+                                onNavigate={type => navigate(notifLink(type))}
+                            />
                         )}
-                    </button>
-                    {notifOpen && (
-                        <AdminNotifPanel
-                            notifications={notifications}
-                            unreadCount={unreadCount}
-                            onClose={() => setNotifOpen(false)}
-                            onMarkAllRead={markAllRead}
-                            onMarkOne={markOneRead}
-                            onDelete={deleteNotif}
-                            onMouseMove={resetNotifTimer}
-                            panelRef={notifPanelRef}
-                            onNavigate={type => navigate(notifLink(type))}
-                        />
-                    )}
-                </div>
+                    </div>
+                )}
                 <button
                     onClick={() => isSuperAdmin && navigate('/admin/settings')}
                     title={isSuperAdmin ? "Go to Settings" : undefined}

@@ -58,7 +58,7 @@ interface ToastData { message: string; type: 'success' | 'error' }
 const Toast = ({ toast, onDone }: { toast: ToastData; onDone: () => void }) => {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
     return (
-        <div className="fixed bottom-6 right-6 z-[999] px-4 py-3 rounded-xl shadow-md bg-white text-sm font-medium text-gray-700">
+        <div className="fixed bottom-6 right-6 z-[999] px-4 py-3 rounded-xl shadow-md bg-white text-sm font-medium text-[#0d2a4a]">
             {toast.message}
         </div>
     )
@@ -590,11 +590,11 @@ const OrderRow = ({ order, onOpen, showCheckbox, isSelected, onToggle, delay = 0
             {/* Payment */}
             <td className="px-4 py-3.5 border-r border-gray-100 text-center">
                 {isGcashPending ? (
-                    <span className="inline-flex text-[10px] font-bold text-white bg-amber-500 px-2 py-1 rounded-lg whitespace-nowrap">
+                    <span className="inline-flex items-center justify-center w-16 text-[10px] font-bold text-white bg-amber-500 py-1 rounded-lg">
                         Pending
                     </span>
                 ) : (
-                    <span className={`inline-flex text-[10px] font-bold text-white px-2 py-1 rounded-lg whitespace-nowrap ${payment.solidBg}`}>{payment.label}</span>
+                    <span className={`inline-flex items-center justify-center w-16 text-[10px] font-bold text-white py-1 rounded-lg ${payment.solidBg}`}>{payment.label}</span>
                 )}
                 {order.return_id && (
                     <span className={`block text-[9px] font-bold mt-0.5 whitespace-nowrap

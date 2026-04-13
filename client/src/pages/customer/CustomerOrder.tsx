@@ -131,7 +131,7 @@ function QtyInput({ value, max, size, onChange }: { value: number; max: number; 
 function Toast({ msg, type, onDone }: { msg: string; type: ToastType; onDone: () => void }) {
     useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t) }, [onDone])
     return (
-        <div className="fixed bottom-24 lg:bottom-6 right-4 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl bg-white text-sm font-medium text-gray-700 max-w-xs">
+        <div className="fixed bottom-24 lg:bottom-6 right-4 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl bg-white text-sm font-medium text-[#0d2a4a] max-w-xs">
             {type === 'success' ? <CheckCircle2 size={15} className="text-emerald-500 shrink-0" /> : <AlertCircle size={15} className="text-red-500 shrink-0" />}
             {msg}
         </div>

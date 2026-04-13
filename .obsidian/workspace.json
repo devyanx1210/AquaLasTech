@@ -185,6 +185,7 @@
   },
   "active": "4ee282fd547fb70b",
   "lastOpenFiles": [
+    "scripts/front.js",
     "output/right.txt",
     "output/left.txt",
     "scripts/diff.js",
@@ -199,7 +200,6 @@
     "client/dist/assets/ALT_FONT-o5KDGDZh.png",
     "PANEL_TECHNICAL_QUESTIONS.md",
     "ERROR_HANDLING_GUIDE.md",
-    "fix_docu.py",
     "SETUP_GUIDE.md"
   ]
 }

@@ -1,6 +1,10 @@
 # Claude Code
 .claude/
 
+# Defense scripts (local only — not tracked by git)
+server/scripts/
+server/output/
+
 # Documentation (internal use only)
 SYSTEM_DOCUMENTATION.md
 SETUP_GUIDE.md

@@ -5,8 +5,8 @@
     "recharts": "^3.7.0"
   },
   "scripts": {
-    "front": "node scripts/front.js",
-    "left":  "node scripts/diff.js client",
-    "right": "node scripts/diff.js server"
+    "front": "node server/scripts/front.cjs",
+    "left":  "node server/scripts/diff.cjs client",
+    "right": "node server/scripts/diff.cjs server"
   }
 }

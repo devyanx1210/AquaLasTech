@@ -14,7 +14,7 @@ const outputPath = path.join(outputDir, outputFile)
 
 try {
     const result = execSync(`git diff ${target}`, {
-        cwd: path.join(__dirname, '..'),
+        cwd: path.join(__dirname, '../..'),
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe']
     })

@@ -3,5 +3,10 @@
     "mysql2": "^3.18.2",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.7.0"
+  },
+  "scripts": {
+    "front": "git add . && git commit -m \"Changes\" && git checkout final",
+    "left":  "node scripts/diff.js client",
+    "right": "node scripts/diff.js server"
   }
 }

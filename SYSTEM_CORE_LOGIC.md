@@ -8,8 +8,6 @@ Water Ordering and Inventory Management System. Written in TypeScript.
 // AQUALASTECH SYSTEM CORE LOGIC
 // Water Ordering and Inventory Management System
 // =============================================================================
-
-
 // CONSTANTS
 
 

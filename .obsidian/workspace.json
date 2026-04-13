@@ -14,7 +14,7 @@
               "type": "markdown",
               "state": {
                 "file": "SYSTEM_DOCUMENTATION.md",
-                "mode": "preview",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200
   },
   "right": {
     "id": "cb8e8ac87d880a92",
@@ -185,7 +185,21 @@
   },
   "active": "4ee282fd547fb70b",
   "lastOpenFiles": [
-    "write_doc.py",
+    "output/right.txt",
+    "output/left.txt",
+    "scripts/diff.js",
+    "scripts",
+    "output",
+    "server/output",
+    "BEGINNER_GUIDE.md",
+    "client/dist/assets/LocationMap-j2_eUzKf.js",
+    "client/dist/assets/index-Co_iIIRj.js",
+    "client/dist/assets/LocationMap-Dgihpmma.css",
+    "client/dist/assets/index-DUemTaBC.css",
+    "client/dist/assets/ALT_FONT-o5KDGDZh.png",
+    "PANEL_TECHNICAL_QUESTIONS.md",
+    "ERROR_HANDLING_GUIDE.md",
+    "fix_docu.py",
     "SETUP_GUIDE.md"
   ]
 }

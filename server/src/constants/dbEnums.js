@@ -1,14 +1,3 @@
-/**
- * Database ENUM to TINYINT Mappings
- * Use these constants in your application for type safety
- *
- * Example:
- *   INSERT INTO users (role) VALUES (?)
- *   .then(result => console.log(result))
- *
- *   Use: db.query(..., [ROLE.CUSTOMER])
- *   NOT: db.query(..., ['customer'])
- */
 
 // USER ROLES (users.role)
 const ROLE = {

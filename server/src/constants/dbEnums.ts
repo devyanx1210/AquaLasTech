@@ -1,15 +1,4 @@
-/**
- * Database ENUM to TINYINT Type-Safe Constants
- * Use these throughout the application instead of hardcoded string enums
- *
- * After migration, all enum values in the database are TINYINT:
- * - This saves 90% storage (ENUM = 10 bytes, TINYINT = 1 byte)
- * - All string comparisons must be updated to numeric comparisons
- *
- * Example Migration:
- *   OLD: WHERE order_status = 'delivered'
- *   NEW: WHERE order_status = ORDER_STATUS.DELIVERED
- */
+
 
 // USER ROLES (users.role) - TINYINT(1)
 export const ROLE = {

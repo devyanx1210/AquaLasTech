@@ -543,7 +543,7 @@ function CancelModal({ order, onClose, onConfirm }: {
                             ))}
                         </div>
                         {!loadingItems && selected.length > 0 && selected.length === selections.length && (
-                            <p className="text-[10px] text-red-400 font-semibold">All items selected — the entire order will be cancelled.</p>
+                            <p className="text-[10px] text-red-400 font-semibold">All items selected. The entire order will be cancelled.</p>
                         )}
                     </div>
 

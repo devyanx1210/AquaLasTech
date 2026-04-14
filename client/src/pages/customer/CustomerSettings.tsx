@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import axios from 'axios'
-import { hashPassword } from '../../utils/hashPassword'
 import {
     MapPin, Phone, Save, User, Mail, Lock,
     Eye, EyeOff,
@@ -372,10 +371,9 @@ export default function CustomerSettings() {
         if (newPw !== confirmPw) { showToast('Passwords do not match', 'error'); return }
         setSavingPassword(true)
         try {
-            const [hashedCurrent, hashedNew] = await Promise.all([hashPassword(currentPw), hashPassword(newPw)])
             await axios.put(`${API}/customer/password`, {
-                current_password: hashedCurrent,
-                new_password: hashedNew,
+                current_password: currentPw,
+                new_password: newPw,
             }, { withCredentials: true })
             showToast('Password changed successfully!', 'success')
             setCurrentPw(''); setNewPw(''); setConfirmPw('')

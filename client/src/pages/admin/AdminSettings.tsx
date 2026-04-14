@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useStation } from '../../hooks/useStation'
 import axios from 'axios'
-import { hashPassword } from '../../utils/hashPassword'
 import {
     MapPin, Phone, Building2, Save, UserPlus,
     Eye, EyeOff, AlertCircle,
@@ -266,8 +265,7 @@ export default function AdminSettings() {
         setSavingPw(true)
         try {
             const API = import.meta.env.VITE_API_URL
-            const [hashedCurrent, hashedNext] = await Promise.all([hashPassword(pwForm.current), hashPassword(pwForm.next)])
-            await axios.put(`${API}/auth/change-password`, { current_password: hashedCurrent, new_password: hashedNext }, { withCredentials: true })
+            await axios.put(`${API}/auth/change-password`, { current_password: pwForm.current, new_password: pwForm.next }, { withCredentials: true })
             setPwForm({ current: '', next: '', confirm: '' })
             showToast('Password changed', 'success')
         } catch (err: any) {

@@ -80,7 +80,6 @@ router.post("/login", async (req, res) => {
             return res.status(401).json({ message: "No email exists" })
 
         const user = rows[0]
-        // Client sends SHA-256(password) — compare against stored bcrypt(SHA-256(password))
         const match = await bcrypt.compare(password.toString(), user.password_hash)
         if (!match)
             return res.status(401).json({ message: "Password not matched" })

@@ -6,7 +6,6 @@ import { useNavigate, Navigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import InputField from "../components/ui/InputField";
-import { hashPassword } from "../utils/hashPassword";
 import WaterLoader from "../components/ui/WaterLoader";
 
 const WaterDropLogo = () => (
@@ -39,8 +38,7 @@ export default function LoginPage() {
         if (!form.email || !form.password) { setError("All fields are required"); return; }
         setError(""); setLoading(true);
         try {
-            const hashedPw = await hashPassword(form.password);
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email: form.email, password: hashedPw }, { withCredentials: true });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email: form.email, password: form.password }, { withCredentials: true });
             if (res.data.Status === "Success") {
                 setUser(res.data.user);
                 setForm({ email: "", password: "" });

@@ -181,7 +181,7 @@ export default function AdminLayout() {
 
     useEffect(() => {
         fetchNotifications()
-        const t = setInterval(fetchNotifications, 5000)
+        const t = setInterval(fetchNotifications, 30000)
         return () => clearInterval(t)
     }, [fetchNotifications])
 

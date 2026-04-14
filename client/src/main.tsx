@@ -7,14 +7,8 @@ import router from "./routes/router";
 import "./index.css";
 import axios from "axios";
 
-// Attach token to every request from localStorage (fallback for iOS Safari cross-site cookie blocking)
-axios.interceptors.request.use((config) => {
-    try {
-        const token = localStorage.getItem("authToken");
-        if (token) config.headers.set("Authorization", `Bearer ${token}`);
-    } catch { /* localStorage unavailable */ }
-    return config;
-});
+// Auth is handled via httpOnly cookies — withCredentials: true on each request
+axios.defaults.withCredentials = true;
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

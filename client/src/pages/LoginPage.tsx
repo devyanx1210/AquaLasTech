@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import InputField from "../components/ui/InputField";
+import { hashPassword } from "../utils/hashPassword";
 import WaterLoader from "../components/ui/WaterLoader";
 
 const WaterDropLogo = () => (
@@ -20,7 +21,17 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { setUser } = useAuth();
+    const { user, loading: authLoading, setUser } = useAuth();
+
+    // If already authenticated, skip login and go straight to dashboard
+    if (!authLoading && user) {
+        const dest = user.role === "sys_admin" ? "/sysadmin"
+            : user.role === "super_admin" ? "/admin/dashboard"
+            : user.role === "admin" ? "/admin/inventory"
+            : "/customer/dashboard";
+        navigate(dest, { replace: true });
+        return null;
+    }
 
     const handle = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [field]: e.target.value });
 
@@ -29,12 +40,9 @@ export default function LoginPage() {
         if (!form.email || !form.password) { setError("All fields are required"); return; }
         setError(""); setLoading(true);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, form, { withCredentials: true });
+            const hashedPw = await hashPassword(form.password);
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email: form.email, password: hashedPw }, { withCredentials: true });
             if (res.data.Status === "Success") {
-                if (res.data.token) {
-                    localStorage.setItem('authToken', res.data.token);
-                    axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-                }
                 setUser(res.data.user);
                 setForm({ email: "", password: "" });
                 const role = res.data.user.role;

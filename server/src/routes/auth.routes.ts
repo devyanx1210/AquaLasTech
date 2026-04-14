@@ -80,6 +80,7 @@ router.post("/login", async (req, res) => {
             return res.status(401).json({ message: "No email exists" })
 
         const user = rows[0]
+        // Client sends SHA-256(password) — compare against stored bcrypt(SHA-256(password))
         const match = await bcrypt.compare(password.toString(), user.password_hash)
         if (!match)
             return res.status(401).json({ message: "Password not matched" })
@@ -92,11 +93,14 @@ router.post("/login", async (req, res) => {
         )
 
         const isProd = process.env.NODE_ENV === "production"
+        const isCustomer = roleStr === "customer"
         res.cookie("token", token, {
             httpOnly: true,
             secure: isProd,
-            sameSite: isProd ? "none" : "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            sameSite: isProd ? "none" : "lax",
+            // Customers: persistent 7-day cookie (stay logged in across sessions)
+            // Admins / store owners / staff: session cookie (expires on browser close)
+            ...(isCustomer ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}),
         })
 
         // Log login event (non-critical — never fails the login)
@@ -345,7 +349,7 @@ router.post("/logout", (_req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
         secure: isProd,
-        sameSite: isProd ? "none" : "strict",
+        sameSite: isProd ? "none" : "lax",
     })
     return res.json({ Status: "Logged out" })
 })

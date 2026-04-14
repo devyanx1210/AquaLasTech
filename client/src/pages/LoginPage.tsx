@@ -40,6 +40,7 @@ export default function LoginPage() {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email: form.email, password: form.password }, { withCredentials: true });
             if (res.data.Status === "Success") {
+                if (res.data.token) localStorage.setItem('authToken', res.data.token);
                 setUser(res.data.user);
                 setForm({ email: "", password: "" });
                 const role = res.data.user.role;

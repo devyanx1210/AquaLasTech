@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         axios
             .get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true })
             .then(res => {
+                if (res.data.token) localStorage.setItem('authToken', res.data.token);
                 setUser(res.data.user);
             })
             .catch(() => setUser(null))

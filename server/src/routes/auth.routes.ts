@@ -80,9 +80,19 @@ router.post("/login", async (req, res) => {
             return res.status(401).json({ message: "No email exists" })
 
         const user = rows[0]
-        const match = await bcrypt.compare(password.toString(), user.password_hash)
-        if (!match)
-            return res.status(401).json({ message: "Password not matched" })
+
+        // Try new-style match: client sends SHA256(password), stored as bcrypt(SHA256)
+        let match = await bcrypt.compare(password.toString(), user.password_hash)
+
+        // Fallback: old account where stored hash is bcrypt(rawPassword)
+        // Client now sends SHA256(password) so we can't compare directly —
+        // prompt user to reset password once to migrate to new secure format
+        if (!match) {
+            return res.status(401).json({
+                message: "Password not matched",
+                needsReset: true
+            })
+        }
 
         const roleStr = ROLE_NAMES[user.role] ?? 'customer'
         const token = jwt.sign(

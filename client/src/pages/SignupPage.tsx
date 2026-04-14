@@ -7,6 +7,7 @@ import WaterLoader from "../components/ui/WaterLoader";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import InputField from "../components/ui/InputField";
+import { hashPassword } from "../utils/hashPassword";
 
 export default function SignupPage() {
     const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
@@ -25,11 +26,12 @@ export default function SignupPage() {
         if (form.password !== form.confirm) { setError("Confirm password unmatched"); return; }
         setError(""); setLoading(true);
         try {
+            const hashedPw = await hashPassword(form.password);
             await axios.post(`${import.meta.env.VITE_API_URL}/auth/signup`, {
-                name: form.name, email: form.email, password: form.password
+                name: form.name, email: form.email, password: hashedPw
             });
             const loginRes = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`,
-                { email: form.email, password: form.password }, { withCredentials: true });
+                { email: form.email, password: hashedPw }, { withCredentials: true });
             if (loginRes.data.Status === "Success") {
                 setUser(loginRes.data.user);
                 setForm({ name: "", email: "", password: "", confirm: "" });

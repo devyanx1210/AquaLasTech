@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import axios from "axios"
+import { hashPassword } from "../utils/hashPassword"
 import { FiLock, FiX } from "react-icons/fi"
 import logo from "../assets/aqualastech-logo-noBG.png"
 import InputField from "../components/ui/InputField"
@@ -29,9 +30,10 @@ export default function ResetPasswordPage() {
 
         setError(""); setLoading(true)
         try {
+            const hashedPw = await hashPassword(newPassword)
             await axios.post(`${import.meta.env.VITE_API_URL}/auth/reset-password`, {
                 token,
-                new_password: newPassword,
+                new_password: hashedPw,
             })
             setSuccess(true)
         } catch (err: any) {

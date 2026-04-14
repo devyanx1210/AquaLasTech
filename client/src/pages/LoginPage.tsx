@@ -6,6 +6,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import InputField from "../components/ui/InputField";
+import { hashPassword } from "../utils/hashPassword";
 import WaterLoader from "../components/ui/WaterLoader";
 
 const WaterDropLogo = () => (
@@ -38,7 +39,8 @@ export default function LoginPage() {
         if (!form.email || !form.password) { setError("All fields are required"); return; }
         setError(""); setLoading(true);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email: form.email, password: form.password }, { withCredentials: true });
+            const hashedPw = await hashPassword(form.password);
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email: form.email, password: hashedPw }, { withCredentials: true });
             if (res.data.Status === "Success") {
                 if (res.data.token) localStorage.setItem('authToken', res.data.token);
                 setUser(res.data.user);
@@ -47,7 +49,11 @@ export default function LoginPage() {
                 navigate(role === "sys_admin" ? "/sysadmin" : role === "super_admin" ? "/admin/dashboard" : role === "admin" ? "/admin/inventory" : "/customer/dashboard");
             }
         } catch (err: unknown) {
-            setError(axios.isAxiosError(err) ? err.response?.data?.message || "Server error" : "Server error");
+            if (axios.isAxiosError(err) && err.response?.data?.needsReset) {
+                setError("Your account needs a one-time password reset. Please use Forgot Password.");
+            } else {
+                setError(axios.isAxiosError(err) ? err.response?.data?.message || "Server error" : "Server error");
+            }
         } finally { setLoading(false); }
     };
 

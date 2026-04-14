@@ -155,17 +155,21 @@ export default function CustomerDashboard() {
     const userLat = user?.latitude != null ? Number(user.latitude) : null
     const userLng = user?.longitude != null ? Number(user.longitude) : null
 
-    // Fetch all active stations
+    // Fetch all active stations — auto-retries 3x to handle Render cold start
     const fetchStations = useCallback(async () => {
         setLoading(true); setError('')
-        try {
-            const res = await axios.get(`${API}/stations/customer/list`, { withCredentials: true })
-            setStations(res.data)
-        } catch {
-            setError('Failed to load stations. Please try again.')
-        } finally {
-            setLoading(false)
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const res = await axios.get(`${API}/stations/customer/list`, { withCredentials: true })
+                setStations(res.data)
+                setLoading(false)
+                return
+            } catch {
+                if (attempt < 3) await new Promise(r => setTimeout(r, 5000))
+            }
         }
+        setError('Failed to load stations. Please try again.')
+        setLoading(false)
     }, [API])
 
     useEffect(() => { fetchStations() }, [fetchStations])

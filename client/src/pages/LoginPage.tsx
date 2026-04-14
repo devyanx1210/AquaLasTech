@@ -2,7 +2,7 @@
 import { useState } from "react";
 import logo from "../assets/aqualastech-logo-noBG.png"
 import { FiMail, FiLock, FiX } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import InputField from "../components/ui/InputField";
@@ -29,8 +29,7 @@ export default function LoginPage() {
             : user.role === "super_admin" ? "/admin/dashboard"
             : user.role === "admin" ? "/admin/inventory"
             : "/customer/dashboard";
-        navigate(dest, { replace: true });
-        return null;
+        return <Navigate to={dest} replace />;
     }
 
     const handle = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [field]: e.target.value });

@@ -10,7 +10,8 @@ import {
     FiBarChart2, FiShield, FiList, FiShoppingCart,
     FiMail, FiPhone, FiFacebook,
 } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 // CONFIG — values from environment variables
 const FB_PAGE_URL = import.meta.env.VITE_FB_PAGE_URL as string;
@@ -73,7 +74,17 @@ function FeatureCard({ icon: Icon, title, desc, delay, index }: {
 // PAGE
 const LandingPage = () => {
     const navigate = useNavigate();
+    const { user, loading } = useAuth();
     const [bgLoaded, setBgLoaded] = useState(false);
+
+    // Already logged in — skip landing page, go straight to their dashboard
+    if (!loading && user) {
+        const dest = user.role === "sys_admin" ? "/sysadmin"
+            : user.role === "super_admin" ? "/admin/dashboard"
+            : user.role === "admin" ? "/admin/inventory"
+            : "/customer/dashboard";
+        return <Navigate to={dest} replace />;
+    }
     const [logoError, setLogoError] = useState(false);
     const logoFallback = (
         <h1 className="tracking-tight leading-none text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[5.5rem]"

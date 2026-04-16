@@ -76,6 +76,10 @@ const LandingPage = () => {
     const navigate = useNavigate();
     const { user, loading } = useAuth();
     const [bgLoaded, setBgLoaded] = useState(false);
+    const [logoError, setLogoError] = useState(false);
+    const featuresRef = useRef<HTMLDivElement>(null);
+    const { ref: aboutRef, visible: aboutVisible } = useVisible(0.08);
+    const { ref: ctaRef, visible: ctaVisible } = useVisible(0.12);
 
     // Already logged in — skip landing page, go straight to their dashboard
     if (!loading && user) {
@@ -85,16 +89,13 @@ const LandingPage = () => {
             : "/customer/dashboard";
         return <Navigate to={dest} replace />;
     }
-    const [logoError, setLogoError] = useState(false);
+
     const logoFallback = (
         <h1 className="tracking-tight leading-none text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
             style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 900, background: "linear-gradient(90deg, #1de9b6 0%, #29b6f6 50%, #1565c0 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
             AquaLasTech
         </h1>
     );
-    const featuresRef = useRef<HTMLDivElement>(null);
-    const { ref: aboutRef, visible: aboutVisible } = useVisible(0.08);
-    const { ref: ctaRef, visible: ctaVisible } = useVisible(0.12);
 
     return (
         <div className="lp-root">

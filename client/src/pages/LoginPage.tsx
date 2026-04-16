@@ -42,10 +42,16 @@ export default function LoginPage() {
             const hashedPw = await hashPassword(form.password);
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email: form.email, password: hashedPw }, { withCredentials: true });
             if (res.data.Status === "Success") {
-                if (res.data.token) localStorage.setItem('authToken', res.data.token);
+                const role = res.data.user.role;
+                // Only persist token in localStorage for customers (iOS fallback)
+                // Admins/staff must re-login after closing app — no persistent storage
+                if (res.data.token && role === "customer") {
+                    localStorage.setItem('authToken', res.data.token);
+                } else {
+                    localStorage.removeItem('authToken');
+                }
                 setUser(res.data.user);
                 setForm({ email: "", password: "" });
-                const role = res.data.user.role;
                 navigate(role === "sys_admin" ? "/sysadmin" : role === "super_admin" ? "/admin/dashboard" : role === "admin" ? "/admin/inventory" : "/customer/dashboard");
             }
         } catch (err: unknown) {

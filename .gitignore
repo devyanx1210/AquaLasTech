@@ -1,6 +1,12 @@
 # Claude Code
 .claude/
 
+# Obsidian vault settings
+.obsidian/
+
+# Root-level lock file (dependencies belong in server/ and client/)
+package-lock.json
+
 # Defense scripts (local only — not tracked by git)
 server/scripts/
 server/output/

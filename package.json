@@ -1,9 +1,4 @@
 {
-  "dependencies": {
-    "mysql2": "^3.18.2",
-    "react-leaflet": "^5.0.0",
-    "recharts": "^3.7.0"
-  },
   "scripts": {
     "front": "node server/scripts/front.cjs",
     "left":  "node server/scripts/diff.cjs client",

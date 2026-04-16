@@ -229,16 +229,15 @@ router.get('/subscriptions', async (_req, res) => {
             CREATE TABLE IF NOT EXISTS station_subscriptions (
                 subscription_id INT AUTO_INCREMENT PRIMARY KEY,
                 station_id      INT NOT NULL,
-                plan_type       TINYINT NOT NULL COMMENT '1=monthly,2=annual,3=one_time',
+                plan_type       TINYINT NOT NULL DEFAULT 1,
                 amount          DECIMAL(10,2) NOT NULL,
-                payment_status  TINYINT NOT NULL DEFAULT 2 COMMENT '1=active,2=pending,3=overdue,4=expired',
+                payment_status  TINYINT NOT NULL DEFAULT 2,
                 start_date      DATE NOT NULL,
-                end_date        DATE NULL COMMENT 'NULL for one-time/lifetime',
+                end_date        DATE NULL,
                 notes           VARCHAR(500) NULL,
                 recorded_by     INT NULL,
                 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (station_id) REFERENCES stations(station_id) ON DELETE CASCADE
+                updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )
         `)
         const [rows]: any = await db.query(`

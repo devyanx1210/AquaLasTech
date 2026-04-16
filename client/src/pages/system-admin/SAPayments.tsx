@@ -4,7 +4,7 @@ import axios from 'axios'
 import {
     CreditCard, Plus, RefreshCw, Loader2, X,
     CheckCircle2, Clock, AlertTriangle, XCircle,
-    Building2, Pencil, Trash2, CalendarDays,
+    Building2, Pencil, Trash2, CalendarDays, TrendingUp,
 } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL
@@ -202,16 +202,21 @@ export default function SAPayments() {
             </div>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                    { label: 'Active', value: active, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Pending', value: pending, color: 'text-amber-600', bg: 'bg-amber-50' },
-                    { label: 'Overdue', value: overdue, color: 'text-red-600', bg: 'bg-red-50' },
-                    { label: 'Active Revenue', value: fmt(totalRevenue), color: 'text-[#0d2a4a]', bg: 'bg-sky-50' },
-                ].map(c => (
-                    <div key={c.label} className={`${c.bg} rounded-2xl px-4 py-3`}>
-                        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">{c.label}</p>
-                        <p className={`text-xl font-black ${c.color} mt-0.5`}>{c.value}</p>
+                    { label: 'Total Revenue', value: fmt(totalRevenue), sub: 'from active subscriptions', icon: TrendingUp, color: 'text-[#38bdf8]', gradient: 'bg-[#0d2a4a]', style: { backgroundImage: 'radial-gradient(ellipse at top right, #1a4a7a 0%, #0d2a4a 60%)' }, dark: true },
+                    { label: 'Active',         value: active,           sub: 'stations paid & active',    icon: CheckCircle2, color: 'text-emerald-500', gradient: 'bg-white', style: { backgroundImage: 'radial-gradient(ellipse at bottom left, #bbf7d0 0%, #ffffff 60%)' }, dark: false },
+                    { label: 'Pending',        value: pending,          sub: 'awaiting payment',          icon: Clock,        color: 'text-amber-500',   gradient: 'bg-white', style: { backgroundImage: 'radial-gradient(ellipse at bottom left, #fde68a 0%, #ffffff 60%)' }, dark: false },
+                    { label: 'Overdue',        value: overdue,          sub: 'missed payments',           icon: AlertTriangle, color: 'text-red-500',    gradient: 'bg-white', style: { backgroundImage: 'radial-gradient(ellipse at bottom left, #fecaca 0%, #ffffff 60%)' }, dark: false },
+                ].map(({ label, value, sub, icon: Icon, color, gradient, style, dark }, i) => (
+                    <div key={label} className={`${gradient} rounded-2xl p-4 flex flex-col gap-2 border ${dark ? 'border-[#1a4a7a]' : 'border-gray-100'} shadow-md hover:shadow-lg transition-all`}
+                        style={{ ...style, animationDelay: `${i * 60}ms` }}>
+                        <div className="flex items-center justify-between">
+                            <p className={`text-[10px] font-semibold uppercase tracking-wider ${dark ? 'text-white/50' : 'text-gray-400'}`}>{label}</p>
+                            <Icon size={16} className={color} />
+                        </div>
+                        <p className={`text-2xl font-black ${dark ? 'text-white' : 'text-gray-800'}`}>{value}</p>
+                        <p className={`text-[10px] ${dark ? 'text-[#38bdf8]' : 'text-gray-400'}`}>{sub}</p>
                     </div>
                 ))}
             </div>

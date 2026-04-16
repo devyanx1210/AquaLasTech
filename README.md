@@ -27,6 +27,20 @@ AquaLasTech is a full-stack web application designed to modernize the operations
 The system supports multiple stations, each managed independently by a super admin, who may also assign regular admin staff under their station. Customers interact with the platform through a mobile-friendly interface accessible via any web browser.
 
 
+## Completed Enhancements
+
+The following features were implemented as part of the system's final improvements:
+
+**Secure Password Hashing**
+Passwords are hashed using SHA-256 on the client before being sent over the network, so plain-text credentials are never visible in browser developer tools. The server applies an additional bcrypt hash on top for secure storage.
+
+**Persistent Customer Session**
+Customers who have previously logged in are automatically redirected to their dashboard when they reopen the app, without needing to log in again. This is achieved through localStorage token persistence combined with an HTTP-only cookie. Admin and staff roles are excluded from this behavior for security — they must log in again after closing the browser.
+
+**Station Payment Tracking**
+The System Admin panel now includes a Payments page where platform-level administrators can record and monitor software subscription payments from registered water stations. Supports monthly, annual, and one-time payment plans with status tracking (Active, Pending, Overdue, Expired) and a total active revenue summary.
+
+
 ## 2. System Architecture
 
 AquaLasTech follows a separated full-stack architecture where the frontend, backend, and database are independent services that communicate over HTTPS.
@@ -117,19 +131,35 @@ The database follows Third Normal Form (3NF) relational modeling. All relationsh
 - notifications: In-app notifications by type, targeted to specific users.
 - system_logs: Audit log for login/logout and admin actions.
 - password_reset_tokens: Temporary tokens for password recovery via email.
+- station_subscriptions: Tracks software subscription and payment records per station, managed by the System Admin. Supports monthly, annual, and one-time payment plans with status tracking (Active, Pending, Overdue, Expired).
+
+**Database SQL File**
+
+The full database schema is located at server/src/aqualastech.sql. This file contains all CREATE TABLE statements and can be used to initialize the database on a new environment.
 
 
 ## 6. Authentication and Authorization
 
-The system uses JWT-based authentication. Upon login, the server signs a token with the user ID, role, and station ID, then returns it in both an HTTP-only cookie (for standard browsers) and in the response body (for mobile browsers that block cross-site cookies).
+**Password Hashing**
 
-The client stores the token in localStorage. A global Axios request interceptor, registered at application startup in main.tsx, reads the token from localStorage and attaches it as an Authorization: Bearer header on every outgoing request. This ensures authenticated requests work on all devices including iOS Safari, which applies Intelligent Tracking Prevention (ITP) and may block cross-site cookies in cross-origin requests.
+Passwords are hashed on the client side using SHA-256 (via the Web Crypto API) before being sent over the network. The server then applies bcrypt hashing on top of the SHA-256 hash before storing it in the database. This means the plain-text password is never visible in the network tab of browser developer tools. The server compares incoming SHA-256 hashed passwords against the stored bcrypt(SHA-256) hash using bcrypt.compare.
 
-On application startup, the AuthContext calls the /auth/me endpoint. The server returns both the user data and the current token. The client stores the returned token in localStorage, which ensures that even users with an existing cookie-based session (from a previous login before the localStorage system was introduced) immediately receive a valid token for header-based authentication.
+**Token Storage and iOS Compatibility**
+
+The system uses JWT-based authentication. Upon login, the server signs a token with the user ID, role, and station ID, then returns it in both an HTTP-only cookie (for standard browsers) and in the response body.
+
+Apple's Intelligent Tracking Prevention (ITP) blocks cross-site cookies on iOS Safari and Chrome, including during an active session. To handle this, the client stores the token in browser storage as a fallback and attaches it as an Authorization: Bearer header on every request via a global Axios interceptor registered in main.tsx.
+
+Storage behavior differs by role to balance security and convenience:
+
+- Customer: Token is stored in localStorage, which persists across sessions. Customers who close and reopen the app are automatically redirected to their dashboard without needing to log in again.
+- Admin, Super Admin, System Admin: Token is stored in sessionStorage, which is cleared when the browser or tab is closed. These roles must log in again after closing the app, ensuring sensitive station operations are protected.
+
+On application startup, the AuthContext calls the /auth/me endpoint to verify the session and refresh the stored token.
 
 The verifyToken middleware on the server accepts the token from either the cookie or the Authorization header, whichever is present.
 
-Protected routes on the frontend use a ProtectedRoute component that waits for the authentication check to complete before rendering. Unauthenticated users are redirected to the login page. Role-based redirects ensure admins and super admins land on their appropriate starting pages after login.
+Protected routes on the frontend use a ProtectedRoute component that waits for the authentication check to complete before rendering. Unauthenticated users are redirected to the login page. Role-based redirects ensure each role lands on their appropriate starting page after login.
 
 
 ## 7. Deployment Setup

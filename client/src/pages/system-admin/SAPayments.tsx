@@ -302,8 +302,9 @@ export default function SAPayments() {
 
             {/* Add / Edit Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+                    <div className="relative z-10 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                             <h2 className="font-black text-sm text-[#0d2a4a]">
                                 {editTarget ? 'Edit Subscription' : 'Record Payment'}
@@ -408,8 +409,9 @@ export default function SAPayments() {
 
             {/* Delete confirm */}
             {deleteTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
+                    <div className="relative z-10 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm p-5">
                         <div className="flex items-start gap-3 mb-4">
                             <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
                                 <Trash2 size={16} className="text-red-500" />

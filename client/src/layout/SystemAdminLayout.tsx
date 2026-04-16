@@ -1,7 +1,7 @@
 // SystemAdminLayout - responsive shell for the system admin area
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Building2, ScrollText, LogOut, Droplets, Menu, X } from 'lucide-react'
+import { Building2, ScrollText, LogOut, Droplets, Menu, X, CreditCard } from 'lucide-react'
 import { useState } from 'react'
 import axios from 'axios'
 import logo from '../assets/aqualastech-logo-noBG.png'
@@ -10,6 +10,7 @@ const API = import.meta.env.VITE_API_URL
 
 const navItems = [
     { label: 'Stations', to: '/sysadmin/stations', icon: Building2 },
+    { label: 'Payments', to: '/sysadmin/payments', icon: CreditCard },
     { label: 'Logs', to: '/sysadmin/logs', icon: ScrollText },
 ]
 

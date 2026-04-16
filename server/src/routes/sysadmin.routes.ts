@@ -220,6 +220,101 @@ router.delete('/stations/:id', async (req: any, res) => {
     }
 })
 
+// ── GET /sysadmin/subscriptions ─────────────────────────────────────────────
+router.get('/subscriptions', async (_req, res) => {
+    try {
+        const db = await connectToDatabase()
+        // Auto-create table if it doesn't exist yet
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS station_subscriptions (
+                subscription_id INT AUTO_INCREMENT PRIMARY KEY,
+                station_id      INT NOT NULL,
+                plan_type       TINYINT NOT NULL COMMENT '1=monthly,2=annual,3=one_time',
+                amount          DECIMAL(10,2) NOT NULL,
+                payment_status  TINYINT NOT NULL DEFAULT 2 COMMENT '1=active,2=pending,3=overdue,4=expired',
+                start_date      DATE NOT NULL,
+                end_date        DATE NULL COMMENT 'NULL for one-time/lifetime',
+                notes           VARCHAR(500) NULL,
+                recorded_by     INT NULL,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (station_id) REFERENCES stations(station_id) ON DELETE CASCADE
+            )
+        `)
+        const [rows]: any = await db.query(`
+            SELECT ss.subscription_id, ss.station_id, ss.plan_type, ss.amount,
+                   ss.payment_status, ss.start_date, ss.end_date, ss.notes,
+                   ss.created_at, ss.updated_at,
+                   s.station_name,
+                   u.full_name AS recorded_by_name
+            FROM station_subscriptions ss
+            JOIN stations s ON s.station_id = ss.station_id
+            LEFT JOIN users u ON u.user_id = ss.recorded_by
+            ORDER BY ss.created_at DESC
+        `)
+        return res.json(rows)
+    } catch (err) {
+        console.error('[SysAdmin] GET /subscriptions error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── POST /sysadmin/subscriptions ─────────────────────────────────────────────
+router.post('/subscriptions', async (req: any, res) => {
+    const { station_id, plan_type, amount, payment_status, start_date, end_date, notes } = req.body
+    if (!station_id || !plan_type || !amount || !start_date)
+        return res.status(400).json({ message: 'Station, plan, amount, and start date are required' })
+    try {
+        const db = await connectToDatabase()
+        await db.query(`
+            INSERT INTO station_subscriptions
+                (station_id, plan_type, amount, payment_status, start_date, end_date, notes, recorded_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [station_id, plan_type, amount, payment_status ?? 1, start_date, end_date || null, notes?.trim() || null, req.user.id])
+        await db.query(
+            `INSERT INTO system_logs (event_type, description, user_id) VALUES (?, ?, ?)`,
+            ['subscription_added', `Subscription recorded for station_id ${station_id}`, req.user.id]
+        )
+        return res.status(201).json({ message: 'Subscription recorded' })
+    } catch (err) {
+        console.error('[SysAdmin] POST /subscriptions error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── PUT /sysadmin/subscriptions/:id ──────────────────────────────────────────
+router.put('/subscriptions/:id', async (req: any, res) => {
+    const id = parseInt(req.params.id)
+    const { plan_type, amount, payment_status, start_date, end_date, notes } = req.body
+    if (!plan_type || !amount || !start_date || !payment_status)
+        return res.status(400).json({ message: 'Plan, amount, status, and start date are required' })
+    try {
+        const db = await connectToDatabase()
+        await db.query(`
+            UPDATE station_subscriptions
+            SET plan_type=?, amount=?, payment_status=?, start_date=?, end_date=?, notes=?, updated_at=NOW()
+            WHERE subscription_id=?
+        `, [plan_type, amount, payment_status, start_date, end_date || null, notes?.trim() || null, id])
+        return res.json({ message: 'Subscription updated' })
+    } catch (err) {
+        console.error('[SysAdmin] PUT /subscriptions/:id error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
+// ── DELETE /sysadmin/subscriptions/:id ───────────────────────────────────────
+router.delete('/subscriptions/:id', async (req: any, res) => {
+    const id = parseInt(req.params.id)
+    try {
+        const db = await connectToDatabase()
+        await db.query(`DELETE FROM station_subscriptions WHERE subscription_id = ?`, [id])
+        return res.json({ message: 'Record deleted' })
+    } catch (err) {
+        console.error('[SysAdmin] DELETE /subscriptions/:id error:', err)
+        return res.status(500).json({ message: 'Server error' })
+    }
+})
+
 // ── GET /sysadmin/logs ─────
 router.get('/logs', async (_req, res) => {
     try {

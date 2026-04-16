@@ -33,6 +33,7 @@ import ResetPasswordPage from '../pages/ResetPasswordPage'
 import SystemAdminLayout from '../layout/SystemAdminLayout'
 import SAStations from '../pages/system-admin/SAStations'
 import SALogs from '../pages/system-admin/SALogs'
+import SAPayments from '../pages/system-admin/SAPayments'
 
 const router = createBrowserRouter([
     {
@@ -97,6 +98,7 @@ const router = createBrowserRouter([
         children: [
             { index: true, element: <Navigate to="stations" replace /> },
             { path: "stations", element: <SAStations /> },
+            { path: "payments", element: <SAPayments /> },
             { path: "logs", element: <SALogs /> },
         ],
     },

@@ -8,14 +8,16 @@ import "./index.css";
 import axios from "axios";
 
 // Primary auth: httpOnly cookie (withCredentials)
-// Fallback: Authorization header from localStorage — needed for iOS Safari/Chrome
+// Fallback: Authorization header from storage — needed for iOS Safari/Chrome
 // which blocks cross-origin cookies (Apple ITP)
+// - Customers: localStorage (persists across sessions — stay logged in)
+// - Admins/staff: sessionStorage (cleared on browser close — must re-login)
 axios.defaults.withCredentials = true;
 axios.interceptors.request.use((config) => {
     try {
-        const token = localStorage.getItem("authToken");
+        const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
         if (token) config.headers.set("Authorization", `Bearer ${token}`);
-    } catch { /* localStorage unavailable */ }
+    } catch { /* storage unavailable */ }
     return config;
 });
 

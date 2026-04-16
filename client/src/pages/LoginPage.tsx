@@ -43,12 +43,17 @@ export default function LoginPage() {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email: form.email, password: hashedPw }, { withCredentials: true });
             if (res.data.Status === "Success") {
                 const role = res.data.user.role;
-                // Only persist token in localStorage for customers (iOS fallback)
-                // Admins/staff must re-login after closing app — no persistent storage
-                if (res.data.token && role === "customer") {
-                    localStorage.setItem('authToken', res.data.token);
-                } else {
-                    localStorage.removeItem('authToken');
+                // iOS cross-origin cookie fix (Apple ITP blocks cookies):
+                // Customers → localStorage (persists across sessions)
+                // Admins/staff → sessionStorage (cleared on browser close — must re-login)
+                if (res.data.token) {
+                    if (role === "customer") {
+                        localStorage.setItem('authToken', res.data.token);
+                        sessionStorage.removeItem('authToken');
+                    } else {
+                        sessionStorage.setItem('authToken', res.data.token);
+                        localStorage.removeItem('authToken');
+                    }
                 }
                 setUser(res.data.user);
                 setForm({ email: "", password: "" });

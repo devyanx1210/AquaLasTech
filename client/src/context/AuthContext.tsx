@@ -36,11 +36,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         axios
             .get(`${import.meta.env.VITE_API_URL}/auth/me`, { withCredentials: true })
             .then(res => {
-                // Only persist token for customers (iOS cross-origin cookie fallback)
-                if (res.data.token && res.data.user?.role === 'customer') {
-                    localStorage.setItem('authToken', res.data.token);
-                } else {
-                    localStorage.removeItem('authToken');
+                const role = res.data.user?.role;
+                if (res.data.token) {
+                    if (role === 'customer') {
+                        localStorage.setItem('authToken', res.data.token);
+                        sessionStorage.removeItem('authToken');
+                    } else {
+                        sessionStorage.setItem('authToken', res.data.token);
+                        localStorage.removeItem('authToken');
+                    }
                 }
                 setUser(res.data.user);
             })
